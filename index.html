@@ -331,7 +331,6 @@
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
             
-            // MODIFICACIÓN: MÓDULO DE CUADRE DE CAJA
             if(adminSubVista === 'caja') {
                 const totalEsperado = montoCajaInicial + ventasTotalesTurno;
                 cont.innerHTML = `
@@ -449,7 +448,6 @@
             }
         }
 
-        // LÓGICA DE CÁLCULO DE CUADRE
         window.calcularCuadre = function() {
             const esperado = montoCajaInicial + ventasTotalesTurno;
             const inputEfectivo = document.getElementById('input-efectivo-fisico').value;
@@ -554,6 +552,7 @@
             window.actualizarListaPanel();
         };
 
+        // RENDERIZADO DETALLADO LÍNEA POR LÍNEA
         window.actualizarListaPanel = function() {
             const cont = document.getElementById('lista-items-cuenta');
             cont.innerHTML = '';
@@ -564,31 +563,17 @@
                 return;
             } 
 
-            let conteo = {};
-            elementoSeleccionado.items.forEach(item => {
-                if(!conteo[item.nombre]) {
-                    conteo[item.nombre] = { nombre: item.nombre, precioBase: item.precio, cantidad: 0, subtotal: 0 };
-                }
-                conteo[item.nombre].cantidad++;
-                conteo[item.nombre].subtotal += item.precio;
-            });
-
-            Object.values(conteo).forEach(grupo => {
+            // Itera cada item individualmente sin agrupar
+            elementoSeleccionado.items.forEach((item, index) => {
                 cont.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-sm mb-2 gap-2">
-                        <span class="font-bold text-slate-200 text-sm truncate flex-1">${grupo.nombre}</span> 
-                        
-                        <div class="flex items-center bg-slate-900 rounded-lg border border-slate-700 p-0.5 shrink-0">
-                            <button onclick="window.eliminarUnidadCuenta('${grupo.nombre}')" class="w-7 h-7 rounded-md text-slate-400 hover:bg-slate-700 hover:text-white transition flex items-center justify-center">
-                                <i class="fa-solid fa-minus text-xs"></i>
-                            </button>
-                            <span class="font-black text-slate-200 text-xs w-6 text-center">${grupo.cantidad}</span>
-                            <button onclick="window.agregarUnidadCuenta('${grupo.nombre}', ${grupo.precioBase})" class="w-7 h-7 rounded-md text-slate-400 hover:bg-slate-700 hover:text-white transition flex items-center justify-center">
-                                <i class="fa-solid fa-plus text-xs"></i>
+                    <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm mb-2">
+                        <span class="font-bold text-slate-200 text-sm truncate flex-1">${item.nombre}</span> 
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span class="font-black text-amber-400">₡${item.precio.toLocaleString()}</span>
+                            <button onclick="window.eliminarItemCuenta(${index})" class="w-8 h-8 bg-rose-950/40 border border-rose-900/50 rounded-lg text-rose-500 hover:bg-rose-900 hover:text-white transition flex items-center justify-center">
+                                <i class="fa-solid fa-minus text-sm"></i>
                             </button>
                         </div>
-
-                        <span class="font-black text-amber-400 w-16 text-right shrink-0">₡${grupo.subtotal.toLocaleString()}</span>
                     </div>`;
             });
             
@@ -601,35 +586,21 @@
             elementoSeleccionado = null;
         };
 
-        window.agregarUnidadCuenta = async function(nombreProducto, precioProducto) {
+        // ELIMINAR UN ITEM ESPECÍFICO DE LA LISTA
+        window.eliminarItemCuenta = async function(index) {
             if (!elementoSeleccionado) return;
-            const items = [...(elementoSeleccionado.items || [])];
-            items.push({ nombre: nombreProducto, precio: precioProducto });
-            const nuevoTotal = (elementoSeleccionado.total || 0) + precioProducto;
+            const items = [...elementoSeleccionado.items];
+            const itemEliminado = items[index];
+            
+            // Remueve solo el elemento en la posición exacta que se tocó
+            items.splice(index, 1);
+            const nuevoTotal = (elementoSeleccionado.total || 0) - itemEliminado.precio;
             
             elementoSeleccionado.items = items;
             elementoSeleccionado.total = nuevoTotal;
             window.actualizarListaPanel();
             
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { items: items, total: nuevoTotal });
-        };
-
-        window.eliminarUnidadCuenta = async function(nombreProducto) {
-            if (!elementoSeleccionado) return;
-            const items = [...elementoSeleccionado.items];
-            const index = items.findIndex(i => i.nombre === nombreProducto);
-            
-            if(index !== -1) {
-                const itemEliminado = items[index];
-                items.splice(index, 1);
-                const nuevoTotal = (elementoSeleccionado.total || 0) - itemEliminado.precio;
-                
-                elementoSeleccionado.items = items;
-                elementoSeleccionado.total = nuevoTotal;
-                window.actualizarListaPanel();
-                
-                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { items: items, total: nuevoTotal });
-            }
         };
 
         window.cobrarCuenta = async function() {
