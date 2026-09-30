@@ -82,8 +82,8 @@
             <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
             <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
             <div class="space-y-4">
-                <button onclick="seleccionarRol('salonero')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3">
-                    <i class="fa-solid fa-bell-concierge"></i> Ingreso Salonero
+                <button onclick="seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera
                 </button>
                 <button onclick="seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3">
                     <i class="fa-solid fa-lock"></i> Ingreso Administrador
@@ -152,7 +152,7 @@
             <button onclick="cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
             <button onclick="cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
             <button onclick="cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
-            <!-- BOTÓN ADMIN OCULTO POR DEFECTO PARA SALONEROS -->
+            <!-- AHORA INICIA OCULTO RIGUROSLAMENTE CON LA CLASE 'hidden' EN HTML -->
             <button onclick="cambiarVista('admin')" id="btn-tab-admin" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap hidden"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
         </div>
     </header>
@@ -234,7 +234,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // CONTRASEÑA ADMINISTRADOR (Puedes cambiar este número por el PIN que quieras)
         let pinAdmin = "1234";
 
         let vistaActual = 'barra';
@@ -355,14 +354,13 @@
             rolUsuario = rol;
             document.getElementById('modal-login').classList.add('hidden');
             if(rol === 'admin') {
-                // Mensaje limpio sin mostrar la clave
                 const pin = await window.customPrompt("Ingrese PIN Administrador:");
                 if(pin !== pinAdmin) {
                     window.customAlert("PIN incorrecto");
                     return window.location.reload();
                 }
                 
-                // Si ingresa como Admin, se habilita el botón en la barra superior
+                // Muestra la pestaña Admin solo al entrar como administrador
                 document.getElementById('btn-tab-admin').classList.remove('hidden'); 
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
@@ -372,7 +370,7 @@
                     document.getElementById('modal-caja').classList.remove('hidden'); 
                 }
             } else {
-                // Si ingresa como salonero, la pestaña Admin queda totalmente OCULTA
+                // Asegura ocultar la pestaña Admin al entrar como salonera
                 document.getElementById('btn-tab-admin').classList.add('hidden');
                 document.getElementById('info-caja-header').classList.add('hidden');
                 window.cambiarVista('barra'); 
