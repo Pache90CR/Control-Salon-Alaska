@@ -45,7 +45,6 @@
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <!-- TIPO DINÁMICO: Será cambiado por JS entre 'text' o 'password' -->
             <input type="text" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest" autocomplete="off">
             <div class="flex gap-3">
                 <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
@@ -196,7 +195,6 @@
                     <p id="panel-titulo" class="text-xs text-slate-400 font-medium bg-slate-800 inline-block px-2 py-1 rounded-md mt-1">Ubicación</p>
                 </div>
                 <div class="flex items-center gap-1">
-                    <!-- NUEVO BOTÓN DE LIBERAR (ESCOBA) -->
                     <button onclick="window.liberarMesa()" id="btn-liberar-mesa" class="text-rose-400 hover:text-white hover:bg-rose-900 p-2 rounded-lg text-sm transition mr-1" title="Liberar espacio sin cobrar"><i class="fa-solid fa-broom"></i></button>
                     <button onclick="cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl shrink-0"><i class="fa-solid fa-xmark"></i></button>
                 </div>
@@ -225,6 +223,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // NUEVA IMPORTACIÓN DE FIREBASE STORAGE
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -237,6 +237,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const storage = getStorage(app); // INICIALIZAR STORAGE
 
         let pinAdmin = "1234";
 
@@ -257,7 +258,6 @@
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
 
-        // SISTEMA DE ALERTAS PERSONALIZADO
         window.customAlert = function(msg) {
             document.getElementById('alert-msg').innerText = msg;
             document.getElementById('modal-custom-alert').classList.remove('hidden');
@@ -282,15 +282,11 @@
             });
         };
 
-        // AHORA ACEPTA UN PARÁMETRO "isPassword" PARA OCULTAR O MOSTRAR EL TEXTO
         window.customPrompt = function(msg, defaultVal = '', isPassword = false) {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
                 const input = document.getElementById('prompt-input');
-                
-                // Mágia: Si es admin es password, si es cliente es texto
                 input.type = isPassword ? 'password' : 'text'; 
-                
                 input.value = defaultVal;
                 document.getElementById('modal-custom-prompt').classList.remove('hidden');
                 setTimeout(() => input.focus(), 100);
@@ -306,7 +302,6 @@
             });
         };
 
-        // INICIALIZACIÓN
         document.getElementById('firebase-status').innerText = "Conectado a bar-alaska ✅";
         document.getElementById('firebase-status').classList.remove('animate-pulse');
         document.getElementById('firebase-status').classList.add('text-emerald-500');
@@ -365,13 +360,11 @@
             const btnAdminTab = document.getElementById('btn-tab-admin');
 
             if(rol === 'admin') {
-                // AQUÍ LE PASAMOS TRUE AL FINAL PARA QUE SEA CONTRASEÑA CERRADA
                 const pin = await window.customPrompt("Ingrese PIN Administrador:", "", true);
                 if(pin !== pinAdmin) {
                     window.customAlert("PIN incorrecto");
                     return window.location.reload();
                 }
-                
                 if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
@@ -516,15 +509,32 @@
                 if(datosRestaurante.categorias.length === 0) { opcionesCat = `<option value="general">General</option>`; } 
                 else { datosRestaurante.categorias.forEach(c => { opcionesCat += `<option value="${c.id}">${c.nombre}</option>`; }); }
 
-                // AÑADIDO CAMPO PARA URL DE IMAGEN
-                let html = `<div class="max-w-5xl mx-auto w-full"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2><div class="flex flex-col lg:flex-row gap-3"><input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none"><div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700"><select id="add-prod-cat" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none text-amber-400 font-bold">${opcionesCat}</select><input type="text" id="add-prod-nombre" placeholder="Nombre" class="w-28 bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none"><input type="number" id="add-prod-precio" placeholder="Precio ₡" class="w-20 bg-slate-950 border border-slate-700 px-2 py-2 rounded-lg text-sm focus:outline-none"><input type="text" id="add-prod-img" placeholder="URL Imagen" class="w-24 bg-slate-950 border border-slate-700 px-2 py-2 rounded-lg text-sm focus:outline-none"><button onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i></button></div></div></div><div class="flex flex-col gap-2 pb-10">`; 
+                // BOTÓN DE SUBIDA DE IMAGEN CAMBIADO A INPUT TYPE FILE
+                let html = `
+                <div class="max-w-5xl mx-auto w-full">
+                    <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
+                        <h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2>
+                        <div class="flex flex-col lg:flex-row gap-3">
+                            <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                            <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700">
+                                <select id="add-prod-cat" class="bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none text-amber-400 font-bold">${opcionesCat}</select>
+                                <input type="text" id="add-prod-nombre" placeholder="Nombre" class="w-28 bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none">
+                                <input type="number" id="add-prod-precio" placeholder="Precio ₡" class="w-20 bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none">
+                                <!-- INPUT PARA SUBIR ARCHIVO -->
+                                <input type="file" id="add-prod-img" accept="image/png, image/jpeg, image/webp" class="w-48 bg-slate-950 border border-slate-700 p-1.5 rounded-lg text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-900 hover:file:bg-amber-400 cursor-pointer">
+                                
+                                <button id="btn-add-prod" onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold min-w-[40px]"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2 pb-10">`; 
+
                 if(prodsFiltrados.length === 0) html += `<div class="p-6 text-center text-slate-500 bg-slate-900 rounded-xl border border-slate-800">No hay productos creados.</div>`;
                 
                 prodsFiltrados.forEach(p => {
                     const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
                     const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
-                    // MOSTRAR IMAGEN EN EL LISTADO SI EXISTE
-                    const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-6 h-6 object-contain rounded">` : '';
+                    const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-8 h-8 object-contain rounded drop-shadow-md">` : '';
 
                     html += `<div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition"><div class="flex flex-col"><span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span><div class="flex items-center gap-2"><span class="font-bold text-slate-200 text-base">${p.nombre}</span>${imgPreview}</div></div><div class="flex items-center gap-4"><span class="text-xs text-slate-500 mr-2">Ventas: ${p.ventas || 0}</span><span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span><div class="flex gap-2"><button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button></div></div></div>`;
                 });
@@ -579,19 +589,51 @@
 
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
         
-        // AHORA GUARDA LA IMAGEN AL CREAR PRODUCTO
+        // FUNCIÓN ACTUALIZADA PARA SUBIR IMÁGENES A FIREBASE STORAGE
         window.adminAgregarProducto = async function() {
+            const btnSubmit = document.getElementById('btn-add-prod');
             const cat = document.getElementById('add-prod-cat').value;
             const nom = document.getElementById('add-prod-nombre').value;
             const pre = parseFloat(document.getElementById('add-prod-precio').value);
-            const img = document.getElementById('add-prod-img').value.trim();
-            if(!nom || !pre) return;
-            
-            await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: img });
-            
-            document.getElementById('add-prod-nombre').value = '';
-            document.getElementById('add-prod-precio').value = '';
-            document.getElementById('add-prod-img').value = '';
+            const fileInput = document.getElementById('add-prod-img');
+            const file = fileInput.files[0];
+
+            if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
+
+            // Mostrar estado de carga en el botón
+            const btnHtml = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btnSubmit.disabled = true;
+
+            try {
+                let imgUrl = "";
+
+                if (file) {
+                    // Crea una referencia única en Firebase Storage
+                    const fileName = `productos/${Date.now()}_${file.name}`;
+                    const storageRef = ref(storage, fileName);
+                    
+                    // Sube el archivo
+                    await uploadBytes(storageRef, file);
+                    // Obtiene la URL de descarga pública
+                    imgUrl = await getDownloadURL(storageRef);
+                }
+                
+                // Guarda en Firestore con la URL de la imagen
+                await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: imgUrl });
+                
+                // Limpiar campos
+                document.getElementById('add-prod-nombre').value = '';
+                document.getElementById('add-prod-precio').value = '';
+                fileInput.value = '';
+                
+            } catch (error) {
+                console.error("Error subiendo el archivo: ", error);
+                window.customAlert('Hubo un error al subir la imagen. Verifica los permisos de Storage en Firebase.');
+            } finally {
+                btnSubmit.innerHTML = btnHtml;
+                btnSubmit.disabled = false;
+            }
         };
 
         window.adminEliminarProducto = async function(id) {
@@ -641,7 +683,6 @@
             window.actualizarListaPanel();
         };
 
-        // NUEVA FUNCIÓN PARA LIBERAR MESA SI NO HA PEDIDO NADA
         window.liberarMesa = async function() {
             if (!elementoSeleccionado) return;
             if (elementoSeleccionado.total > 0) {
@@ -790,7 +831,6 @@
 
         window.filtrarProductosModal = function(val) { busquedaModal = val; window.renderizarProductosModal(); };
 
-        // AHORA RENDERIZA LA IMAGEN SI EXISTE
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos');
             grid.innerHTML = '';
@@ -810,8 +850,7 @@
                 btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-4 rounded-2xl flex flex-col justify-between text-left active:scale-95 transition shadow-md relative";
                 btn.onclick = () => window.agregarItemTemporal(prod);
                 
-                // Genera la etiqueta HTML de la imagen si está guardada en la base de datos
-                const imgHtml = prod.imagen ? `<img src="${prod.imagen}" class="h-10 w-auto object-contain ml-2 drop-shadow-md">` : '';
+                const imgHtml = prod.imagen ? `<img src="${prod.imagen}" class="h-12 w-auto object-contain ml-2 drop-shadow-md">` : '';
 
                 btn.innerHTML = `
                     <div class="flex justify-between items-start w-full gap-2">
