@@ -14,26 +14,25 @@
         .pro-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
         .pro-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
         .pro-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+        /* Animación para el acordeón */
+        .accordion-content { transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out; max-height: 0; overflow: hidden; }
+        .accordion-content.open { max-height: 2000px; }
     </style>
 </head>
 <body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
 
-    <!-- DIÁLOGOS PERSONALIZADOS -->
-    <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <!-- DIÁLOGOS PERSONALIZADOS (Alerts, Confirms, Prompts) -->
+    <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
-            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4">
-                <i class="fa-solid fa-bell"></i>
-            </div>
+            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-bell"></i></div>
             <p id="alert-msg" class="text-slate-200 text-lg mb-6"></p>
             <button onclick="window.cerrarAlert()" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-xl">Aceptar</button>
         </div>
     </div>
 
-    <div id="modal-custom-confirm" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div id="modal-custom-confirm" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
-            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center text-2xl mx-auto mb-4">
-                <i class="fa-solid fa-circle-question"></i>
-            </div>
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-circle-question"></i></div>
             <p id="confirm-msg" class="text-slate-200 text-lg mb-6"></p>
             <div class="flex gap-3">
                 <button onclick="window.cancelarConfirm()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
@@ -42,7 +41,7 @@
         </div>
     </div>
 
-    <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
             <input type="text" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest" autocomplete="off">
@@ -53,7 +52,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE COBRO -->
+    <!-- MODALES EXISTENTES: Cobro, Login, Caja, Productos -->
     <div id="modal-cobro" class="fixed inset-0 bg-slate-950/90 z-[55] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
             <div class="text-center mb-6 border-b border-slate-800 pb-4">
@@ -62,38 +61,26 @@
             </div>
             <p class="text-center text-slate-300 font-bold mb-4">Seleccione el método de pago</p>
             <div class="space-y-3">
-                <button onclick="window.procesarPagoConfirmado('Efectivo')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg">
-                    <i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Efectivo
-                </button>
-                <button onclick="window.procesarPagoConfirmado('Tarjeta')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg">
-                    <i class="fa-regular fa-credit-card text-blue-400"></i> Tarjeta
-                </button>
-                <button onclick="window.procesarPagoConfirmado('SINPE')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg">
-                    <i class="fa-solid fa-mobile-screen text-rose-500"></i> SINPE Móvil
-                </button>
+                <button onclick="window.procesarPagoConfirmado('Efectivo')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Efectivo</button>
+                <button onclick="window.procesarPagoConfirmado('Tarjeta')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-regular fa-credit-card text-blue-400"></i> Tarjeta</button>
+                <button onclick="window.procesarPagoConfirmado('SINPE')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-solid fa-mobile-screen text-rose-500"></i> SINPE Móvil</button>
             </div>
             <button onclick="window.cerrarModalCobro()" class="w-full mt-4 text-slate-500 font-bold py-2 hover:text-white transition">Cancelar</button>
         </div>
     </div>
 
-    <!-- MODAL DE INGRESO -->
     <div id="modal-login" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
             <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
             <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
             <div class="space-y-4">
-                <button onclick="seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3">
-                    <i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera
-                </button>
-                <button onclick="seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3">
-                    <i class="fa-solid fa-lock"></i> Ingreso Administrador
-                </button>
+                <button onclick="seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
+                <button onclick="seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
             <p id="firebase-status" class="mt-6 text-xs text-slate-500 animate-pulse">Conectando a la nube...</p>
         </div>
     </div>
 
-    <!-- MODAL DE APERTURA DE CAJA -->
     <div id="modal-caja" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-md shadow-2xl">
             <h3 class="text-2xl font-black text-amber-400 mb-2"><i class="fa-solid fa-cash-register mr-2"></i> Apertura de Caja</h3>
@@ -106,7 +93,7 @@
         </div>
     </div>
 
-    <!-- MODAL SELECCIÓN DE PRODUCTOS -->
+    <!-- MODAL SELECCIÓN DE PRODUCTOS PARA MESAS -->
     <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
@@ -116,31 +103,61 @@
                 </div>
                 <button onclick="cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
             <div id="modal-categorias-container" class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0"></div>
-
             <div class="p-3 bg-slate-950">
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-500 text-sm"></i>
                     <input type="text" id="input-buscar-modal" onkeyup="window.filtrarProductosModal(this.value)" placeholder="Buscar producto..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 text-slate-200">
                 </div>
             </div>
-
             <div class="flex-1 p-3 overflow-y-auto pro-scroll bg-slate-950">
                 <div id="grid-modal-productos" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
             </div>
-
             <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center">
-                <span id="txt-items-seleccionados" class="text-xs text-slate-400 font-bold">0 productos seleccionados en esta ronda</span>
-                <button onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg">
-                    <i class="fa-solid fa-check mr-2"></i> Confirmar Ronda
-                </button>
+                <span id="txt-items-seleccionados" class="text-xs text-slate-400 font-bold">0 seleccionados</span>
+                <button onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg"><i class="fa-solid fa-check mr-2"></i> Confirmar Ronda</button>
             </div>
         </div>
     </div>
 
-    <!-- HEADER -->
-    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-col sm:flex-row justify-between sm:items-center shadow-lg gap-3 relative z-10 w-full overflow-hidden">
+    <!-- NUEVO: MODAL CREAR/EDITAR PRODUCTO (ADMIN) -->
+    <div id="modal-admin-producto" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                <h3 class="text-xl font-black text-emerald-400"><i class="fa-solid fa-burger mr-2"></i> Nuevo Producto</h3>
+                <button onclick="window.cerrarModalProductoAdmin()" class="text-slate-400 hover:text-white transition text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Categoría</label>
+                    <select id="add-prod-cat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 font-bold"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre</label>
+                    <input type="text" id="add-prod-nombre" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Ej. Cerveza Imperial">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Precio (₡)</label>
+                    <input type="number" id="add-prod-precio" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Imagen (Opcional)</label>
+                    <div class="relative border-2 border-dashed border-slate-700 rounded-xl p-4 text-center hover:border-amber-500 transition cursor-pointer bg-slate-950 h-32 flex flex-col items-center justify-center overflow-hidden">
+                        <input type="file" id="add-prod-file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.previsualizarImagen(this)">
+                        <div id="add-prod-preview-text" class="pointer-events-none">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-sm font-bold text-slate-400">Tocar para seleccionar foto</p>
+                        </div>
+                        <img id="add-prod-preview-img" src="" class="hidden w-full h-full object-contain pointer-events-none absolute inset-0 p-2">
+                    </div>
+                </div>
+                <button onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg mt-2 text-lg">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER PRINCIPAL -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-col sm:flex-row justify-between sm:items-center shadow-lg gap-3 relative z-10 w-full">
         <div class="flex items-center space-x-3">
             <img src="179967.png" alt="Logo Alaska" class="w-12 h-12 rounded-full border border-slate-700 object-cover" onerror="this.src='https://via.placeholder.com/48/1e293b/fbbf24?text=A'">
             <div>
@@ -148,12 +165,14 @@
                 <p id="info-caja-header" class="text-xs text-emerald-500 font-bold hidden bg-emerald-500/10 inline-block px-2 py-0.5 rounded-full mt-1 border border-emerald-500/20">Caja abierta</p>
             </div>
         </div>
-        <div class="flex overflow-x-auto bg-slate-950 p-1 rounded-xl border border-slate-800 hide-scrollbar shrink-0 w-full sm:w-auto">
+        <div id="tabs-operacion" class="flex overflow-x-auto bg-slate-950 p-1 rounded-xl border border-slate-800 hide-scrollbar shrink-0 w-full sm:w-auto">
             <button onclick="cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
             <button onclick="cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
             <button onclick="cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
             <button onclick="cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
         </div>
+        <!-- Botón para volver a Operación (Visible solo en Admin) -->
+        <button onclick="cambiarVista('barra')" id="btn-volver-operacion" class="hidden px-5 py-2 rounded-xl font-bold bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-sm whitespace-nowrap shadow-md"><i class="fa-solid fa-arrow-left mr-2"></i> Volver a Salón</button>
     </header>
 
     <!-- CONTENIDO PRINCIPAL -->
@@ -163,9 +182,7 @@
             <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
                 <h2 id="titulo-vista" class="text-2xl font-black text-slate-100">Control de Barra</h2>
                 <div class="flex items-center gap-4 flex-wrap">
-                    <button id="btn-agregar-barra" onclick="agregarClienteExtraBarra()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus"></i> Cliente Extra
-                    </button>
+                    <button id="btn-agregar-barra" onclick="agregarClienteExtraBarra()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center gap-2"><i class="fa-solid fa-user-plus"></i> Cliente Extra</button>
                     <div class="flex gap-4 text-xs font-bold text-slate-400 bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 shrink-0">
                         <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Libre</span>
                         <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Ocupada</span>
@@ -175,19 +192,41 @@
             <div id="grid-elementos" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 pb-20 w-full"></div>
         </section>
 
-        <!-- SECCIÓN ADMIN -->
-        <section class="flex-1 overflow-hidden hidden flex-col w-full bg-slate-950" id="area-admin">
-            <div class="border-b border-slate-800 bg-slate-900 px-4 py-3 flex gap-6 overflow-x-auto hide-scrollbar w-full">
-                <button onclick="cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap"><i class="fa-solid fa-chart-pie mr-1"></i> Dashboard</button>
-                <button onclick="cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Resumen Caja</button>
-                <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Productos</button>
-                <button onclick="cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Categorías</button>
-                <button onclick="cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Zonas</button>
+        <!-- SECCIÓN ADMIN CON SIDEBAR -->
+        <section class="flex-1 overflow-hidden hidden w-full bg-slate-950 relative" id="area-admin">
+            
+            <!-- Sidebar / Menú Lateral Admin -->
+            <aside id="admin-sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl">
+                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+                    <h3 class="font-black text-amber-500 tracking-wide uppercase text-sm"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Panel Admin</h3>
+                    <button onclick="window.toggleAdminSidebar(false)" class="text-slate-400 hover:text-white md:hidden text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="flex-1 overflow-y-auto py-4 space-y-1">
+                    <button onclick="cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</button>
+                    <button onclick="cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-cash-register w-5"></i> Cierres de Caja</button>
+                    <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-burger w-5"></i> Menú y Productos</button>
+                    <button onclick="cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-tags w-5"></i> Categorías</button>
+                    <button onclick="cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
+                </div>
+            </aside>
+
+            <!-- Overlay oscuro para celular al abrir sidebar -->
+            <div id="admin-sidebar-overlay" onclick="window.toggleAdminSidebar(false)" class="absolute inset-0 bg-slate-950/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
+
+            <!-- Contenido Principal de Admin -->
+            <div class="flex-1 flex flex-col overflow-hidden w-full relative">
+                <!-- Header móvil para Admin -->
+                <div class="md:hidden bg-slate-900 border-b border-slate-800 p-3 flex items-center gap-3 shadow-md z-20">
+                    <button onclick="window.toggleAdminSidebar(true)" class="text-slate-300 hover:text-white px-3 py-2 bg-slate-800 rounded-xl"><i class="fa-solid fa-bars"></i></button>
+                    <span class="font-black text-slate-200" id="admin-mobile-title">Dashboard</span>
+                </div>
+                
+                <!-- Área inyectable -->
+                <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
             </div>
-            <div id="contenedor-admin" class="flex-1 p-4 md:p-6 overflow-y-auto pro-scroll w-full"></div>
         </section>
 
-        <!-- PANEL LATERAL DE CUENTA -->
+        <!-- PANEL LATERAL DE CUENTA (Salón) -->
         <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-30 hidden transition-all">
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div class="w-full overflow-hidden pr-4">
@@ -208,18 +247,14 @@
                     <span id="panel-total" class="text-emerald-400">₡0</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="abrirModalAgregar()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cart-plus"></i> Menú
-                    </button>
-                    <button onclick="window.iniciarCobro()" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg">
-                        <i class="fa-solid fa-cash-register"></i> Cobrar
-                    </button>
+                    <button onclick="abrirModalAgregar()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cart-plus"></i> Menú</button>
+                    <button onclick="window.iniciarCobro()" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg"><i class="fa-solid fa-cash-register"></i> Cobrar</button>
                 </div>
             </div>
         </aside>
     </main>
 
-    <!-- SCRIPT FIREBASE -->
+    <!-- SCRIPT FIREBASE E INTERFAZ -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -236,7 +271,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let pinAdmin = "1806";
+        let pinAdmin = "1234";
 
         let vistaActual = 'barra';
         let adminSubVista = 'dashboard';
@@ -255,47 +290,23 @@
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
 
-        window.customAlert = function(msg) {
-            document.getElementById('alert-msg').innerText = msg;
-            document.getElementById('modal-custom-alert').classList.remove('hidden');
-        };
-        window.cerrarAlert = function() {
-            document.getElementById('modal-custom-alert').classList.add('hidden');
-        };
-
+        // Utilidades Modal
+        window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
+        window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
         window.customConfirm = function(msg) {
             return new Promise((resolve) => {
-                document.getElementById('confirm-msg').innerText = msg;
-                document.getElementById('modal-custom-confirm').classList.remove('hidden');
-                
-                window.aceptarConfirm = function() {
-                    document.getElementById('modal-custom-confirm').classList.add('hidden');
-                    resolve(true);
-                };
-                window.cancelarConfirm = function() {
-                    document.getElementById('modal-custom-confirm').classList.add('hidden');
-                    resolve(false);
-                };
+                document.getElementById('confirm-msg').innerText = msg; document.getElementById('modal-custom-confirm').classList.remove('hidden');
+                window.aceptarConfirm = () => { document.getElementById('modal-custom-confirm').classList.add('hidden'); resolve(true); };
+                window.cancelarConfirm = () => { document.getElementById('modal-custom-confirm').classList.add('hidden'); resolve(false); };
             });
         };
-
         window.customPrompt = function(msg, defaultVal = '', isPassword = false) {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
-                const input = document.getElementById('prompt-input');
-                input.type = isPassword ? 'password' : 'text'; 
-                input.value = defaultVal;
-                document.getElementById('modal-custom-prompt').classList.remove('hidden');
-                setTimeout(() => input.focus(), 100);
-                
-                window.aceptarPrompt = function() {
-                    document.getElementById('modal-custom-prompt').classList.add('hidden');
-                    resolve(input.value.trim());
-                };
-                window.cancelarPrompt = function() {
-                    document.getElementById('modal-custom-prompt').classList.add('hidden');
-                    resolve(null);
-                };
+                const input = document.getElementById('prompt-input'); input.type = isPassword ? 'password' : 'text'; input.value = defaultVal;
+                document.getElementById('modal-custom-prompt').classList.remove('hidden'); setTimeout(() => input.focus(), 100);
+                window.aceptarPrompt = () => { document.getElementById('modal-custom-prompt').classList.add('hidden'); resolve(input.value.trim()); };
+                window.cancelarPrompt = () => { document.getElementById('modal-custom-prompt').classList.add('hidden'); resolve(null); };
             });
         };
 
@@ -303,6 +314,7 @@
         document.getElementById('firebase-status').classList.remove('animate-pulse');
         document.getElementById('firebase-status').classList.add('text-emerald-500');
 
+        // Suscripciones Firebase
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
@@ -316,33 +328,26 @@
 
         onSnapshot(collection(db, "productos"), (snapshot) => {
             datosRestaurante.productos = [];
-            snapshot.forEach((doc) => {
-                const data = doc.data(); data.id = doc.id;
-                datosRestaurante.productos.push(data);
-            });
+            snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.productos.push(data); });
             if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
         });
 
         onSnapshot(collection(db, "categorias"), (snapshot) => {
             datosRestaurante.categorias = [];
-            snapshot.forEach((doc) => {
-                const data = doc.data(); data.id = doc.id;
-                datosRestaurante.categorias.push(data);
-            });
-            if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
+            snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
+            if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) {
+                renderizarModuloAdmin();
+                window.actualizarSelectCategoriasModal();
+            }
         });
 
         onSnapshot(doc(db, "config", "cajaActual"), (docSnap) => {
             if(docSnap.exists()) {
-                const data = docSnap.data();
-                montoCajaInicial = data.fondoInicial || 0;
-                ventasTotalesTurno = data.ventasTurno || 0;
+                const data = docSnap.data(); montoCajaInicial = data.fondoInicial || 0; ventasTotalesTurno = data.ventasTurno || 0;
                 cajaAbierta = data.estado === 'abierta' || (!data.fechaCierre && data.fechaApertura);
                 document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
                 if(vistaActual === 'admin' && adminSubVista === 'caja') renderizarModuloAdmin();
-            } else {
-                cajaAbierta = false;
-            }
+            } else { cajaAbierta = false; }
         });
 
         onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
@@ -358,18 +363,11 @@
 
             if(rol === 'admin') {
                 const pin = await window.customPrompt("Ingrese PIN Administrador:", "", true);
-                if(pin !== pinAdmin) {
-                    window.customAlert("PIN incorrecto");
-                    return window.location.reload();
-                }
+                if(pin !== pinAdmin) { window.customAlert("PIN incorrecto"); return window.location.reload(); }
                 if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
-                if (cajaAbierta) {
-                    window.cambiarVista('barra');
-                } else {
-                    document.getElementById('modal-caja').classList.remove('hidden'); 
-                }
+                if (cajaAbierta) { window.cambiarVista('admin'); } else { document.getElementById('modal-caja').classList.remove('hidden'); }
             } else {
                 if(btnAdminTab) btnAdminTab.style.display = 'none';
                 document.getElementById('info-caja-header').classList.add('hidden');
@@ -378,15 +376,9 @@
         };
 
         window.abrirCaja = async function() {
-            const val = document.getElementById('input-monto-caja').value;
-            if(!val) return;
+            const val = document.getElementById('input-monto-caja').value; if(!val) return;
             montoCajaInicial = parseFloat(val);
-            await setDoc(doc(db, "config", "cajaActual"), {
-                fondoInicial: montoCajaInicial,
-                ventasTurno: 0,
-                fechaApertura: new Date().toISOString(),
-                estado: 'abierta'
-            });
+            await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: montoCajaInicial, ventasTurno: 0, fechaApertura: new Date().toISOString(), estado: 'abierta' });
             document.getElementById('modal-caja').classList.add('hidden');
             window.cambiarVista('barra');
         };
@@ -394,23 +386,25 @@
         window.cambiarVista = function(tipo) {
             if(tipo === 'admin' && rolUsuario !== 'admin') return;
             vistaActual = tipo;
-            ['barra', 'mesas', 'vip', 'admin'].forEach(t => {
-                const btn = document.getElementById(`btn-tab-${t}`);
-                if(btn) {
-                    if (t === tipo) {
-                        btn.className = (tipo==='admin' ? "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow-lg text-sm" : "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow text-sm");
-                    } else if(t !== 'admin' || rolUsuario === 'admin') {
-                        btn.className = "px-5 py-2 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 text-sm";
-                    }
-                }
-            });
-            window.cerrarPanel();
+            
+            // Lógica de Tabs Superiores
+            const tabsOperacion = document.getElementById('tabs-operacion');
+            const btnVolver = document.getElementById('btn-volver-operacion');
+            
             if(tipo === 'admin') {
+                tabsOperacion.classList.add('hidden');
+                btnVolver.classList.remove('hidden');
                 document.getElementById('area-operacion').classList.add('hidden');
                 document.getElementById('area-admin').classList.remove('hidden');
                 document.getElementById('area-admin').classList.add('flex');
-                renderizarModuloAdmin();
+                cambiarSubVistaAdmin(adminSubVista); // Renders sidebar active state & content
             } else {
+                tabsOperacion.classList.remove('hidden');
+                btnVolver.classList.add('hidden');
+                ['barra', 'mesas', 'vip', 'admin'].forEach(t => {
+                    const btn = document.getElementById(`btn-tab-${t}`);
+                    if(btn) btn.className = (t === tipo) ? "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow text-sm" : "px-5 py-2 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 text-sm";
+                });
                 const titulos = { barra: 'Control de Barra', mesas: 'Salón Principal', vip: 'Área Reservada' };
                 document.getElementById('titulo-vista').innerText = titulos[tipo];
                 document.getElementById('btn-agregar-barra').style.display = tipo === 'barra' ? 'flex' : 'none';
@@ -419,46 +413,55 @@
                 document.getElementById('area-admin').classList.remove('flex');
                 renderizarGridOperacion();
             }
+            window.cerrarPanel();
+        };
+
+        // SIDEBAR ADMIN TOGGLE
+        window.toggleAdminSidebar = function(forceShow = null) {
+            const sidebar = document.getElementById('admin-sidebar');
+            const overlay = document.getElementById('admin-sidebar-overlay');
+            const isCurrentlyHidden = sidebar.classList.contains('-translate-x-full');
+            
+            const shouldShow = forceShow !== null ? forceShow : isCurrentlyHidden;
+
+            if(shouldShow) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
         };
 
         function renderizarGridOperacion() {
-            const grid = document.getElementById('grid-elementos');
-            grid.innerHTML = '';
-            if(datosRestaurante[vistaActual].length === 0) {
-                grid.innerHTML = `<p class="col-span-full text-slate-500 mt-10">No hay espacios configurados. Créelos desde Admin.</p>`;
-                return;
-            }
+            const grid = document.getElementById('grid-elementos'); grid.innerHTML = '';
+            if(datosRestaurante[vistaActual].length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 mt-10">No hay espacios configurados. Créelos desde Admin.</p>`;
             datosRestaurante[vistaActual].forEach(el => {
                 const ocupada = el.estado === 'ocupada';
                 const tarjeta = document.createElement('div');
                 tarjeta.className = `p-4 rounded-2xl border-2 flex flex-col justify-between h-32 md:h-36 cursor-pointer transition-all transform active:scale-95 shadow-lg relative overflow-hidden ${ocupada ? 'bg-rose-950/20 border-rose-600/50 hover:border-rose-400' : 'bg-slate-900 border-slate-800 hover:border-amber-500/50'}`;
                 tarjeta.onclick = () => window.seleccionarElemento(el.id);
                 const brillo = ocupada ? `<div class="absolute -top-10 -right-10 w-24 h-24 bg-rose-500/10 rounded-full blur-xl"></div>` : '';
-                tarjeta.innerHTML = `${brillo}
-                    <div class="flex justify-between items-start mb-2 relative z-10 gap-2">
-                        <span class="font-black text-lg md:text-xl text-slate-100 truncate flex-1">${ocupada ? el.cliente : 'Libre'}</span>
-                        <span class="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full shrink-0 mt-1 ${ocupada ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}"></span>
-                    </div>
-                    <div class="relative z-10 mt-auto">
-                        <div class="flex items-center gap-1.5 mb-1">
-                            <i class="fa-solid fa-location-dot text-[10px] ${ocupada ? 'text-rose-400/70' : 'text-slate-500'}"></i>
-                            <p class="text-[11px] md:text-xs font-semibold uppercase tracking-wider ${ocupada ? 'text-rose-200/70' : 'text-slate-500'} truncate">${el.nombre}</p>
-                        </div>
-                        <p class="text-base md:text-lg font-black ${ocupada ? 'text-emerald-400' : 'text-slate-600'}">${ocupada ? '₡' + el.total.toLocaleString() : '---'}</p>
-                    </div>`;
+                tarjeta.innerHTML = `${brillo}<div class="flex justify-between items-start mb-2 relative z-10 gap-2"><span class="font-black text-lg md:text-xl text-slate-100 truncate flex-1">${ocupada ? el.cliente : 'Libre'}</span><span class="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full shrink-0 mt-1 ${ocupada ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}"></span></div><div class="relative z-10 mt-auto"><div class="flex items-center gap-1.5 mb-1"><i class="fa-solid fa-location-dot text-[10px] ${ocupada ? 'text-rose-400/70' : 'text-slate-500'}"></i><p class="text-[11px] md:text-xs font-semibold uppercase tracking-wider ${ocupada ? 'text-rose-200/70' : 'text-slate-500'} truncate">${el.nombre}</p></div><p class="text-base md:text-lg font-black ${ocupada ? 'text-emerald-400' : 'text-slate-600'}">${ocupada ? '₡' + el.total.toLocaleString() : '---'}</p></div>`;
                 grid.appendChild(tarjeta);
             });
         }
 
         window.cambiarSubVistaAdmin = function(vista) {
             adminSubVista = vista;
-            ['dashboard', 'caja', 'menu', 'categorias', 'espacios'].forEach(v => {
+            const menuIds = ['dashboard', 'caja', 'menu', 'categorias', 'espacios'];
+            const nombres = { dashboard: 'Dashboard', caja: 'Cierres de Caja', menu: 'Menú y Productos', categorias: 'Categorías', espacios: 'Zonas y Espacios' };
+            
+            menuIds.forEach(v => {
                 const btn = document.getElementById(`btn-admin-${v}`);
                 if(btn) {
-                    if(v === vista) btn.className = "pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap";
-                    else btn.className = "pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap";
+                    if(v === vista) btn.className = "w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3";
+                    else btn.className = "w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3";
                 }
             });
+            
+            document.getElementById('admin-mobile-title').innerText = nombres[vista];
+            window.toggleAdminSidebar(false); 
             renderizarModuloAdmin();
         };
 
@@ -466,31 +469,33 @@
             const hoyStr = new Date().toISOString().split('T')[0];
             const ventasHoy = ventasHistorialData.filter(v => v.fecha && v.fecha.startsWith(hoyStr));
             let totalHoy = 0, totalEfectivo = 0, totalTarjeta = 0, totalSinpe = 0;
-            ventasHoy.forEach(v => {
-                totalHoy += v.total;
-                if(v.metodo === 'Efectivo') totalEfectivo += v.total;
-                if(v.metodo === 'Tarjeta') totalTarjeta += v.total;
-                if(v.metodo === 'SINPE') totalSinpe += v.total;
-            });
+            ventasHoy.forEach(v => { totalHoy += v.total; if(v.metodo === 'Efectivo') totalEfectivo += v.total; if(v.metodo === 'Tarjeta') totalTarjeta += v.total; if(v.metodo === 'SINPE') totalSinpe += v.total; });
             const ctx = document.getElementById('metodosChart');
             if(!ctx) return;
             if(chartInstancia) chartInstancia.destroy();
-            chartInstancia = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Efectivo', 'Tarjeta', 'SINPE'],
-                    datasets: [{ data: [totalEfectivo, totalTarjeta, totalSinpe], backgroundColor: ['#10b981', '#3b82f6', '#f43f5e'], borderColor: '#0f172a', borderWidth: 2 }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } }
-            });
+            chartInstancia = new Chart(ctx, { type: 'doughnut', data: { labels: ['Efectivo', 'Tarjeta', 'SINPE'], datasets: [{ data: [totalEfectivo, totalTarjeta, totalSinpe], backgroundColor: ['#10b981', '#3b82f6', '#f43f5e'], borderColor: '#0f172a', borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } } });
             document.getElementById('dash-total-hoy').innerText = `₡${totalHoy.toLocaleString()}`;
             document.getElementById('dash-tickets').innerText = ventasHoy.length;
         }
 
+        // CONTROL DE ACORDEÓN PARA MENÚ
+        window.toggleAccordion = function(catId) {
+            const content = document.getElementById(`acc-content-${catId}`);
+            const icon = document.getElementById(`acc-icon-${catId}`);
+            if(content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            } else {
+                content.classList.add('open');
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            }
+        };
+
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
+            
             if(adminSubVista === 'dashboard') {
-                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black text-slate-100 mb-6">Dashboard del Día</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div class="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-lg"><p class="text-sm font-black text-slate-900 opacity-80 uppercase tracking-wider mb-1">Ventas Hoy</p><p id="dash-total-hoy" class="text-4xl font-black text-slate-900">₡0</p></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center"><p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Cuentas Cobradas</p><p id="dash-tickets" class="text-3xl font-black text-slate-200">0</p></div></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg max-w-sm mx-auto"><h3 class="text-center font-bold text-slate-300 mb-4">Ingresos por Método de Pago</h3><canvas id="metodosChart"></canvas></div></div>`;
+                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black text-slate-100 mb-6">Resumen del Día</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div class="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-lg"><p class="text-sm font-black text-slate-900 opacity-80 uppercase tracking-wider mb-1">Ventas Hoy</p><p id="dash-total-hoy" class="text-4xl font-black text-slate-900">₡0</p></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center"><p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Cuentas Cobradas</p><p id="dash-tickets" class="text-3xl font-black text-slate-200">0</p></div></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg max-w-sm mx-auto"><h3 class="text-center font-bold text-slate-300 mb-4">Ingresos por Método de Pago</h3><canvas id="metodosChart"></canvas></div></div>`;
                 setTimeout(renderizarDashboard, 100);
             }
             else if(adminSubVista === 'caja') {
@@ -498,57 +503,99 @@
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full"><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p><p class="text-xl font-black text-slate-200">₡${montoCajaInicial.toLocaleString()}</p></div><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Ventas Turno</p><p class="text-xl font-black text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</p></div><div class="bg-slate-800 border-2 border-amber-500/50 p-5 rounded-2xl text-white"><p class="text-xs font-black uppercase text-amber-400 mb-1">Total Sistema (Esperado)</p><p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p></div></div><div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8 relative"><h3 class="text-lg font-bold text-slate-200 mb-4">Auditoría: Efectivo Físico</h3><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400 font-bold text-xl">₡</span><input type="number" id="input-efectivo-fisico" onkeyup="window.calcularCuadre()" class="w-full bg-slate-950 border-2 border-slate-600 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-2xl font-black text-white" placeholder="0"></div><div id="mensaje-cuadre" class="mt-4 transition-all hidden"></div></div><button onclick="window.ejecutarCierreCaja()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center gap-2"><i class="fa-solid fa-lock mt-1"></i> Confirmar Cierre Definitivo</button></div>`;
             } 
             else if(adminSubVista === 'menu') {
-                const prodsFiltrados = datosRestaurante.productos
-                    .filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()))
-                    .sort((a, b) => (b.ventas || 0) - (a.ventas || 0));
-                
-                let opcionesCat = '';
-                if(datosRestaurante.categorias.length === 0) { opcionesCat = `<option value="general">General</option>`; } 
-                else { datosRestaurante.categorias.forEach(c => { opcionesCat += `<option value="${c.id}">${c.nombre}</option>`; }); }
-
                 let html = `
-                <div class="max-w-5xl mx-auto w-full">
-                    <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
-                        <h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2>
-                        <div class="flex flex-col lg:flex-row gap-3">
-                            <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
-                            <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700">
-                                <select id="add-prod-cat" class="bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none text-amber-400 font-bold">${opcionesCat}</select>
-                                <input type="text" id="add-prod-nombre" placeholder="Nombre" class="w-28 bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none">
-                                <input type="number" id="add-prod-precio" placeholder="Precio ₡" class="w-20 bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none">
-                                <input type="file" id="add-prod-file" accept="image/*" class="w-48 bg-slate-950 border border-slate-700 p-1.5 rounded-lg text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-900 hover:file:bg-amber-400 cursor-pointer">
-                                <button onclick="window.adminAgregarProductoConBase64()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold"><i class="fa-solid fa-plus"></i></button>
-                            </div>
-                        </div>
+                <div class="max-w-5xl mx-auto w-full pb-20">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-black text-slate-100">Gestión de Menú</h2>
+                        <button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition transform active:scale-95">
+                            <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Nuevo Producto</span>
+                        </button>
                     </div>
-                    <div class="flex flex-col gap-2 pb-10">`; 
+                    
+                    <div class="relative mb-6">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i>
+                        <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto por nombre..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-amber-500 shadow-md">
+                    </div>
+                    <div class="space-y-4">`; 
 
-                if(prodsFiltrados.length === 0) html += `<div class="p-6 text-center text-slate-500 bg-slate-900 rounded-xl border border-slate-800">No hay productos creados.</div>`;
-                
+                // Agrupamos productos por categoría
+                const prodsFiltrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()));
+                const grupos = {};
+                datosRestaurante.categorias.forEach(c => grupos[c.id] = { nombre: c.nombre, items: [] });
+                grupos['general'] = { nombre: 'Sin Categoría / General', items: [] };
+
                 prodsFiltrados.forEach(p => {
-                    const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
-                    const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
-                    const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-8 h-8 object-contain rounded bg-slate-950 p-0.5">` : '';
-
-                    html += `<div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition"><div class="flex flex-col"><span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span><div class="flex items-center gap-2"><span class="font-bold text-slate-200 text-base">${p.nombre}</span>${imgPreview}</div></div><div class="flex items-center gap-4"><span class="text-xs text-slate-500 mr-2">Ventas: ${p.ventas || 0}</span><span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span><div class="flex gap-2"><button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button></div></div></div>`;
+                    if(grupos[p.categoria]) grupos[p.categoria].items.push(p);
+                    else grupos['general'].items.push(p);
                 });
+
+                let hayResultados = false;
+
+                for(const catId in grupos) {
+                    const cat = grupos[catId];
+                    if(cat.items.length === 0) continue; 
+                    hayResultados = true;
+                    
+                    cat.items.sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+                    // Si hay búsqueda, abrimos todos. Si no, abrimos todos por defecto para mejor visual (o puedes cambiar a false).
+                    const isOpen = true; 
+                    const stateClass = isOpen ? 'open' : '';
+                    const iconClass = isOpen ? 'fa-chevron-up' : 'fa-chevron-down';
+
+                    html += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                        <button onclick="window.toggleAccordion('${catId}')" class="w-full flex justify-between items-center p-4 bg-slate-800/60 hover:bg-slate-800 transition">
+                            <span class="font-black text-amber-500 uppercase tracking-wider text-sm">${cat.nombre} <span class="text-slate-400 font-semibold text-xs ml-2 bg-slate-900 px-2 py-0.5 rounded-md">${cat.items.length}</span></span>
+                            <i id="acc-icon-${catId}" class="fa-solid ${iconClass} text-slate-500"></i>
+                        </button>
+                        <div id="acc-content-${catId}" class="accordion-content ${stateClass}">
+                            <div class="divide-y divide-slate-800/50">`;
+
+                    cat.items.forEach(p => {
+                        const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-700"><i class="fa-solid fa-image"></i></div>`;
+
+                        html += `
+                            <div class="p-3 flex justify-between items-center hover:bg-slate-800/30 transition">
+                                <div class="flex items-center gap-4">
+                                    ${imgPreview}
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-slate-200">${p.nombre}</span>
+                                        <span class="text-[11px] text-slate-500 font-medium"><i class="fa-solid fa-chart-line mr-1 text-slate-600"></i>Ventas: ${p.ventas || 0}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="font-black text-emerald-400 text-base">₡${p.precio.toLocaleString()}</span>
+                                    <div class="flex gap-2">
+                                        <button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-9 h-9 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition" title="Editar Precio"><i class="fa-solid fa-pen text-sm"></i></button>
+                                        <button onclick="window.adminEliminarProducto('${p.id}')" class="w-9 h-9 rounded-lg bg-rose-950/40 border border-rose-900/40 text-rose-500 hover:bg-rose-900 hover:text-white flex items-center justify-center transition" title="Eliminar"><i class="fa-solid fa-trash text-sm"></i></button>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+
+                    html += `</div></div></div>`;
+                }
+
+                if(!hayResultados) html += `<div class="p-10 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800"><i class="fa-solid fa-magnifying-glass text-4xl mb-4 opacity-30"></i><p>No se encontraron productos.</p></div>`;
+                
                 html += `</div></div>`;
                 cont.innerHTML = html;
             }
             else if(adminSubVista === 'categorias') {
-                let catHtml = `<div class="max-w-4xl mx-auto w-full pb-10"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Categorías de Menú</h2><div class="flex gap-2"><input type="text" id="add-cat-nombre" placeholder="Nombre de categoría" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm focus:outline-none text-white"><button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold">Crear</button></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
+                let catHtml = `<div class="max-w-4xl mx-auto w-full pb-10"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Categorías de Menú</h2><div class="flex gap-2"><input type="text" id="add-cat-nombre" placeholder="Nombre de categoría" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm focus:outline-none text-white"><button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold hover:bg-amber-400 transition">Crear</button></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
                 if(datosRestaurante.categorias.length === 0) { catHtml += `<p class="text-slate-500">No hay categorías creadas.</p>`; } 
-                else { datosRestaurante.categorias.forEach(cat => { catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center shadow-md"><span class="font-bold text-slate-200 uppercase">${cat.nombre}</span><div class="flex gap-2"><button onclick="window.adminEditarCategoria('${cat.id}', '${cat.nombre}')" class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-pen"></i> Editar</button><button onclick="window.adminEliminarCategoria('${cat.id}')" class="bg-rose-950/40 text-rose-500 border border-rose-900 px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button></div></div>`; }); }
+                else { datosRestaurante.categorias.forEach(cat => { catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center shadow-md hover:border-amber-500/50 transition"><span class="font-bold text-slate-200 uppercase tracking-wide">${cat.nombre}</span><div class="flex gap-2"><button onclick="window.adminEditarCategoria('${cat.id}', '${cat.nombre}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-xs transition"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarCategoria('${cat.id}')" class="bg-rose-950/40 hover:bg-rose-900 text-rose-500 hover:text-white border border-rose-900/50 px-3 py-2 rounded-lg text-xs transition"><i class="fa-solid fa-trash"></i></button></div></div>`; }); }
                 catHtml += `</div></div>`;
                 cont.innerHTML = catHtml;
             }
             else if(adminSubVista === 'espacios') {
-                let html = `<div class="max-w-6xl mx-auto w-full"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Zonas</h2><div class="flex gap-2"><select id="add-esp-tipo" class="bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none w-28"><option value="barra">Barra</option><option value="mesas">Salón</option><option value="vip">VIP</option></select><input type="text" id="add-esp-nombre" placeholder="Nombre" class="flex-1 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none"><button onclick="window.adminAgregarEspacio()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-xl font-bold">+</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10">`;
-                const zonas = [{ key: 'barra', icon: 'fa-martini-glass-citrus', title: 'Barra', color: 'text-blue-400' }, { key: 'mesas', icon: 'fa-utensils', title: 'Mesas', color: 'text-amber-400' }, { key: 'vip', icon: 'fa-crown', title: 'VIP', color: 'text-fuchsia-400' }];
+                let html = `<div class="max-w-6xl mx-auto w-full"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Gestión de Zonas</h2><div class="flex gap-2"><select id="add-esp-tipo" class="bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none w-28 font-bold"><option value="barra">Barra</option><option value="mesas">Salón</option><option value="vip">VIP</option></select><input type="text" id="add-esp-nombre" placeholder="Nombre mesa/espacio" class="flex-1 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none"><button onclick="window.adminAgregarEspacio()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold hover:bg-amber-400 transition"><i class="fa-solid fa-plus"></i></button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 pb-10">`;
+                const zonas = [{ key: 'barra', icon: 'fa-martini-glass-citrus', title: 'Barra', color: 'text-blue-400' }, { key: 'mesas', icon: 'fa-utensils', title: 'Salón Principal', color: 'text-amber-400' }, { key: 'vip', icon: 'fa-crown', title: 'Área VIP', color: 'text-fuchsia-400' }];
                 zonas.forEach(z => {
-                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg"><h3 class="text-base font-black mb-4 flex items-center gap-2 border-b border-slate-800 pb-3"><i class="fa-solid ${z.icon} ${z.color}"></i> ${z.title}</h3><div class="space-y-2">`;
-                    if(datosRestaurante[z.key].length === 0) html += `<p class="text-xs text-slate-500">Sin espacios agregados</p>`;
-                    datosRestaurante[z.key].forEach(esp => { html += `<div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800/60"><span class="font-bold text-slate-300 text-sm truncate pr-2">${esp.nombre}</span><div class="flex gap-1 shrink-0"><button onclick="window.adminEditarEspacio('${esp.id}', '${esp.nombre}')" class="w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-800"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="window.adminEliminarEspacio('${esp.id}', '${esp.estado}')" class="w-7 h-7 rounded-lg text-rose-500/70 hover:bg-rose-950"><i class="fa-solid fa-trash text-xs"></i></button></div></div>`; });
+                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg"><h3 class="text-base font-black mb-4 flex items-center gap-2 border-b border-slate-800 pb-3 uppercase tracking-wider"><i class="fa-solid ${z.icon} ${z.color} text-lg"></i> ${z.title}</h3><div class="space-y-2">`;
+                    if(datosRestaurante[z.key].length === 0) html += `<p class="text-xs text-slate-500 text-center py-4">Sin espacios</p>`;
+                    datosRestaurante[z.key].forEach(esp => { html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800/60 hover:border-slate-600 transition"><span class="font-bold text-slate-300 text-sm truncate pr-2">${esp.nombre}</span><div class="flex gap-1 shrink-0"><button onclick="window.adminEditarEspacio('${esp.id}', '${esp.nombre}')" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="window.adminEliminarEspacio('${esp.id}', '${esp.estado}')" class="w-8 h-8 rounded-lg text-rose-500/70 hover:bg-rose-950 hover:text-rose-400 transition"><i class="fa-solid fa-trash text-xs"></i></button></div></div>`; });
                     html += `</div></div>`;
                 });
                 html += `</div></div>`;
@@ -556,34 +603,43 @@
             }
         }
 
-        window.adminAgregarCategoria = async function() {
-            const nom = document.getElementById('add-cat-nombre').value.trim();
-            if(!nom) return;
-            await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() });
-            document.getElementById('add-cat-nombre').value = '';
+        // LÓGICA MODAL NUEVO PRODUCTO
+        window.abrirModalProductoAdmin = function() {
+            document.getElementById('add-prod-nombre').value = '';
+            document.getElementById('add-prod-precio').value = '';
+            document.getElementById('add-prod-file').value = '';
+            document.getElementById('add-prod-preview-img').src = '';
+            document.getElementById('add-prod-preview-img').classList.add('hidden');
+            document.getElementById('add-prod-preview-text').classList.remove('hidden');
+            window.actualizarSelectCategoriasModal();
+            document.getElementById('modal-admin-producto').classList.remove('hidden');
         };
 
-        window.adminEditarCategoria = async function(id, nombreActual) {
-            const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual);
-            if(nv && nv.trim() !== '') await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() });
+        window.cerrarModalProductoAdmin = function() {
+            document.getElementById('modal-admin-producto').classList.add('hidden');
         };
 
-        window.adminEliminarCategoria = async function(id) {
-            if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) await deleteDoc(doc(db, "categorias", id));
+        window.actualizarSelectCategoriasModal = function() {
+            const select = document.getElementById('add-prod-cat');
+            if(!select) return;
+            select.innerHTML = '';
+            if(datosRestaurante.categorias.length === 0) { select.innerHTML = `<option value="general">General</option>`; } 
+            else { datosRestaurante.categorias.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.nombre.toUpperCase()}</option>`; }); }
         };
 
-        window.ejecutarCierreCaja = async function() {
-            const inputEfectivo = document.getElementById('input-efectivo-fisico').value;
-            if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.');
-            if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) {
-                await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString(), estado: 'cerrada' });
-                window.location.reload();
+        window.previsualizarImagen = function(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('add-prod-preview-img').src = e.target.result;
+                    document.getElementById('add-prod-preview-img').classList.remove('hidden');
+                    document.getElementById('add-prod-preview-text').classList.add('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         };
 
-        window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
-        
-        window.adminAgregarProductoConBase64 = function() {
+        window.guardarProductoAdmin = async function() {
             const cat = document.getElementById('add-prod-cat').value;
             const nom = document.getElementById('add-prod-nombre').value;
             const pre = parseFloat(document.getElementById('add-prod-precio').value);
@@ -592,289 +648,128 @@
 
             if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
 
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    const base64String = e.target.result;
-                    await addDoc(collection(db, "productos"), {
-                        categoria: cat,
-                        nombre: nom,
-                        precio: pre,
-                        ventas: 0,
-                        imagen: base64String
-                    });
-                    document.getElementById('add-prod-nombre').value = '';
-                    document.getElementById('add-prod-precio').value = '';
-                    fileInput.value = '';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                addDoc(collection(db, "productos"), {
-                    categoria: cat,
-                    nombre: nom,
-                    precio: pre,
-                    ventas: 0,
-                    imagen: ""
-                }).then(() => {
-                    document.getElementById('add-prod-nombre').value = '';
-                    document.getElementById('add-prod-precio').value = '';
-                    fileInput.value = '';
-                });
+            // Botón en estado de carga
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`;
+            btn.disabled = true;
+
+            try {
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async function(e) {
+                        await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: e.target.result });
+                        window.cerrarModalProductoAdmin();
+                        window.customAlert('Producto guardado con éxito.');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: "" });
+                    window.cerrarModalProductoAdmin();
+                    window.customAlert('Producto guardado con éxito.');
+                }
+            } catch(e) {
+                console.error(e); window.customAlert('Error al guardar.');
+            } finally {
+                btn.innerHTML = originalText; btn.disabled = false;
             }
         };
 
-        window.adminEliminarProducto = async function(id) {
-            if(await window.customConfirm('¿Eliminar producto del menú?')) await deleteDoc(doc(db, "productos", id));
-        };
-        window.adminEditarPrecio = async function(id, nombre, precioActual) {
-            const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual);
-            if(nv && !isNaN(nv)) await updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) });
-        };
+        // RESTO DE FUNCIONES CRUD (Categorías, Espacios, etc.)
+        window.adminAgregarCategoria = async function() { const nom = document.getElementById('add-cat-nombre').value.trim(); if(!nom) return; await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() }); document.getElementById('add-cat-nombre').value = ''; };
+        window.adminEditarCategoria = async function(id, nombreActual) { const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual); if(nv && nv.trim() !== '') await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() }); };
+        window.adminEliminarCategoria = async function(id) { if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) await deleteDoc(doc(db, "categorias", id)); };
+        
+        window.ejecutarCierreCaja = async function() { const inputEfectivo = document.getElementById('input-efectivo-fisico').value; if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.'); if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) { await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString(), estado: 'cerrada' }); window.location.reload(); } };
+        
+        window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
+        window.adminEliminarProducto = async function(id) { if(await window.customConfirm('¿Eliminar producto del menú permanentemente?')) await deleteDoc(doc(db, "productos", id)); };
+        window.adminEditarPrecio = async function(id, nombre, precioActual) { const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual); if(nv && !isNaN(nv)) await updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) }); };
+        
+        window.adminAgregarEspacio = async function() { const cat = document.getElementById('add-esp-tipo').value; const nom = document.getElementById('add-esp-nombre').value; if(!nom) return; await addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] }); document.getElementById('add-esp-nombre').value = ''; };
+        window.adminEliminarEspacio = async function(id, estado) { if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.'); if(await window.customConfirm(`¿Eliminar este espacio?`)) await deleteDoc(doc(db, "espacios", id)); };
+        window.adminEditarEspacio = async function(id, nombreActual) { const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual); if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv }); };
 
-        window.adminAgregarEspacio = async function() {
-            const cat = document.getElementById('add-esp-tipo').value;
-            const nom = document.getElementById('add-esp-nombre').value;
-            if(!nom) return;
-            await addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] });
-            document.getElementById('add-esp-nombre').value = '';
-        };
-        window.adminEliminarEspacio = async function(id, estado) {
-            if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.');
-            if(await window.customConfirm(`¿Eliminar este espacio?`)) await deleteDoc(doc(db, "espacios", id));
-        };
-        window.adminEditarEspacio = async function(id, nombreActual) {
-            const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual);
-            if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv });
-        };
-
-        window.agregarClienteExtraBarra = async function() {
-            const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:");
-            if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
-        };
-
+        // PANEL OPERACIÓN MESAS
+        window.agregarClienteExtraBarra = async function() { const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:"); if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] }); };
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
-            if (espacio.estado === 'libre') {
-                const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`);
-                if (!nom) return;
-                await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom });
-                espacio.estado = 'ocupada';
-                espacio.cliente = nom;
-            }
+            if (espacio.estado === 'libre') { const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`); if (!nom) return; await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom }); espacio.estado = 'ocupada'; espacio.cliente = nom; }
             elementoSeleccionado = espacio;
-            const panel = document.getElementById('panel-cuenta');
-            panel.classList.remove('hidden');
-            panel.classList.add('flex');
-            document.getElementById('panel-cliente').innerText = espacio.cliente;
-            document.getElementById('panel-titulo').innerText = espacio.nombre;
+            const panel = document.getElementById('panel-cuenta'); panel.classList.remove('hidden'); panel.classList.add('flex');
+            document.getElementById('panel-cliente').innerText = espacio.cliente; document.getElementById('panel-titulo').innerText = espacio.nombre;
             window.actualizarListaPanel();
         };
 
         window.liberarMesa = async function() {
             if (!elementoSeleccionado) return;
-            if (elementoSeleccionado.total > 0) {
-                return window.customAlert('No se puede liberar un espacio con saldo pendiente. Cobre la cuenta o elimine los productos.');
-            }
-            
+            if (elementoSeleccionado.total > 0) return window.customAlert('No se puede liberar un espacio con saldo pendiente. Cobre la cuenta o elimine los productos.');
             if (await window.customConfirm(`¿Desea limpiar y liberar el espacio: ${elementoSeleccionado.nombre}?`)) {
-                if(elementoSeleccionado.nombre === 'Extra') {
-                    await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
-                } else {
-                    await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
-                }
+                if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } 
+                else { await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] }); }
                 window.cerrarPanel();
             }
         };
 
         window.actualizarListaPanel = function() {
-            const cont = document.getElementById('lista-items-cuenta');
-            cont.innerHTML = '';
-            if (!elementoSeleccionado.rondas || elementoSeleccionado.rondas.length === 0) {
-                cont.innerHTML = `<p class="text-slate-500 text-sm text-center italic mt-10">Sin productos aún</p>`;
-                document.getElementById('panel-total').innerText = `₡0`;
-                return;
-            } 
+            const cont = document.getElementById('lista-items-cuenta'); cont.innerHTML = '';
+            if (!elementoSeleccionado.rondas || elementoSeleccionado.rondas.length === 0) { cont.innerHTML = `<p class="text-slate-500 text-sm text-center italic mt-10">Sin productos aún</p>`; document.getElementById('panel-total').innerText = `₡0`; return; } 
             elementoSeleccionado.rondas.forEach((ronda, rIndex) => {
-                let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0);
-                let conteoLocal = {};
-                ronda.items.forEach(i => {
-                    if(!conteoLocal[i.nombre]) conteoLocal[i.nombre] = { nombre: i.nombre, cantidad: 0, precio: i.precio };
-                    conteoLocal[i.nombre].cantidad++;
-                });
-                let itemsHtml = '';
-                Object.values(conteoLocal).forEach(prod => {
-                    itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800/50 last:border-0"><span class="font-bold text-slate-200"><span class="text-amber-400 font-black mr-1.5">${prod.cantidad}x</span> ${prod.nombre}</span><span class="text-amber-400 font-semibold">₡${(prod.cantidad * prod.precio).toLocaleString()}</span></div>`;
-                });
+                let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0); let conteoLocal = {};
+                ronda.items.forEach(i => { if(!conteoLocal[i.nombre]) conteoLocal[i.nombre] = { nombre: i.nombre, cantidad: 0, precio: i.precio }; conteoLocal[i.nombre].cantidad++; });
+                let itemsHtml = ''; Object.values(conteoLocal).forEach(prod => { itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800/50 last:border-0"><span class="font-bold text-slate-200"><span class="text-amber-400 font-black mr-1.5">${prod.cantidad}x</span> ${prod.nombre}</span><span class="text-amber-400 font-semibold">₡${(prod.cantidad * prod.precio).toLocaleString()}</span></div>`; });
                 cont.innerHTML += `<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm mb-3 relative"><div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ronda #${rIndex + 1}</span><button onclick="window.eliminarRondaCuenta(${rIndex})" class="text-rose-500 text-xs bg-rose-950/40 border border-rose-900/50 px-2 py-0.5 rounded-md"><i class="fa-solid fa-trash-can"></i> Eliminar</button></div><div class="space-y-1 mb-2">${itemsHtml}</div><div class="flex justify-between items-center pt-2 border-t border-slate-800 font-black text-emerald-400 text-sm"><span>Subtotal ronda:</span><span>₡${subtotalRonda.toLocaleString()}</span></div></div>`;
             });
             document.getElementById('panel-total').innerText = `₡${(elementoSeleccionado.total || 0).toLocaleString()}`;
         };
 
-        window.cerrarPanel = function() {
-            document.getElementById('panel-cuenta').classList.add('hidden');
-            document.getElementById('panel-cuenta').classList.remove('flex');
-            elementoSeleccionado = null;
-        };
+        window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
 
         window.eliminarRondaCuenta = async function(rIndex) {
             if (!elementoSeleccionado) return;
-            const rondas = [...(elementoSeleccionado.rondas || [])];
-            const rondaEliminada = rondas[rIndex];
-            let totalRonda = rondaEliminada.items.reduce((acc, i) => acc + i.precio, 0);
-            rondas.splice(rIndex, 1);
+            const rondas = [...(elementoSeleccionado.rondas || [])]; const rondaEliminada = rondas[rIndex];
+            let totalRonda = rondaEliminada.items.reduce((acc, i) => acc + i.precio, 0); rondas.splice(rIndex, 1);
             const nuevoTotal = Math.max(0, (elementoSeleccionado.total || 0) - totalRonda);
-            elementoSeleccionado.rondas = rondas;
-            elementoSeleccionado.total = nuevoTotal;
-            window.actualizarListaPanel();
+            elementoSeleccionado.rondas = rondas; elementoSeleccionado.total = nuevoTotal; window.actualizarListaPanel();
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal });
         };
 
-        window.iniciarCobro = function() {
-            if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel();
-            document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`;
-            document.getElementById('modal-cobro').classList.remove('hidden');
-        };
-
-        window.cerrarModalCobro = function() {
-            document.getElementById('modal-cobro').classList.add('hidden');
-        };
+        window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
+        window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('hidden'); };
 
         window.procesarPagoConfirmado = async function(metodoPago) {
-            window.cerrarModalCobro();
-            const montoCobrado = elementoSeleccionado.total;
-            
-            await addDoc(collection(db, "ventas_historial"), {
-                fecha: new Date().toISOString(),
-                metodo: metodoPago,
-                total: montoCobrado,
-                cliente: elementoSeleccionado.cliente,
-                zona: elementoSeleccionado.nombre,
-                rondas: elementoSeleccionado.rondas
-            });
-
-            ventasTotalesTurno += montoCobrado;
-            await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
-            
-            let conteoProductos = {};
-            elementoSeleccionado.rondas.forEach(r => {
-                r.items.forEach(item => {
-                    if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0;
-                    conteoProductos[item.nombre]++;
-                });
-            });
-            
+            window.cerrarModalCobro(); const montoCobrado = elementoSeleccionado.total;
+            await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: montoCobrado, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre, rondas: elementoSeleccionado.rondas });
+            ventasTotalesTurno += montoCobrado; await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
+            let conteoProductos = {}; elementoSeleccionado.rondas.forEach(r => { r.items.forEach(item => { if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0; conteoProductos[item.nombre]++; }); });
             for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
-                if (prod) {
-                    updateDoc(doc(db, "productos", prod.id), { 
-                        ventas: increment(cantidad) 
-                    }).catch(e => console.log("Error actualizando ventas:", e));
-                }
+                if (prod) updateDoc(doc(db, "productos", prod.id), { ventas: increment(cantidad) }).catch(e => console.log(e));
             }
-            
-            if(elementoSeleccionado.nombre === 'Extra') {
-                await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
-            } else {
-                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
-            }
-            
-            window.cerrarPanel();
-            window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
+            if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } 
+            else { await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] }); }
+            window.cerrarPanel(); window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
         };
 
-        window.abrirModalAgregar = function() {
-            if (!elementoSeleccionado) return;
-            document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`;
-            document.getElementById('input-buscar-modal').value = '';
-            busquedaModal = '';
-            itemsRondaTemporal = [];
-            window.actualizarContadorModal();
-            window.renderizarPestanasModal();
-            document.getElementById('modal-agregar-producto').classList.remove('hidden');
-        };
-
-        window.cerrarModalProductos = function() {
-            document.getElementById('modal-agregar-producto').classList.add('hidden');
-        };
-
-        window.renderizarPestanasModal = function() {
-            const cont = document.getElementById('modal-categorias-container');
-            cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`;
-            datosRestaurante.categorias.forEach(c => {
-                cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c.id}')" id="cat-${c.id}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c.nombre}</button>`;
-            });
-            window.cambiarCategoriaModal('todas');
-        };
-
-        window.cambiarCategoriaModal = function(catId) {
-            categoriaActivaModal = catId;
-            const botones = document.getElementById('modal-categorias-container').querySelectorAll('button');
-            botones.forEach(btn => {
-                if(btn.id === `cat-${catId}`) btn.className = "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap uppercase";
-                else btn.className = "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase";
-            });
-            window.renderizarProductosModal();
-        };
-
+        // MODAL AGREGAR PRODUCTO SALÓN
+        window.abrirModalAgregar = function() { if (!elementoSeleccionado) return; document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`; document.getElementById('input-buscar-modal').value = ''; busquedaModal = ''; itemsRondaTemporal = []; window.actualizarContadorModal(); window.renderizarPestanasModal(); document.getElementById('modal-agregar-producto').classList.remove('hidden'); };
+        window.cerrarModalProductos = function() { document.getElementById('modal-agregar-producto').classList.add('hidden'); };
+        window.renderizarPestanasModal = function() { const cont = document.getElementById('modal-categorias-container'); cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`; datosRestaurante.categorias.forEach(c => { cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c.id}')" id="cat-${c.id}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c.nombre}</button>`; }); window.cambiarCategoriaModal('todas'); };
+        window.cambiarCategoriaModal = function(catId) { categoriaActivaModal = catId; const botones = document.getElementById('modal-categorias-container').querySelectorAll('button'); botones.forEach(btn => { if(btn.id === `cat-${catId}`) btn.className = "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap uppercase"; else btn.className = "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase"; }); window.renderizarProductosModal(); };
         window.filtrarProductosModal = function(val) { busquedaModal = val; window.renderizarProductosModal(); };
-
         window.renderizarProductosModal = function() {
-            const grid = document.getElementById('grid-modal-productos');
-            grid.innerHTML = '';
-            
-            const filtrados = datosRestaurante.productos
-                .filter(p => {
-                    const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase());
-                    const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
-                    return matchTexto && matchCat;
-                })
-                .sort((a, b) => (b.ventas || 0) - (a.ventas || 0));
-                
-            if(filtrados.length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos en esta categoría</p>`;
-
+            const grid = document.getElementById('grid-modal-productos'); grid.innerHTML = '';
+            const filtrados = datosRestaurante.productos.filter(p => { const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase()); const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal); return matchTexto && matchCat; }).sort((a, b) => (b.ventas || 0) - (a.ventas || 0));
+            if(filtrados.length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos</p>`;
             filtrados.forEach(prod => {
-                const btn = document.createElement('button');
-                // Reducido a p-2 para hacerlo compacto y eliminar espacios innecesarios
-                btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-2.5 rounded-2xl flex items-center justify-between text-left active:scale-95 transition shadow-md relative";
-                btn.onclick = () => window.agregarItemTemporal(prod);
-                
-                // Imagen centrada verticalmente y alineada con los textos
+                const btn = document.createElement('button'); btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-2.5 rounded-2xl flex items-center justify-between text-left active:scale-95 transition shadow-md relative"; btn.onclick = () => window.agregarItemTemporal(prod);
                 const imgHtml = prod.imagen ? `<img src="${prod.imagen}" class="h-14 w-14 object-contain shrink-0 mx-2 drop-shadow-md">` : '';
-
-                btn.innerHTML = `
-                    <div class="flex flex-col justify-center flex-1 min-w-0 pr-1">
-                        <span class="font-bold text-slate-200 text-sm leading-tight truncate mb-1">${prod.nombre}</span>
-                        <span class="font-black text-emerald-400 text-sm">₡${prod.precio.toLocaleString()}</span>
-                    </div>
-                    ${imgHtml}
-                `;
-                grid.appendChild(btn);
+                btn.innerHTML = `<div class="flex flex-col justify-center flex-1 min-w-0 pr-1"><span class="font-bold text-slate-200 text-sm leading-tight truncate mb-1">${prod.nombre}</span><span class="font-black text-emerald-400 text-sm">₡${prod.precio.toLocaleString()}</span></div>${imgHtml}`; grid.appendChild(btn);
             });
         };
-
-        window.agregarItemTemporal = function(prod) {
-            itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio });
-            window.actualizarContadorModal();
-        };
-
-        window.actualizarContadorModal = function() {
-            const totalItems = itemsRondaTemporal.length;
-            const subtotalRonda = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0);
-            document.getElementById('txt-items-seleccionados').innerText = `${totalItems} seleccionados (Subtotal: ₡${subtotalRonda.toLocaleString()})`;
-        };
-
-        window.guardarRondaActual = async function() {
-            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione al menos un producto.');
-            const rondasActuales = [...(elementoSeleccionado.rondas || [])];
-            rondasActuales.push({ items: itemsRondaTemporal });
-            let sumaTotal = 0;
-            rondasActuales.forEach(r => r.items.forEach(i => sumaTotal += i.precio));
-            elementoSeleccionado.rondas = rondasActuales;
-            elementoSeleccionado.total = sumaTotal;
-            window.actualizarListaPanel();
-            window.cerrarModalProductos();
-            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondasActuales, total: sumaTotal });
-        };
+        window.agregarItemTemporal = function(prod) { itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio }); window.actualizarContadorModal(); };
+        window.actualizarContadorModal = function() { const subtotalRonda = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} seleccionados (Subtotal: ₡${subtotalRonda.toLocaleString()})`; };
+        window.guardarRondaActual = async function() { if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione al menos un producto.'); const rondasActuales = [...(elementoSeleccionado.rondas || [])]; rondasActuales.push({ items: itemsRondaTemporal }); let sumaTotal = 0; rondasActuales.forEach(r => r.items.forEach(i => sumaTotal += i.precio)); elementoSeleccionado.rondas = rondasActuales; elementoSeleccionado.total = sumaTotal; window.actualizarListaPanel(); window.cerrarModalProductos(); await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondasActuales, total: sumaTotal }); };
     </script>
 </body>
 </html>
