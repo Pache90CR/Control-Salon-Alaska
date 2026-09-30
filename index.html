@@ -18,9 +18,7 @@
 </head>
 <body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
 
-    <!-- DIÁLOGOS PERSONALIZADOS (Reemplazo de alertas molestas del navegador) -->
-    
-    <!-- Modal Custom Alert -->
+    <!-- DIÁLOGOS PERSONALIZADOS -->
     <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
             <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4">
@@ -31,7 +29,6 @@
         </div>
     </div>
 
-    <!-- Modal Custom Confirm -->
     <div id="modal-custom-confirm" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
             <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center text-2xl mx-auto mb-4">
@@ -45,7 +42,6 @@
         </div>
     </div>
 
-    <!-- Modal Custom Prompt -->
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
@@ -243,6 +239,7 @@
         let rolUsuario = '';
         let montoCajaInicial = 0;
         let ventasTotalesTurno = 0; 
+        let cajaAbierta = false; // VARIABLE PARA RECORDAR SI LA CAJA ESTÁ ABIERTA
         
         let busquedaMenu = '';
         let busquedaModal = '';
@@ -331,12 +328,20 @@
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
-        onSnapshot(doc(db, "config", "cajaActual"), (doc) => {
-            if(doc.exists()) {
-                montoCajaInicial = doc.data().fondoInicial || 0;
-                ventasTotalesTurno = doc.data().ventasTurno || 0;
+        // MODIFICADO: Ahora valida si la caja está verdaderamente abierta en la base de datos
+        onSnapshot(doc(db, "config", "cajaActual"), (docSnap) => {
+            if(docSnap.exists()) {
+                const data = docSnap.data();
+                montoCajaInicial = data.fondoInicial || 0;
+                ventasTotalesTurno = data.ventasTurno || 0;
+                
+                // Valida si la caja se guardó como abierta
+                cajaAbierta = data.estado === 'abierta' || (!data.fechaCierre && data.fechaApertura);
+
                 document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
                 if(vistaActual === 'admin' && adminSubVista === 'caja') renderizarModuloAdmin();
+            } else {
+                cajaAbierta = false;
             }
         });
 
@@ -353,9 +358,16 @@
             if(rol === 'admin') {
                 const pin = await window.customPrompt("Ingrese PIN Administrador (1234):");
                 if(pin !== '1234') return window.location.reload();
-                document.getElementById('modal-caja').classList.remove('hidden'); 
+                
                 document.getElementById('btn-tab-admin').classList.remove('hidden'); 
                 document.getElementById('info-caja-header').classList.remove('hidden');
+                
+                // Si la caja ya está abierta, mandarlo directo al menú de admin
+                if (cajaAbierta) {
+                    window.cambiarVista('barra');
+                } else {
+                    document.getElementById('modal-caja').classList.remove('hidden'); 
+                }
             } else {
                 document.getElementById('btn-tab-admin').classList.add('hidden');
                 window.cambiarVista('barra'); 
@@ -366,11 +378,15 @@
             const val = document.getElementById('input-monto-caja').value;
             if(!val) return;
             montoCajaInicial = parseFloat(val);
+            
+            // Registramos que la caja está abierta
             await setDoc(doc(db, "config", "cajaActual"), {
                 fondoInicial: montoCajaInicial,
                 ventasTurno: 0,
-                fechaApertura: new Date().toISOString()
+                fechaApertura: new Date().toISOString(),
+                estado: 'abierta'
             });
+            
             document.getElementById('modal-caja').classList.add('hidden');
             window.cambiarVista('barra');
         };
@@ -452,7 +468,6 @@
         };
 
         function renderizarDashboard() {
-            // Filtrar ventas del día de hoy
             const hoyStr = new Date().toISOString().split('T')[0];
             const ventasHoy = ventasHistorialData.filter(v => v.fecha && v.fecha.startsWith(hoyStr));
             
@@ -575,7 +590,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="flex flex-col gap-2 pb-10">`; // CAMBIO AL DISEÑO DE LISTA MÁS COMPACTA
+                        <div class="flex flex-col gap-2 pb-10">`; 
                 
                 if(prodsFiltrados.length === 0) html += `<div class="p-6 text-center text-slate-500 bg-slate-900 rounded-xl border border-slate-800">No hay productos creados.</div>`;
                 
@@ -670,7 +685,7 @@
             }
         }
 
-        // FUNCIONES ADMIN Y SISTEMA (Usando custom prompts)
+        // FUNCIONES ADMIN Y SISTEMA 
         window.adminAgregarCategoria = async function() {
             const nom = document.getElementById('add-cat-nombre').value.trim();
             if(!nom) return;
@@ -691,11 +706,18 @@
             }
         };
 
+        // Al hacer el cierre de caja, se marca el estado como "cerrada"
         window.ejecutarCierreCaja = async function() {
             const inputEfectivo = document.getElementById('input-efectivo-fisico').value;
             if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.');
+            
             if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) {
-                await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString() });
+                await setDoc(doc(db, "config", "cajaActual"), { 
+                    fondoInicial: 0, 
+                    ventasTurno: 0, 
+                    fechaCierre: new Date().toISOString(),
+                    estado: 'cerrada'
+                });
                 window.location.reload();
             }
         };
@@ -814,7 +836,6 @@
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal });
         };
 
-        // NUEVO FLUJO DE COBRO CON MÉTODOS DE PAGO
         window.iniciarCobro = function() {
             if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel();
             document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`;
@@ -829,7 +850,6 @@
             window.cerrarModalCobro();
             const montoCobrado = elementoSeleccionado.total;
             
-            // Guardar en histórico de ventas para el Dashboard
             await addDoc(collection(db, "ventas_historial"), {
                 fecha: new Date().toISOString(),
                 metodo: metodoPago,
@@ -839,11 +859,9 @@
                 rondas: elementoSeleccionado.rondas
             });
 
-            // Actualizar resumen de caja general
             ventasTotalesTurno += montoCobrado;
             await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
             
-            // Limpiar mesa
             if(elementoSeleccionado.nombre === 'Extra') {
                 await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
             } else {
@@ -854,7 +872,6 @@
             window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
         };
 
-        // MODAL PRODUCTOS Y CATEGORÍAS
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`;
