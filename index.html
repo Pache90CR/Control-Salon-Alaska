@@ -40,10 +40,11 @@
         </div>
     </div>
 
+    <!-- PROMPT CUSTOMIZADO (Arreglo Guardar Contraseña) -->
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <input type="text" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest" autocomplete="off">
+            <input type="text" id="prompt-input" autocomplete="new-password" data-lpignore="true" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
             <div class="flex gap-3">
                 <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
                 <button onclick="window.aceptarPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
@@ -121,7 +122,7 @@
         </div>
     </div>
 
-    <!-- MODAL CREAR PRODUCTO (ADMIN) - CON CAMPO DE STOCK -->
+    <!-- MODAL CREAR PRODUCTO (ADMIN) -->
     <div id="modal-admin-producto" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
@@ -137,7 +138,6 @@
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre</label>
                     <input type="text" id="add-prod-nombre" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Ej. Cerveza Imperial">
                 </div>
-                
                 <div class="flex gap-4">
                     <div class="w-1/2">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Precio (₡)</label>
@@ -148,7 +148,6 @@
                         <input type="number" id="add-prod-stock" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Imagen (Opcional)</label>
                     <div class="relative border-2 border-dashed border-slate-700 rounded-xl p-4 text-center hover:border-amber-500 transition cursor-pointer bg-slate-950 h-32 flex flex-col items-center justify-center overflow-hidden">
@@ -257,7 +256,7 @@
         </aside>
     </main>
 
-    <!-- SCRIPT FIREBASE -->
+    <!-- SCRIPT FIREBASE Y LÓGICA -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -292,10 +291,14 @@
         let chartInstancia = null;
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
+        
+        // Memoria para evitar el LAG de pestañas y saltos
+        let estadoAcordeones = {}; 
 
-        // Utilidades
+        // UTILIDADES Y MODALES
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
+        
         window.customConfirm = function(msg) {
             return new Promise((resolve) => {
                 document.getElementById('confirm-msg').innerText = msg; document.getElementById('modal-custom-confirm').classList.remove('hidden');
@@ -303,11 +306,29 @@
                 window.cancelarConfirm = () => { document.getElementById('modal-custom-confirm').classList.add('hidden'); resolve(false); };
             });
         };
-        window.customPrompt = function(msg, defaultVal = '', isPassword = false) {
+
+        // Custom Prompt actualizado para burlar al gestor de contraseñas de Chrome
+        window.customPrompt = function(msg, defaultVal = '', inputType = 'text') {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
-                const input = document.getElementById('prompt-input'); input.type = isPassword ? 'password' : 'text'; input.value = defaultVal;
-                document.getElementById('modal-custom-prompt').classList.remove('hidden'); setTimeout(() => input.focus(), 100);
+                const input = document.getElementById('prompt-input'); 
+                
+                // Si es "password", usamos el teclado numérico pero lo ocultamos con CSS para engañar a Chrome
+                if(inputType === 'password') {
+                    input.type = 'tel';
+                    input.style.webkitTextSecurity = 'disc';
+                } else if(inputType === 'number') {
+                    input.type = 'tel'; // tel abre teclado numérico en móviles
+                    input.style.webkitTextSecurity = 'none';
+                } else {
+                    input.type = 'text';
+                    input.style.webkitTextSecurity = 'none';
+                }
+                
+                input.value = defaultVal;
+                document.getElementById('modal-custom-prompt').classList.remove('hidden'); 
+                setTimeout(() => input.focus(), 100);
+                
                 window.aceptarPrompt = () => { document.getElementById('modal-custom-prompt').classList.add('hidden'); resolve(input.value.trim()); };
                 window.cancelarPrompt = () => { document.getElementById('modal-custom-prompt').classList.add('hidden'); resolve(null); };
             });
@@ -362,7 +383,7 @@
             const btnAdminTab = document.getElementById('btn-tab-admin');
 
             if(rol === 'admin') {
-                const pin = await window.customPrompt("Ingrese PIN Administrador:", "", true);
+                const pin = await window.customPrompt("Ingrese PIN Administrador:", "", "password");
                 if(pin !== pinAdmin) { window.customAlert("PIN incorrecto"); return window.location.reload(); }
                 if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
@@ -462,12 +483,23 @@
         window.toggleAccordion = function(catId) {
             const content = document.getElementById(`acc-content-${catId}`);
             const icon = document.getElementById(`acc-icon-${catId}`);
-            if(content.classList.contains('open')) { content.classList.remove('open'); icon.classList.replace('fa-chevron-up', 'fa-chevron-down'); } 
-            else { content.classList.add('open'); icon.classList.replace('fa-chevron-down', 'fa-chevron-up'); }
+            if(content.classList.contains('open')) { 
+                content.classList.remove('open'); 
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down'); 
+                estadoAcordeones[catId] = false; // Guarda el estado en memoria
+            } else { 
+                content.classList.add('open'); 
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up'); 
+                estadoAcordeones[catId] = true; // Guarda el estado en memoria
+            }
         };
 
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
+            
+            // MEMORIA: Guardar posición exacta del scroll antes de redibujar
+            let scrollActual = 0;
+            if(cont) scrollActual = cont.scrollTop;
             
             if(adminSubVista === 'dashboard') {
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black text-slate-100 mb-6">Resumen del Día</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div class="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-lg"><p class="text-sm font-black text-slate-900 opacity-80 uppercase tracking-wider mb-1">Ventas Hoy</p><p id="dash-total-hoy" class="text-4xl font-black text-slate-900">₡0</p></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center"><p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Cuentas Cobradas</p><p id="dash-tickets" class="text-3xl font-black text-slate-200">0</p></div></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg max-w-sm mx-auto"><h3 class="text-center font-bold text-slate-300 mb-4">Ingresos por Método de Pago</h3><canvas id="metodosChart"></canvas></div></div>`;
@@ -504,13 +536,18 @@
                     hayResultados = true;
                     cat.items.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
+                    // MEMORIA: Verificamos si este acordeón estaba abierto o cerrado antes del refresh
+                    let isOpen = estadoAcordeones[catId] !== false; // Por defecto true, a menos que lo hayan cerrado
+                    const stateClass = isOpen ? 'open' : '';
+                    const iconClass = isOpen ? 'fa-chevron-up' : 'fa-chevron-down';
+
                     html += `
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                         <button onclick="window.toggleAccordion('${catId}')" class="w-full flex justify-between items-center p-4 bg-slate-800/60 hover:bg-slate-800 transition">
                             <span class="font-black text-amber-500 uppercase tracking-wider text-sm">${cat.nombre} <span class="text-slate-400 font-semibold text-xs ml-2 bg-slate-900 px-2 py-0.5 rounded-md">${cat.items.length}</span></span>
-                            <i id="acc-icon-${catId}" class="fa-solid fa-chevron-up text-slate-500"></i>
+                            <i id="acc-icon-${catId}" class="fa-solid ${iconClass} text-slate-500"></i>
                         </button>
-                        <div id="acc-content-${catId}" class="accordion-content open">
+                        <div id="acc-content-${catId}" class="accordion-content ${stateClass}">
                             <div class="divide-y divide-slate-800/50">`;
 
                     cat.items.forEach(p => {
@@ -571,6 +608,12 @@
                 html += `</div></div>`;
                 cont.innerHTML = html;
             }
+
+            // MEMORIA: Restaurar el scroll a donde estaba
+            setTimeout(() => {
+                const updatedCont = document.getElementById('contenedor-admin');
+                if(updatedCont) updatedCont.scrollTop = scrollActual;
+            }, 0);
         }
 
         // CONTROL CRUD INVENTARIO Y PRODUCTOS
@@ -620,10 +663,10 @@
             } catch(e) { console.error(e); window.customAlert('Error al guardar.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
 
-        // FUNCIONES DE CONTROL DE STOCK
+        // FUNCIONES DE CONTROL DE STOCK (Usa tipo "number" para el teclado móvil)
         window.adminAjustarStock = async function(id, nombre, operacion) {
             const titulo = operacion === 'sumar' ? `Sumar stock a ${nombre} (Ej. Ingreso):` : `Restar stock a ${nombre} (Ej. Merma/Daño):`;
-            const val = await window.customPrompt(titulo, "1");
+            const val = await window.customPrompt(titulo, "1", "number");
             if(val && !isNaN(val) && parseInt(val) > 0) {
                 const ajuste = operacion === 'sumar' ? parseInt(val) : -parseInt(val);
                 await updateDoc(doc(db, "productos", id), { stock: increment(ajuste) });
@@ -631,27 +674,27 @@
         };
 
         window.adminSetStockFijo = async function(id, nombre, stockActual) {
-            const val = await window.customPrompt(`Fijar stock exacto para ${nombre} (Auditoría física):`, stockActual);
+            const val = await window.customPrompt(`Fijar stock exacto para ${nombre} (Auditoría física):`, stockActual, "number");
             if(val && !isNaN(val)) { await updateDoc(doc(db, "productos", id), { stock: parseInt(val) }); }
         };
 
         // OTRAS FUNCIONES CRUD Y OPERACIONES
         window.adminAgregarCategoria = async function() { const nom = document.getElementById('add-cat-nombre').value.trim(); if(!nom) return; await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() }); document.getElementById('add-cat-nombre').value = ''; };
-        window.adminEditarCategoria = async function(id, nombreActual) { const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual); if(nv && nv.trim() !== '') await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() }); };
+        window.adminEditarCategoria = async function(id, nombreActual) { const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual, "text"); if(nv && nv.trim() !== '') await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() }); };
         window.adminEliminarCategoria = async function(id) { if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) await deleteDoc(doc(db, "categorias", id)); };
         window.ejecutarCierreCaja = async function() { const inputEfectivo = document.getElementById('input-efectivo-fisico').value; if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.'); if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) { await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString(), estado: 'cerrada' }); window.location.reload(); } };
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
         window.adminEliminarProducto = async function(id) { if(await window.customConfirm('¿Eliminar producto del menú permanentemente?')) await deleteDoc(doc(db, "productos", id)); };
-        window.adminEditarPrecio = async function(id, nombre, precioActual) { const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual); if(nv && !isNaN(nv)) await updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) }); };
+        window.adminEditarPrecio = async function(id, nombre, precioActual) { const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual, "number"); if(nv && !isNaN(nv)) await updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) }); };
         window.adminAgregarEspacio = async function() { const cat = document.getElementById('add-esp-tipo').value; const nom = document.getElementById('add-esp-nombre').value; if(!nom) return; await addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] }); document.getElementById('add-esp-nombre').value = ''; };
         window.adminEliminarEspacio = async function(id, estado) { if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.'); if(await window.customConfirm(`¿Eliminar este espacio?`)) await deleteDoc(doc(db, "espacios", id)); };
-        window.adminEditarEspacio = async function(id, nombreActual) { const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual); if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv }); };
+        window.adminEditarEspacio = async function(id, nombreActual) { const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual, "text"); if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv }); };
 
         // SALÓN
-        window.agregarClienteExtraBarra = async function() { const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:"); if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] }); };
+        window.agregarClienteExtraBarra = async function() { const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:", "", "text"); if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] }); };
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
-            if (espacio.estado === 'libre') { const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`); if (!nom) return; await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom }); espacio.estado = 'ocupada'; espacio.cliente = nom; }
+            if (espacio.estado === 'libre') { const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`, "", "text"); if (!nom) return; await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom }); espacio.estado = 'ocupada'; espacio.cliente = nom; }
             elementoSeleccionado = espacio;
             const panel = document.getElementById('panel-cuenta'); panel.classList.remove('hidden'); panel.classList.add('flex');
             document.getElementById('panel-cliente').innerText = espacio.cliente; document.getElementById('panel-titulo').innerText = espacio.nombre;
@@ -701,13 +744,12 @@
             let conteoProductos = {}; 
             elementoSeleccionado.rondas.forEach(r => { r.items.forEach(item => { if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0; conteoProductos[item.nombre]++; }); });
             
-            // DEDUCCIÓN DE STOCK AL COBRAR
             for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
                 if (prod) {
                     updateDoc(doc(db, "productos", prod.id), { 
                         ventas: increment(cantidad),
-                        stock: increment(-cantidad) // Reduce automáticamente del inventario
+                        stock: increment(-cantidad)
                     }).catch(e => console.log(e));
                 }
             }
