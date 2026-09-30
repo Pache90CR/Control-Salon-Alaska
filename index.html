@@ -45,7 +45,7 @@
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <input type="text" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg" autocomplete="off">
+            <input type="password" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest" autocomplete="off">
             <div class="flex gap-3">
                 <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
                 <button onclick="window.aceptarPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
@@ -152,6 +152,7 @@
             <button onclick="cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
             <button onclick="cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
             <button onclick="cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
+            <!-- BOTÓN ADMIN OCULTO POR DEFECTO PARA SALONEROS -->
             <button onclick="cambiarVista('admin')" id="btn-tab-admin" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap hidden"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
         </div>
     </header>
@@ -219,7 +220,6 @@
     <!-- SCRIPT FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // Importamos increment para poder sumar ventas a los productos
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -233,6 +233,9 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // CONTRASEÑA ADMINISTRADOR (Puedes cambiar este número por el PIN que quieras)
+        let pinAdmin = "1234";
 
         let vistaActual = 'barra';
         let adminSubVista = 'dashboard';
@@ -352,9 +355,14 @@
             rolUsuario = rol;
             document.getElementById('modal-login').classList.add('hidden');
             if(rol === 'admin') {
-                const pin = await window.customPrompt("Ingrese PIN Administrador (1234):");
-                if(pin !== '1234') return window.location.reload();
+                // Mensaje limpio sin mostrar la clave
+                const pin = await window.customPrompt("Ingrese PIN Administrador:");
+                if(pin !== pinAdmin) {
+                    window.customAlert("PIN incorrecto");
+                    return window.location.reload();
+                }
                 
+                // Si ingresa como Admin, se habilita el botón en la barra superior
                 document.getElementById('btn-tab-admin').classList.remove('hidden'); 
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
@@ -364,7 +372,9 @@
                     document.getElementById('modal-caja').classList.remove('hidden'); 
                 }
             } else {
+                // Si ingresa como salonero, la pestaña Admin queda totalmente OCULTA
                 document.getElementById('btn-tab-admin').classList.add('hidden');
+                document.getElementById('info-caja-header').classList.add('hidden');
                 window.cambiarVista('barra'); 
             }
         };
@@ -484,10 +494,9 @@
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full"><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p><p class="text-xl font-black text-slate-200">₡${montoCajaInicial.toLocaleString()}</p></div><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Ventas Turno</p><p class="text-xl font-black text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</p></div><div class="bg-slate-800 border-2 border-amber-500/50 p-5 rounded-2xl text-white"><p class="text-xs font-black uppercase text-amber-400 mb-1">Total Sistema (Esperado)</p><p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p></div></div><div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8 relative"><h3 class="text-lg font-bold text-slate-200 mb-4">Auditoría: Efectivo Físico</h3><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400 font-bold text-xl">₡</span><input type="number" id="input-efectivo-fisico" onkeyup="window.calcularCuadre()" class="w-full bg-slate-950 border-2 border-slate-600 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-2xl font-black text-white" placeholder="0"></div><div id="mensaje-cuadre" class="mt-4 transition-all hidden"></div></div><button onclick="window.ejecutarCierreCaja()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center gap-2"><i class="fa-solid fa-lock mt-1"></i> Confirmar Cierre Definitivo</button></div>`;
             } 
             else if(adminSubVista === 'menu') {
-                // AQUÍ APLICAMOS EL ORDENAMIENTO POR VENTAS EN EL ADMIN
                 const prodsFiltrados = datosRestaurante.productos
                     .filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()))
-                    .sort((a, b) => (b.ventas || 0) - (a.ventas || 0)); // Ordena de mayor a menor ventas
+                    .sort((a, b) => (b.ventas || 0) - (a.ventas || 0));
                 
                 let opcionesCat = '';
                 if(datosRestaurante.categorias.length === 0) { opcionesCat = `<option value="general">General</option>`; } 
@@ -499,7 +508,7 @@
                 prodsFiltrados.forEach(p => {
                     const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
                     const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
-                    html += `<div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition"><div class="flex flex-col"><span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span><span class="font-bold text-slate-200 text-base">${p.nombre}</span></div><div class="flex items-center gap-4"><span class="text-xs text-slate-500 mr-2" title="Cantidad vendida históricamente">Ventas: ${p.ventas || 0}</span><span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span><div class="flex gap-2"><button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button></div></div></div>`;
+                    html += `<div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition"><div class="flex flex-col"><span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span><span class="font-bold text-slate-200 text-base">${p.nombre}</span></div><div class="flex items-center gap-4"><span class="text-xs text-slate-500 mr-2">Ventas: ${p.ventas || 0}</span><span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span><div class="flex gap-2"><button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button></div></div></div>`;
                 });
                 html += `</div></div>`;
                 cont.innerHTML = html;
@@ -557,7 +566,6 @@
             const nom = document.getElementById('add-prod-nombre').value;
             const pre = parseFloat(document.getElementById('add-prod-precio').value);
             if(!nom || !pre) return;
-            // Se le asigna ventas en 0 al crear
             await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0 });
             document.getElementById('add-prod-nombre').value = '';
             document.getElementById('add-prod-precio').value = '';
@@ -667,7 +675,6 @@
             window.cerrarModalCobro();
             const montoCobrado = elementoSeleccionado.total;
             
-            // 1. Guardar historial de venta
             await addDoc(collection(db, "ventas_historial"), {
                 fecha: new Date().toISOString(),
                 metodo: metodoPago,
@@ -677,11 +684,9 @@
                 rondas: elementoSeleccionado.rondas
             });
 
-            // 2. Incrementar la caja general
             ventasTotalesTurno += montoCobrado;
             await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
             
-            // 3. APRENDIZAJE: Contar y guardar productos más vendidos de esta cuenta
             let conteoProductos = {};
             elementoSeleccionado.rondas.forEach(r => {
                 r.items.forEach(item => {
@@ -699,7 +704,6 @@
                 }
             }
             
-            // 4. Limpiar la mesa para el próximo cliente
             if(elementoSeleccionado.nombre === 'Extra') {
                 await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
             } else {
@@ -750,14 +754,13 @@
             const grid = document.getElementById('grid-modal-productos');
             grid.innerHTML = '';
             
-            // AQUÍ APLICAMOS EL ORDENAMIENTO POR VENTAS EN EL MENÚ DEL SALONERO
             const filtrados = datosRestaurante.productos
                 .filter(p => {
                     const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase());
                     const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
                     return matchTexto && matchCat;
                 })
-                .sort((a, b) => (b.ventas || 0) - (a.ventas || 0)); // Ordenar de mayor a menor ventas
+                .sort((a, b) => (b.ventas || 0) - (a.ventas || 0));
                 
             if(filtrados.length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos en esta categoría</p>`;
 
