@@ -47,6 +47,42 @@
         </div>
     </div>
 
+    <!-- MODAL SELECCIÓN DE PRODUCTOS PARA LA CUENTA -->
+    <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Header Modal -->
+            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                <div>
+                    <h3 class="text-xl font-black text-amber-400">Seleccionar Producto</h3>
+                    <p id="modal-subtitulo-cliente" class="text-xs text-slate-400">Agregando a la cuenta de --</p>
+                </div>
+                <button onclick="cerrarModalProductos()" class="text-slate-400 hover:text-white p-2 text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <!-- Buscador interno -->
+            <div class="p-4 bg-slate-950 border-b border-slate-800">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i>
+                    <input type="text" id="input-buscar-modal" onkeyup="window.filtrarProductosModal(this.value)" placeholder="Buscar producto..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-500 text-slate-200">
+                </div>
+            </div>
+
+            <!-- Grilla de Productos -->
+            <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-950">
+                <div id="grid-modal-productos" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Footer con Botón Listo -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900 text-right">
+                <button onclick="cerrarModalProductos()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition">
+                    Finalizar Selección
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- HEADER -->
     <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-col sm:flex-row justify-between sm:items-center shadow-lg gap-3 relative z-10 w-full overflow-hidden">
         <div class="flex items-center space-x-3">
@@ -127,7 +163,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // CREDENCIALES DEL PROYECTO BAR ALASKA
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
             authDomain: "bar-alaska.firebaseapp.com",
@@ -148,15 +183,14 @@
         let montoCajaInicial = 0;
         let ventasTotalesTurno = 0; 
         let busquedaMenu = '';
+        let busquedaModal = '';
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [] };
 
-        // Confirmar Conexión
         document.getElementById('firebase-status').innerText = "Conectado a bar-alaska ✅";
         document.getElementById('firebase-status').classList.remove('animate-pulse');
         document.getElementById('firebase-status').classList.add('text-emerald-500');
 
-        // Escuchar Espacios
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = [];
             datosRestaurante.mesas = [];
@@ -175,7 +209,6 @@
             }
         });
 
-        // Escuchar Productos
         onSnapshot(collection(db, "productos"), (snapshot) => {
             datosRestaurante.productos = [];
             snapshot.forEach((doc) => {
@@ -186,7 +219,6 @@
             if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
         });
 
-        // Escuchar Caja
         onSnapshot(doc(db, "config", "cajaActual"), (doc) => {
             if(doc.exists()) {
                 montoCajaInicial = doc.data().fondoInicial || 0;
@@ -485,16 +517,58 @@
             elementoSeleccionado = null;
         };
 
-        window.abrirModalAgregar = async function() {
+        // --- MODAL DE TOMA DE PEDIDOS MULTI-PRODUCTO ---
+        window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
-            if(datosRestaurante.productos.length === 0) return alert('No hay productos creados en el menú. Ingrese como Admin y créelos primero.');
+            if(datosRestaurante.productos.length === 0) return alert('No hay productos creados en el menú.');
             
-            const prod = datosRestaurante.productos[Math.floor(Math.random() * datosRestaurante.productos.length)];
+            document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a la cuenta de: ${elementoSeleccionado.cliente}`;
+            document.getElementById('input-buscar-modal').value = '';
+            busquedaModal = '';
+            window.renderizarProductosModal();
+            
+            document.getElementById('modal-agregar-producto').classList.remove('hidden');
+        };
+
+        window.cerrarModalProductos = function() {
+            document.getElementById('modal-agregar-producto').classList.add('hidden');
+        };
+
+        window.filtrarProductosModal = function(val) {
+            busquedaModal = val;
+            window.renderizarProductosModal();
+        };
+
+        window.renderizarProductosModal = function() {
+            const grid = document.getElementById('grid-modal-productos');
+            grid.innerHTML = '';
+            const filtrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaModal.toLowerCase()));
+            
+            if(filtrados.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No se encontraron productos</p>`;
+                return;
+            }
+
+            filtrados.forEach(prod => {
+                const btn = document.createElement('button');
+                btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-4 rounded-2xl flex flex-col justify-between text-left active:scale-95 transition shadow-md";
+                btn.onclick = () => window.agregarProductoACuenta(prod);
+                btn.innerHTML = `
+                    <span class="font-bold text-slate-200 text-sm leading-tight mb-2">${prod.nombre}</span>
+                    <span class="font-black text-amber-400 text-base">₡${prod.precio.toLocaleString()}</span>
+                `;
+                grid.appendChild(btn);
+            });
+        };
+
+        window.agregarProductoACuenta = async function(prod) {
+            if (!elementoSeleccionado) return;
             const itemsActuales = elementoSeleccionado.items || [];
             const nuevosItems = [...itemsActuales, { nombre: prod.nombre, precio: prod.precio }];
             const nuevoTotal = (elementoSeleccionado.total || 0) + prod.precio;
             
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { items: nuevosItems, total: nuevoTotal });
+            
             elementoSeleccionado.items = nuevosItems;
             elementoSeleccionado.total = nuevoTotal;
             window.actualizarListaPanel();
