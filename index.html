@@ -6,6 +6,7 @@
     <title>Bar Restaurante Alaska - Control Total</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -16,6 +17,68 @@
     </style>
 </head>
 <body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
+
+    <!-- DIÁLOGOS PERSONALIZADOS (Reemplazo de alertas molestas del navegador) -->
+    
+    <!-- Modal Custom Alert -->
+    <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <p id="alert-msg" class="text-slate-200 text-lg mb-6"></p>
+            <button onclick="window.cerrarAlert()" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-xl">Aceptar</button>
+        </div>
+    </div>
+
+    <!-- Modal Custom Confirm -->
+    <div id="modal-custom-confirm" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-circle-question"></i>
+            </div>
+            <p id="confirm-msg" class="text-slate-200 text-lg mb-6"></p>
+            <div class="flex gap-3">
+                <button onclick="window.cancelarConfirm()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
+                <button onclick="window.aceptarConfirm()" class="flex-1 bg-rose-600 text-white font-bold py-3 rounded-xl">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Custom Prompt -->
+    <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+            <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
+            <input type="text" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg" autocomplete="off">
+            <div class="flex gap-3">
+                <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
+                <button onclick="window.aceptarPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE COBRO (Métodos de pago) -->
+    <div id="modal-cobro" class="fixed inset-0 bg-slate-950/90 z-[55] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+            <div class="text-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-1">Total a Cobrar</h3>
+                <p id="txt-total-cobro" class="text-4xl font-black text-emerald-400">₡0</p>
+            </div>
+            <p class="text-center text-slate-300 font-bold mb-4">Seleccione el método de pago</p>
+            <div class="space-y-3">
+                <button onclick="window.procesarPagoConfirmado('Efectivo')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg">
+                    <i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Efectivo
+                </button>
+                <button onclick="window.procesarPagoConfirmado('Tarjeta')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg">
+                    <i class="fa-regular fa-credit-card text-blue-400"></i> Tarjeta
+                </button>
+                <button onclick="window.procesarPagoConfirmado('SINPE')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg">
+                    <i class="fa-solid fa-mobile-screen text-rose-500"></i> SINPE Móvil
+                </button>
+            </div>
+            <button onclick="window.cerrarModalCobro()" class="w-full mt-4 text-slate-500 font-bold py-2 hover:text-white transition">Cancelar</button>
+        </div>
+    </div>
 
     <!-- MODAL DE INGRESO -->
     <div id="modal-login" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
@@ -48,7 +111,7 @@
     </div>
 
     <!-- MODAL SELECCIÓN DE PRODUCTOS -->
-    <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div>
@@ -58,10 +121,7 @@
                 <button onclick="cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <!-- Pestañas de Categorías Dinámicas -->
-            <div id="modal-categorias-container" class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0">
-                <!-- Se llena automáticamente con Firebase -->
-            </div>
+            <div id="modal-categorias-container" class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0"></div>
 
             <div class="p-3 bg-slate-950">
                 <div class="relative">
@@ -122,16 +182,17 @@
         <!-- SECCIÓN ADMIN -->
         <section class="flex-1 overflow-hidden hidden flex-col w-full bg-slate-950" id="area-admin">
             <div class="border-b border-slate-800 bg-slate-900 px-4 py-3 flex gap-6 overflow-x-auto hide-scrollbar w-full">
-                <button onclick="cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap">Resumen de Caja</button>
-                <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Gestión de Menú</button>
+                <button onclick="cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap"><i class="fa-solid fa-chart-pie mr-1"></i> Dashboard</button>
+                <button onclick="cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Resumen Caja</button>
+                <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Productos</button>
                 <button onclick="cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Categorías</button>
-                <button onclick="cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Mesas y Zonas</button>
+                <button onclick="cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Zonas</button>
             </div>
             <div id="contenedor-admin" class="flex-1 p-4 md:p-6 overflow-y-auto pro-scroll w-full"></div>
         </section>
 
         <!-- PANEL LATERAL DE CUENTA -->
-        <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-40 hidden transition-all">
+        <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-30 hidden transition-all">
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div class="w-full overflow-hidden pr-4">
                     <h3 id="panel-cliente" class="text-xl font-black text-amber-400 truncate">Nombre Cliente</h3>
@@ -151,8 +212,8 @@
                     <button onclick="abrirModalAgregar()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-cart-plus"></i> Menú
                     </button>
-                    <button onclick="cobrarCuenta()" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg">
-                        <i class="fa-solid fa-check-double"></i> Cobrar
+                    <button onclick="window.iniciarCobro()" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-cash-register"></i> Cobrar
                     </button>
                 </div>
             </div>
@@ -177,7 +238,7 @@
         const db = getFirestore(app);
 
         let vistaActual = 'barra';
-        let adminSubVista = 'caja';
+        let adminSubVista = 'dashboard';
         let elementoSeleccionado = null;
         let rolUsuario = '';
         let montoCajaInicial = 0;
@@ -187,20 +248,64 @@
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
+        let ventasHistorialData = [];
+        let chartInstancia = null;
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
 
+        // SISTEMA DE ALERTAS PERSONALIZADO
+        window.customAlert = function(msg) {
+            document.getElementById('alert-msg').innerText = msg;
+            document.getElementById('modal-custom-alert').classList.remove('hidden');
+        };
+        window.cerrarAlert = function() {
+            document.getElementById('modal-custom-alert').classList.add('hidden');
+        };
+
+        window.customConfirm = function(msg) {
+            return new Promise((resolve) => {
+                document.getElementById('confirm-msg').innerText = msg;
+                document.getElementById('modal-custom-confirm').classList.remove('hidden');
+                
+                window.aceptarConfirm = function() {
+                    document.getElementById('modal-custom-confirm').classList.add('hidden');
+                    resolve(true);
+                };
+                window.cancelarConfirm = function() {
+                    document.getElementById('modal-custom-confirm').classList.add('hidden');
+                    resolve(false);
+                };
+            });
+        };
+
+        window.customPrompt = function(msg, defaultVal = '') {
+            return new Promise((resolve) => {
+                document.getElementById('prompt-msg').innerText = msg;
+                const input = document.getElementById('prompt-input');
+                input.value = defaultVal;
+                document.getElementById('modal-custom-prompt').classList.remove('hidden');
+                setTimeout(() => input.focus(), 100);
+                
+                window.aceptarPrompt = function() {
+                    document.getElementById('modal-custom-prompt').classList.add('hidden');
+                    resolve(input.value.trim());
+                };
+                window.cancelarPrompt = function() {
+                    document.getElementById('modal-custom-prompt').classList.add('hidden');
+                    resolve(null);
+                };
+            });
+        };
+
+        // INICIALIZACIÓN
         document.getElementById('firebase-status').innerText = "Conectado a bar-alaska ✅";
         document.getElementById('firebase-status').classList.remove('animate-pulse');
         document.getElementById('firebase-status').classList.add('text-emerald-500');
 
         onSnapshot(collection(db, "espacios"), (snapshot) => {
-            datosRestaurante.barra = [];
-            datosRestaurante.mesas = [];
-            datosRestaurante.vip = [];
+            datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
-                const data = doc.data();
-                data.id = doc.id;
+                const data = doc.data(); data.id = doc.id;
                 if(data.categoria === 'barra') datosRestaurante.barra.push(data);
                 else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
@@ -211,19 +316,16 @@
         onSnapshot(collection(db, "productos"), (snapshot) => {
             datosRestaurante.productos = [];
             snapshot.forEach((doc) => {
-                const data = doc.data();
-                data.id = doc.id;
+                const data = doc.data(); data.id = doc.id;
                 datosRestaurante.productos.push(data);
             });
             if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
         });
 
-        // Escuchar Categorías desde Firebase
         onSnapshot(collection(db, "categorias"), (snapshot) => {
             datosRestaurante.categorias = [];
             snapshot.forEach((doc) => {
-                const data = doc.data();
-                data.id = doc.id;
+                const data = doc.data(); data.id = doc.id;
                 datosRestaurante.categorias.push(data);
             });
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
@@ -238,11 +340,18 @@
             }
         });
 
-        window.seleccionarRol = function(rol) {
+        // Escuchar histórico de ventas para el Dashboard
+        onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
+            ventasHistorialData = [];
+            snapshot.forEach((doc) => ventasHistorialData.push(doc.data()));
+            if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarDashboard();
+        });
+
+        window.seleccionarRol = async function(rol) {
             rolUsuario = rol;
             document.getElementById('modal-login').classList.add('hidden');
             if(rol === 'admin') {
-                const pin = prompt("Ingrese PIN:");
+                const pin = await window.customPrompt("Ingrese PIN Administrador (1234):");
                 if(pin !== '1234') return window.location.reload();
                 document.getElementById('modal-caja').classList.remove('hidden'); 
                 document.getElementById('btn-tab-admin').classList.remove('hidden'); 
@@ -329,10 +438,10 @@
             });
         }
 
-        // ========================== SECCIÓN ADMIN ==========================
+        // ========================== DASHBOARD & ADMIN ==========================
         window.cambiarSubVistaAdmin = function(vista) {
             adminSubVista = vista;
-            ['caja', 'menu', 'categorias', 'espacios'].forEach(v => {
+            ['dashboard', 'caja', 'menu', 'categorias', 'espacios'].forEach(v => {
                 const btn = document.getElementById(`btn-admin-${v}`);
                 if(btn) {
                     if(v === vista) btn.className = "pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap";
@@ -342,14 +451,80 @@
             renderizarModuloAdmin();
         };
 
+        function renderizarDashboard() {
+            // Filtrar ventas del día de hoy
+            const hoyStr = new Date().toISOString().split('T')[0];
+            const ventasHoy = ventasHistorialData.filter(v => v.fecha && v.fecha.startsWith(hoyStr));
+            
+            let totalHoy = 0;
+            let totalEfectivo = 0;
+            let totalTarjeta = 0;
+            let totalSinpe = 0;
+            
+            ventasHoy.forEach(v => {
+                totalHoy += v.total;
+                if(v.metodo === 'Efectivo') totalEfectivo += v.total;
+                if(v.metodo === 'Tarjeta') totalTarjeta += v.total;
+                if(v.metodo === 'SINPE') totalSinpe += v.total;
+            });
+
+            const ctx = document.getElementById('metodosChart');
+            if(!ctx) return;
+            
+            if(chartInstancia) chartInstancia.destroy();
+            
+            chartInstancia = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Efectivo', 'Tarjeta', 'SINPE'],
+                    datasets: [{
+                        data: [totalEfectivo, totalTarjeta, totalSinpe],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f43f5e'],
+                        borderColor: '#0f172a',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#cbd5e1' } }
+                    }
+                }
+            });
+            
+            document.getElementById('dash-total-hoy').innerText = `₡${totalHoy.toLocaleString()}`;
+            document.getElementById('dash-tickets').innerText = ventasHoy.length;
+        }
+
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
             
-            if(adminSubVista === 'caja') {
+            if(adminSubVista === 'dashboard') {
+                cont.innerHTML = `
+                    <div class="max-w-4xl mx-auto w-full pb-10">
+                        <h2 class="text-2xl font-black text-slate-100 mb-6">Dashboard del Día</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-lg">
+                                <p class="text-sm font-black text-slate-900 opacity-80 uppercase tracking-wider mb-1">Ventas Hoy</p>
+                                <p id="dash-total-hoy" class="text-4xl font-black text-slate-900">₡0</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center">
+                                <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Cuentas Cobradas</p>
+                                <p id="dash-tickets" class="text-3xl font-black text-slate-200">0</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg max-w-sm mx-auto">
+                            <h3 class="text-center font-bold text-slate-300 mb-4">Ingresos por Método de Pago</h3>
+                            <canvas id="metodosChart"></canvas>
+                        </div>
+                    </div>`;
+                setTimeout(renderizarDashboard, 100);
+            }
+            else if(adminSubVista === 'caja') {
                 const totalEsperado = montoCajaInicial + ventasTotalesTurno;
                 cont.innerHTML = `
                     <div class="max-w-4xl mx-auto w-full pb-10">
-                        <h2 class="text-2xl md:text-3xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2>
+                        <h2 class="text-2xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full">
                             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
                                 <p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p>
@@ -359,8 +534,8 @@
                                 <p class="text-xs text-slate-400 font-bold uppercase mb-1">Ventas Turno</p>
                                 <p class="text-xl font-black text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</p>
                             </div>
-                            <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-5 rounded-2xl text-slate-900">
-                                <p class="text-xs font-black uppercase mb-1 opacity-90">Total Sistema (Esperado)</p>
+                            <div class="bg-slate-800 border-2 border-amber-500/50 p-5 rounded-2xl text-white">
+                                <p class="text-xs font-black uppercase text-amber-400 mb-1">Total Sistema (Esperado)</p>
                                 <p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p>
                             </div>
                         </div>
@@ -377,21 +552,67 @@
                         </button>
                     </div>`;
             } 
+            else if(adminSubVista === 'menu') {
+                const prodsFiltrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()));
+                
+                let opcionesCat = '';
+                if(datosRestaurante.categorias.length === 0) { opcionesCat = `<option value="general">General</option>`; } 
+                else { datosRestaurante.categorias.forEach(c => { opcionesCat += `<option value="${c.id}">${c.nombre}</option>`; }); }
+
+                let html = `
+                    <div class="max-w-5xl mx-auto w-full">
+                        <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
+                            <h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2>
+                            <div class="flex flex-col lg:flex-row gap-3">
+                                <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                                <div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700">
+                                    <select id="add-prod-cat" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none text-amber-400 font-bold">
+                                        ${opcionesCat}
+                                    </select>
+                                    <input type="text" id="add-prod-nombre" placeholder="Nombre de Producto" class="w-40 bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none">
+                                    <input type="number" id="add-prod-precio" placeholder="Precio ₡" class="w-24 bg-slate-950 border border-slate-700 px-2 py-2 rounded-lg text-sm focus:outline-none">
+                                    <button onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2 pb-10">`; // CAMBIO AL DISEÑO DE LISTA MÁS COMPACTA
+                
+                if(prodsFiltrados.length === 0) html += `<div class="p-6 text-center text-slate-500 bg-slate-900 rounded-xl border border-slate-800">No hay productos creados.</div>`;
+                
+                prodsFiltrados.forEach(p => {
+                    const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
+                    const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
+                    html += `
+                        <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span>
+                                <span class="font-bold text-slate-200 text-base">${p.nombre}</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span>
+                                <div class="flex gap-2">
+                                    <button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                html += `</div></div>`;
+                cont.innerHTML = html;
+            }
             else if(adminSubVista === 'categorias') {
-                // MÓDULO DE GESTIÓN DE CATEGORÍAS
                 let catHtml = `
                     <div class="max-w-4xl mx-auto w-full pb-10">
                         <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
-                            <h2 class="text-2xl font-black text-slate-100">Gestión de Categorías</h2>
+                            <h2 class="text-2xl font-black text-slate-100">Categorías de Menú</h2>
                             <div class="flex gap-2">
                                 <input type="text" id="add-cat-nombre" placeholder="Nombre de categoría" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm focus:outline-none text-white">
                                 <button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold">Crear</button>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
-                
                 if(datosRestaurante.categorias.length === 0) {
-                    catHtml += `<p class="text-slate-500">No hay categorías creadas. Agrega una arriba.</p>`;
+                    catHtml += `<p class="text-slate-500">No hay categorías creadas.</p>`;
                 } else {
                     datosRestaurante.categorias.forEach(cat => {
                         catHtml += `
@@ -406,57 +627,6 @@
                 }
                 catHtml += `</div></div>`;
                 cont.innerHTML = catHtml;
-            }
-            else if(adminSubVista === 'menu') {
-                const prodsFiltrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()));
-                
-                // Generar opciones del select con las categorías existentes
-                let opcionesCat = '';
-                if(datosRestaurante.categorias.length === 0) {
-                    opcionesCat = `<option value="general">General</option>`;
-                } else {
-                    datosRestaurante.categorias.forEach(c => {
-                        opcionesCat += `<option value="${c.id}">${c.nombre}</option>`;
-                    });
-                }
-
-                let html = `
-                    <div class="max-w-6xl mx-auto w-full">
-                        <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
-                            <h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2>
-                            <div class="flex flex-col lg:flex-row gap-3">
-                                <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
-                                <div class="flex flex-wrap md:flex-nowrap gap-2">
-                                    <select id="add-prod-cat" class="bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none text-amber-400 font-bold">
-                                        ${opcionesCat}
-                                    </select>
-                                    <input type="text" id="add-prod-nombre" placeholder="Producto" class="flex-1 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none">
-                                    <input type="number" id="add-prod-precio" placeholder="Precio" class="w-24 bg-slate-900 border border-slate-700 px-2 py-2 rounded-xl text-sm focus:outline-none">
-                                    <button onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 pb-10">
-                `;
-                if(prodsFiltrados.length === 0) html += `<div class="col-span-full text-slate-500">No hay productos.</div>`;
-                prodsFiltrados.forEach(p => {
-                    const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
-                    const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
-                    html += `
-                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
-                            <div class="mb-3">
-                                <p class="text-[10px] text-amber-400 font-bold mb-1">${catName}</p>
-                                <h4 class="font-bold text-slate-200 truncate">${p.nombre}</h4>
-                                <p class="text-lg font-black text-emerald-400">₡${p.precio.toLocaleString()}</p>
-                            </div>
-                            <div class="flex gap-2 border-t border-slate-800/60 pt-3">
-                                <button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="flex-1 bg-slate-800 text-slate-300 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="window.adminEliminarProducto('${p.id}')" class="flex-1 bg-rose-950/30 text-rose-500 py-1.5 rounded-lg text-xs border border-rose-900/30"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>`;
-                });
-                html += `</div></div>`;
-                cont.innerHTML = html;
             }
             else if(adminSubVista === 'espacios') {
                 let html = `
@@ -500,7 +670,7 @@
             }
         }
 
-        // FUNCIONES DE CATEGORÍAS
+        // FUNCIONES ADMIN Y SISTEMA (Usando custom prompts)
         window.adminAgregarCategoria = async function() {
             const nom = document.getElementById('add-cat-nombre').value.trim();
             if(!nom) return;
@@ -509,42 +679,22 @@
         };
 
         window.adminEditarCategoria = async function(id, nombreActual) {
-            const nv = prompt("Nuevo nombre para la categoría:", nombreActual);
+            const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual);
             if(nv && nv.trim() !== '') {
                 await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() });
             }
         };
 
         window.adminEliminarCategoria = async function(id) {
-            if(confirm('¿Eliminar esta categoría?')) {
+            if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) {
                 await deleteDoc(doc(db, "categorias", id));
-            }
-        };
-
-        window.calcularCuadre = function() {
-            const esperado = montoCajaInicial + ventasTotalesTurno;
-            const inputEfectivo = document.getElementById('input-efectivo-fisico').value;
-            const msjBox = document.getElementById('mensaje-cuadre');
-            if(!inputEfectivo) { msjBox.classList.add('hidden'); return; }
-            const fisico = parseFloat(inputEfectivo);
-            const diferencia = fisico - esperado;
-            msjBox.classList.remove('hidden');
-            if(diferencia < 0) {
-                msjBox.className = "mt-4 p-4 rounded-xl border-2 font-black text-rose-500 bg-rose-950/40 border-rose-900";
-                msjBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> FALTANTE: ₡${Math.abs(diferencia).toLocaleString()}`;
-            } else if (diferencia > 0) {
-                msjBox.className = "mt-4 p-4 rounded-xl border-2 font-black text-amber-500 bg-amber-950/40 border-amber-900";
-                msjBox.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-2"></i> SOBRANTE: ₡${diferencia.toLocaleString()}`;
-            } else {
-                msjBox.className = "mt-4 p-4 rounded-xl border-2 font-black text-emerald-400 bg-emerald-950/40 border-emerald-900";
-                msjBox.innerHTML = `<i class="fa-solid fa-check-double mr-2"></i> ¡CAJA CUADRADA EXACTA!`;
             }
         };
 
         window.ejecutarCierreCaja = async function() {
             const inputEfectivo = document.getElementById('input-efectivo-fisico').value;
-            if(!inputEfectivo) return alert('Por favor, ingrese el efectivo físico.');
-            if(confirm('¿Cerrar turno definitivo?')) {
+            if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.');
+            if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) {
                 await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString() });
                 window.location.reload();
             }
@@ -561,10 +711,10 @@
             document.getElementById('add-prod-precio').value = '';
         };
         window.adminEliminarProducto = async function(id) {
-            if(confirm('¿Eliminar producto?')) await deleteDoc(doc(db, "productos", id));
+            if(await window.customConfirm('¿Eliminar producto del menú?')) await deleteDoc(doc(db, "productos", id));
         };
         window.adminEditarPrecio = async function(id, nombre, precioActual) {
-            const nv = prompt(`Precio para ${nombre}:`, precioActual);
+            const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual);
             if(nv && !isNaN(nv)) await updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) });
         };
 
@@ -576,23 +726,23 @@
             document.getElementById('add-esp-nombre').value = '';
         };
         window.adminEliminarEspacio = async function(id, estado) {
-            if(estado === 'ocupada') return alert('Mesa ocupada.');
-            if(confirm(`¿Eliminar espacio?`)) await deleteDoc(doc(db, "espacios", id));
+            if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.');
+            if(await window.customConfirm(`¿Eliminar este espacio?`)) await deleteDoc(doc(db, "espacios", id));
         };
         window.adminEditarEspacio = async function(id, nombreActual) {
-            const nv = prompt("Modificar nombre:", nombreActual);
+            const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual);
             if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv });
         };
 
         window.agregarClienteExtraBarra = async function() {
-            const nom = prompt("Nombre del cliente:");
+            const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:");
             if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
         };
 
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
             if (espacio.estado === 'libre') {
-                const nom = prompt(`Apertura de cuenta. Cliente:`);
+                const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`);
                 if (!nom) return;
                 await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom });
                 espacio.estado = 'ocupada';
@@ -664,20 +814,47 @@
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal });
         };
 
-        window.cobrarCuenta = async function() {
+        // NUEVO FLUJO DE COBRO CON MÉTODOS DE PAGO
+        window.iniciarCobro = function() {
             if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel();
-            alert(`Pago procesado: ₡${elementoSeleccionado.total.toLocaleString()}`);
-            ventasTotalesTurno += elementoSeleccionado.total;
+            document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`;
+            document.getElementById('modal-cobro').classList.remove('hidden');
+        };
+
+        window.cerrarModalCobro = function() {
+            document.getElementById('modal-cobro').classList.add('hidden');
+        };
+
+        window.procesarPagoConfirmado = async function(metodoPago) {
+            window.cerrarModalCobro();
+            const montoCobrado = elementoSeleccionado.total;
+            
+            // Guardar en histórico de ventas para el Dashboard
+            await addDoc(collection(db, "ventas_historial"), {
+                fecha: new Date().toISOString(),
+                metodo: metodoPago,
+                total: montoCobrado,
+                cliente: elementoSeleccionado.cliente,
+                zona: elementoSeleccionado.nombre,
+                rondas: elementoSeleccionado.rondas
+            });
+
+            // Actualizar resumen de caja general
+            ventasTotalesTurno += montoCobrado;
             await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
+            
+            // Limpiar mesa
             if(elementoSeleccionado.nombre === 'Extra') {
                 await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
             } else {
                 await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             }
+            
             window.cerrarPanel();
+            window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
         };
 
-        // MODAL PRODUCTOS Y CATEGORÍAS DINÁMICAS
+        // MODAL PRODUCTOS Y CATEGORÍAS
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`;
@@ -696,7 +873,6 @@
         window.renderizarPestanasModal = function() {
             const cont = document.getElementById('modal-categorias-container');
             cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`;
-            
             datosRestaurante.categorias.forEach(c => {
                 cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c.id}')" id="cat-${c.id}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c.nombre}</button>`;
             });
@@ -707,19 +883,13 @@
             categoriaActivaModal = catId;
             const botones = document.getElementById('modal-categorias-container').querySelectorAll('button');
             botones.forEach(btn => {
-                if(btn.id === `cat-${catId}`) {
-                    btn.className = "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap uppercase";
-                } else {
-                    btn.className = "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase";
-                }
+                if(btn.id === `cat-${catId}`) btn.className = "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap uppercase";
+                else btn.className = "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase";
             });
             window.renderizarProductosModal();
         };
 
-        window.filtrarProductosModal = function(val) {
-            busquedaModal = val;
-            window.renderizarProductosModal();
-        };
+        window.filtrarProductosModal = function(val) { busquedaModal = val; window.renderizarProductosModal(); };
 
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos');
@@ -729,11 +899,7 @@
                 const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
                 return matchTexto && matchCat;
             });
-            
-            if(filtrados.length === 0) {
-                grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos en esta categoría</p>`;
-                return;
-            }
+            if(filtrados.length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos en esta categoría</p>`;
 
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
@@ -741,8 +907,7 @@
                 btn.onclick = () => window.agregarItemTemporal(prod);
                 btn.innerHTML = `
                     <span class="font-bold text-slate-200 text-sm leading-tight mb-2">${prod.nombre}</span>
-                    <span class="font-black text-emerald-400 text-base">₡${prod.precio.toLocaleString()}</span>
-                `;
+                    <span class="font-black text-emerald-400 text-base">₡${prod.precio.toLocaleString()}</span>`;
                 grid.appendChild(btn);
             });
         };
@@ -759,7 +924,7 @@
         };
 
         window.guardarRondaActual = async function() {
-            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return alert('Seleccione al menos un producto.');
+            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione al menos un producto.');
             const rondasActuales = [...(elementoSeleccionado.rondas || [])];
             rondasActuales.push({ items: itemsRondaTemporal });
             let sumaTotal = 0;
