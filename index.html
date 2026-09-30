@@ -45,7 +45,8 @@
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <input type="password" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest" autocomplete="off">
+            <!-- TIPO DINÁMICO: Será cambiado por JS entre 'text' o 'password' -->
+            <input type="text" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest" autocomplete="off">
             <div class="flex gap-3">
                 <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
                 <button onclick="window.aceptarPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
@@ -152,7 +153,6 @@
             <button onclick="cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
             <button onclick="cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
             <button onclick="cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
-            <!-- BOTÓN ADMIN CON ID EXCLUSIVO PARA CONTROLARLO DESDE JS -->
             <button onclick="cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
         </div>
     </header>
@@ -195,7 +195,11 @@
                     <h3 id="panel-cliente" class="text-xl font-black text-amber-400 truncate">Nombre Cliente</h3>
                     <p id="panel-titulo" class="text-xs text-slate-400 font-medium bg-slate-800 inline-block px-2 py-1 rounded-md mt-1">Ubicación</p>
                 </div>
-                <button onclick="cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                <div class="flex items-center gap-1">
+                    <!-- NUEVO BOTÓN DE LIBERAR (ESCOBA) -->
+                    <button onclick="window.liberarMesa()" id="btn-liberar-mesa" class="text-rose-400 hover:text-white hover:bg-rose-900 p-2 rounded-lg text-sm transition mr-1" title="Liberar espacio sin cobrar"><i class="fa-solid fa-broom"></i></button>
+                    <button onclick="cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
             <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-900/50">
                 <div id="lista-items-cuenta" class="space-y-2"></div>
@@ -278,10 +282,15 @@
             });
         };
 
-        window.customPrompt = function(msg, defaultVal = '') {
+        // AHORA ACEPTA UN PARÁMETRO "isPassword" PARA OCULTAR O MOSTRAR EL TEXTO
+        window.customPrompt = function(msg, defaultVal = '', isPassword = false) {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
                 const input = document.getElementById('prompt-input');
+                
+                // Mágia: Si es admin es password, si es cliente es texto
+                input.type = isPassword ? 'password' : 'text'; 
+                
                 input.value = defaultVal;
                 document.getElementById('modal-custom-prompt').classList.remove('hidden');
                 setTimeout(() => input.focus(), 100);
@@ -356,13 +365,13 @@
             const btnAdminTab = document.getElementById('btn-tab-admin');
 
             if(rol === 'admin') {
-                const pin = await window.customPrompt("Ingrese PIN Administrador:");
+                // AQUÍ LE PASAMOS TRUE AL FINAL PARA QUE SEA CONTRASEÑA CERRADA
+                const pin = await window.customPrompt("Ingrese PIN Administrador:", "", true);
                 if(pin !== pinAdmin) {
                     window.customAlert("PIN incorrecto");
                     return window.location.reload();
                 }
                 
-                // Muestra la pestaña Admin estrictamente cuando es administrador
                 if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
@@ -372,7 +381,6 @@
                     document.getElementById('modal-caja').classList.remove('hidden'); 
                 }
             } else {
-                // Oculta estrictamente la pestaña Admin para la salonera
                 if(btnAdminTab) btnAdminTab.style.display = 'none';
                 document.getElementById('info-caja-header').classList.add('hidden');
                 window.cambiarVista('barra'); 
@@ -508,13 +516,17 @@
                 if(datosRestaurante.categorias.length === 0) { opcionesCat = `<option value="general">General</option>`; } 
                 else { datosRestaurante.categorias.forEach(c => { opcionesCat += `<option value="${c.id}">${c.nombre}</option>`; }); }
 
-                let html = `<div class="max-w-5xl mx-auto w-full"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2><div class="flex flex-col lg:flex-row gap-3"><input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none"><div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700"><select id="add-prod-cat" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none text-amber-400 font-bold">${opcionesCat}</select><input type="text" id="add-prod-nombre" placeholder="Nombre de Producto" class="w-40 bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none"><input type="number" id="add-prod-precio" placeholder="Precio ₡" class="w-24 bg-slate-950 border border-slate-700 px-2 py-2 rounded-lg text-sm focus:outline-none"><button onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i></button></div></div></div><div class="flex flex-col gap-2 pb-10">`; 
+                // AÑADIDO CAMPO PARA URL DE IMAGEN
+                let html = `<div class="max-w-5xl mx-auto w-full"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2><div class="flex flex-col lg:flex-row gap-3"><input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none"><div class="flex flex-wrap md:flex-nowrap gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700"><select id="add-prod-cat" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none text-amber-400 font-bold">${opcionesCat}</select><input type="text" id="add-prod-nombre" placeholder="Nombre" class="w-28 bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm focus:outline-none"><input type="number" id="add-prod-precio" placeholder="Precio ₡" class="w-20 bg-slate-950 border border-slate-700 px-2 py-2 rounded-lg text-sm focus:outline-none"><input type="text" id="add-prod-img" placeholder="URL Imagen" class="w-24 bg-slate-950 border border-slate-700 px-2 py-2 rounded-lg text-sm focus:outline-none"><button onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i></button></div></div></div><div class="flex flex-col gap-2 pb-10">`; 
                 if(prodsFiltrados.length === 0) html += `<div class="p-6 text-center text-slate-500 bg-slate-900 rounded-xl border border-slate-800">No hay productos creados.</div>`;
                 
                 prodsFiltrados.forEach(p => {
                     const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
                     const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
-                    html += `<div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition"><div class="flex flex-col"><span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span><span class="font-bold text-slate-200 text-base">${p.nombre}</span></div><div class="flex items-center gap-4"><span class="text-xs text-slate-500 mr-2">Ventas: ${p.ventas || 0}</span><span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span><div class="flex gap-2"><button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button></div></div></div>`;
+                    // MOSTRAR IMAGEN EN EL LISTADO SI EXISTE
+                    const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-6 h-6 object-contain rounded">` : '';
+
+                    html += `<div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition"><div class="flex flex-col"><span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span><div class="flex items-center gap-2"><span class="font-bold text-slate-200 text-base">${p.nombre}</span>${imgPreview}</div></div><div class="flex items-center gap-4"><span class="text-xs text-slate-500 mr-2">Ventas: ${p.ventas || 0}</span><span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span><div class="flex gap-2"><button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button></div></div></div>`;
                 });
                 html += `</div></div>`;
                 cont.innerHTML = html;
@@ -567,14 +579,19 @@
 
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
         
+        // AHORA GUARDA LA IMAGEN AL CREAR PRODUCTO
         window.adminAgregarProducto = async function() {
             const cat = document.getElementById('add-prod-cat').value;
             const nom = document.getElementById('add-prod-nombre').value;
             const pre = parseFloat(document.getElementById('add-prod-precio').value);
+            const img = document.getElementById('add-prod-img').value.trim();
             if(!nom || !pre) return;
-            await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0 });
+            
+            await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: img });
+            
             document.getElementById('add-prod-nombre').value = '';
             document.getElementById('add-prod-precio').value = '';
+            document.getElementById('add-prod-img').value = '';
         };
 
         window.adminEliminarProducto = async function(id) {
@@ -622,6 +639,23 @@
             document.getElementById('panel-cliente').innerText = espacio.cliente;
             document.getElementById('panel-titulo').innerText = espacio.nombre;
             window.actualizarListaPanel();
+        };
+
+        // NUEVA FUNCIÓN PARA LIBERAR MESA SI NO HA PEDIDO NADA
+        window.liberarMesa = async function() {
+            if (!elementoSeleccionado) return;
+            if (elementoSeleccionado.total > 0) {
+                return window.customAlert('No se puede liberar un espacio con saldo pendiente. Cobre la cuenta o elimine los productos.');
+            }
+            
+            if (await window.customConfirm(`¿Desea limpiar y liberar el espacio: ${elementoSeleccionado.nombre}?`)) {
+                if(elementoSeleccionado.nombre === 'Extra') {
+                    await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
+                } else {
+                    await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
+                }
+                window.cerrarPanel();
+            }
         };
 
         window.actualizarListaPanel = function() {
@@ -756,6 +790,7 @@
 
         window.filtrarProductosModal = function(val) { busquedaModal = val; window.renderizarProductosModal(); };
 
+        // AHORA RENDERIZA LA IMAGEN SI EXISTE
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos');
             grid.innerHTML = '';
@@ -772,9 +807,19 @@
 
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
-                btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-4 rounded-2xl flex flex-col justify-between text-left active:scale-95 transition shadow-md";
+                btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-4 rounded-2xl flex flex-col justify-between text-left active:scale-95 transition shadow-md relative";
                 btn.onclick = () => window.agregarItemTemporal(prod);
-                btn.innerHTML = `<span class="font-bold text-slate-200 text-sm leading-tight mb-2">${prod.nombre}</span><span class="font-black text-emerald-400 text-base">₡${prod.precio.toLocaleString()}</span>`;
+                
+                // Genera la etiqueta HTML de la imagen si está guardada en la base de datos
+                const imgHtml = prod.imagen ? `<img src="${prod.imagen}" class="h-10 w-auto object-contain ml-2 drop-shadow-md">` : '';
+
+                btn.innerHTML = `
+                    <div class="flex justify-between items-start w-full gap-2">
+                        <span class="font-bold text-slate-200 text-sm leading-tight mb-2">${prod.nombre}</span>
+                        ${imgHtml}
+                    </div>
+                    <span class="font-black text-emerald-400 text-base mt-2">₡${prod.precio.toLocaleString()}</span>
+                `;
                 grid.appendChild(btn);
             });
         };
