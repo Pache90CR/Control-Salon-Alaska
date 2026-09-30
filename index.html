@@ -52,7 +52,7 @@
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div>
-                    <h3 class="text-lg font-black text-amber-400">Menú</h3>
+                    <h3 class="text-lg font-black text-amber-400">Menú - Seleccionar Ronda</h3>
                     <p id="modal-subtitulo-cliente" class="text-xs text-slate-400">Agregando a --</p>
                 </div>
                 <button onclick="cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
@@ -75,6 +75,14 @@
 
             <div class="flex-1 p-3 overflow-y-auto pro-scroll bg-slate-950">
                 <div id="grid-modal-productos" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+            </div>
+
+            <!-- BOTÓN TERMINAR RONDA -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center">
+                <span id="txt-items-seleccionados" class="text-xs text-slate-400 font-bold">0 productos seleccionados en esta ronda</span>
+                <button onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg">
+                    <i class="fa-solid fa-check mr-2"></i> Confirmar Ronda
+                </button>
             </div>
         </div>
     </div>
@@ -181,6 +189,7 @@
         let busquedaMenu = '';
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
+        let itemsRondaTemporal = []; // Productos seleccionados en el modal antes de confirmar
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [] };
 
@@ -511,7 +520,7 @@
             const cat = document.getElementById('add-esp-tipo').value;
             const nom = document.getElementById('add-esp-nombre').value;
             if(!nom) return;
-            await addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, items: [] });
+            await addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] });
             document.getElementById('add-esp-nombre').value = '';
         };
         window.adminEliminarEspacio = async function(id, estado) {
@@ -528,7 +537,7 @@
         window.agregarClienteExtraBarra = async function() {
             const nom = prompt("Nombre del cliente:");
             if(nom) {
-                await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, items: [] });
+                await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
             }
         };
 
@@ -552,27 +561,50 @@
             window.actualizarListaPanel();
         };
 
-        // RENDERIZADO DETALLADO LÍNEA POR LÍNEA
+        // RENDERIZADO POR RONDAS / LOTES
         window.actualizarListaPanel = function() {
             const cont = document.getElementById('lista-items-cuenta');
             cont.innerHTML = '';
             
-            if (!elementoSeleccionado.items || elementoSeleccionado.items.length === 0) {
+            if (!elementoSeleccionado.rondas || elementoSeleccionado.rondas.length === 0) {
                 cont.innerHTML = `<p class="text-slate-500 text-sm text-center italic mt-10">Sin productos aún</p>`;
                 document.getElementById('panel-total').innerText = `₡0`;
                 return;
             } 
 
-            // Itera cada item individualmente sin agrupar
-            elementoSeleccionado.items.forEach((item, index) => {
+            // Itera cada ronda enviada
+            elementoSeleccionado.rondas.forEach((ronda, rIndex) => {
+                let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0);
+                
+                // Agrupar items dentro de esta misma ronda para mostrarlos como 3x Light
+                let conteoLocal = {};
+                ronda.items.forEach(i => {
+                    if(!conteoLocal[i.nombre]) conteoLocal[i.nombre] = { nombre: i.nombre, cantidad: 0, precio: i.precio };
+                    conteoLocal[i.nombre].cantidad++;
+                });
+
+                let itemsHtml = '';
+                Object.values(conteoLocal).forEach(prod => {
+                    itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800/50 last:border-0">
+                        <span class="font-bold text-slate-200"><span class="text-amber-400 font-black mr-1.5">${prod.cantidad}x</span> ${prod.nombre}</span>
+                        <span class="text-amber-400 font-semibold">₡${(prod.cantidad * prod.precio).toLocaleString()}</span>
+                    </div>`;
+                });
+
                 cont.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm mb-2">
-                        <span class="font-bold text-slate-200 text-sm truncate flex-1">${item.nombre}</span> 
-                        <div class="flex items-center gap-3 shrink-0">
-                            <span class="font-black text-amber-400">₡${item.precio.toLocaleString()}</span>
-                            <button onclick="window.eliminarItemCuenta(${index})" class="w-8 h-8 bg-rose-950/40 border border-rose-900/50 rounded-lg text-rose-500 hover:bg-rose-900 hover:text-white transition flex items-center justify-center">
-                                <i class="fa-solid fa-minus text-sm"></i>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm mb-3 relative">
+                        <div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ronda #${rIndex + 1}</span>
+                            <button onclick="window.eliminarRondaCuenta(${rIndex})" class="text-rose-500 hover:text-rose-400 text-xs bg-rose-950/40 border border-rose-900/50 px-2 py-0.5 rounded-md flex items-center gap-1 transition">
+                                <i class="fa-solid fa-trash-can"></i> Eliminar ronda
                             </button>
+                        </div>
+                        <div class="space-y-1 mb-2">
+                            ${itemsHtml}
+                        </div>
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-800 font-black text-emerald-400 text-sm">
+                            <span>Subtotal ronda:</span>
+                            <span>₡${subtotalRonda.toLocaleString()}</span>
                         </div>
                     </div>`;
             });
@@ -586,21 +618,22 @@
             elementoSeleccionado = null;
         };
 
-        // ELIMINAR UN ITEM ESPECÍFICO DE LA LISTA
-        window.eliminarItemCuenta = async function(index) {
+        // ELIMINAR UNA RONDA COMPLETA
+        window.eliminarRondaCuenta = async function(rIndex) {
             if (!elementoSeleccionado) return;
-            const items = [...elementoSeleccionado.items];
-            const itemEliminado = items[index];
+            const rondas = [...(elementoSeleccionado.rondas || [])];
+            const rondaEliminada = rondas[rIndex];
             
-            // Remueve solo el elemento en la posición exacta que se tocó
-            items.splice(index, 1);
-            const nuevoTotal = (elementoSeleccionado.total || 0) - itemEliminado.precio;
+            let totalRonda = rondaEliminada.items.reduce((acc, i) => acc + i.precio, 0);
+            rondas.splice(rIndex, 1);
             
-            elementoSeleccionado.items = items;
+            const nuevoTotal = Math.max(0, (elementoSeleccionado.total || 0) - totalRonda);
+            
+            elementoSeleccionado.rondas = rondas;
             elementoSeleccionado.total = nuevoTotal;
             window.actualizarListaPanel();
             
-            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { items: items, total: nuevoTotal });
+            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal });
         };
 
         window.cobrarCuenta = async function() {
@@ -614,18 +647,20 @@
             if(elementoSeleccionado.nombre === 'Extra') {
                 await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
             } else {
-                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, items: [] });
+                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             }
             window.cerrarPanel();
         };
 
-        // ========================== MODAL CATEGORÍAS ==========================
+        // ========================== MODAL CATEGORÍAS Y RONDAS ==========================
 
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`;
             document.getElementById('input-buscar-modal').value = '';
             busquedaModal = '';
+            itemsRondaTemporal = []; // Reinicia la ronda temporal
+            window.actualizarContadorModal();
             categoriaActivaModal = 'todas';
             window.cambiarCategoriaModal('todas');
             document.getElementById('modal-agregar-producto').classList.remove('hidden');
@@ -637,7 +672,6 @@
 
         window.cambiarCategoriaModal = function(cat) {
             categoriaActivaModal = cat;
-            
             ['todas', 'bebidas', 'licores', 'comidas', 'promos'].forEach(c => {
                 const btn = document.getElementById(`cat-${c}`);
                 if(btn) {
@@ -672,7 +706,7 @@
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
                 btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-4 rounded-2xl flex flex-col justify-between text-left active:scale-95 transition shadow-md";
-                btn.onclick = () => window.agregarProductoACuenta(prod);
+                btn.onclick = () => window.agregarItemTemporal(prod);
                 btn.innerHTML = `
                     <span class="font-bold text-slate-200 text-sm leading-tight mb-2">${prod.nombre}</span>
                     <span class="font-black text-amber-400 text-base">₡${prod.precio.toLocaleString()}</span>
@@ -681,17 +715,42 @@
             });
         };
 
-        window.agregarProductoACuenta = async function(prod) {
-            if (!elementoSeleccionado) return;
-            const itemsActuales = elementoSeleccionado.items || [];
-            const nuevosItems = [...itemsActuales, { nombre: prod.nombre, precio: prod.precio }];
-            const nuevoTotal = (elementoSeleccionado.total || 0) + prod.precio;
+        // Acumular temporalmente en la ronda actual antes de confirmar
+        window.agregarItemTemporal = function(prod) {
+            itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio });
+            window.actualizarContadorModal();
+        };
+
+        window.actualizarContadorModal = function() {
+            const totalItems = itemsRondaTemporal.length;
+            const subtotalRonda = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0);
+            document.getElementById('txt-items-seleccionados').innerText = `${totalItems} productos en esta ronda (Subtotal: ₡${subtotalRonda.toLocaleString()})`;
+        };
+
+        // CONFIRMAR LA RONDA Y ENVIARLA A FIREBASE
+        window.guardarRondaActual = async function() {
+            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) {
+                return alert('Seleccione al menos un producto para confirmar la ronda.');
+            }
+
+            const rondasActuales = [...(elementoSeleccionado.rondas || [])];
+            rondasActuales.push({ items: itemsRondaTemporal });
+
+            let sumaTotal = 0;
+            rondasActuales.forEach(r => {
+                r.items.forEach(i => sumaTotal += i.precio);
+            });
+
+            elementoSeleccionado.rondas = rondasActuales;
+            elementoSeleccionado.total = sumaTotal;
             
-            elementoSeleccionado.items = nuevosItems;
-            elementoSeleccionado.total = nuevoTotal;
             window.actualizarListaPanel();
-            
-            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { items: nuevosItems, total: nuevoTotal });
+            window.cerrarModalProductos();
+
+            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { 
+                rondas: rondasActuales, 
+                total: sumaTotal 
+            });
         };
 
     </script>
