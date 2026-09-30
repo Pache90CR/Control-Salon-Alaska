@@ -834,19 +834,19 @@
 
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
-                // Ajustado a p-3 para reducir el espacio vertical y hacer la tarjeta más compacta
-                btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-3 rounded-2xl flex flex-col justify-between text-left active:scale-95 transition shadow-md relative";
+                // Reducido a p-2 para hacerlo compacto y eliminar espacios innecesarios
+                btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-2.5 rounded-2xl flex items-center justify-between text-left active:scale-95 transition shadow-md relative";
                 btn.onclick = () => window.agregarItemTemporal(prod);
                 
-                // Imagen ampliada a h-16 para que resalte más
-                const imgHtml = prod.imagen ? `<img src="${prod.imagen}" class="h-16 w-auto object-contain ml-2 drop-shadow-md">` : '';
+                // Imagen centrada verticalmente y alineada con los textos
+                const imgHtml = prod.imagen ? `<img src="${prod.imagen}" class="h-14 w-14 object-contain shrink-0 mx-2 drop-shadow-md">` : '';
 
                 btn.innerHTML = `
-                    <div class="flex justify-between items-center w-full gap-2">
-                        <span class="font-bold text-slate-200 text-sm leading-tight">${prod.nombre}</span>
-                        ${imgHtml}
+                    <div class="flex flex-col justify-center flex-1 min-w-0 pr-1">
+                        <span class="font-bold text-slate-200 text-sm leading-tight truncate mb-1">${prod.nombre}</span>
+                        <span class="font-black text-emerald-400 text-sm">₡${prod.precio.toLocaleString()}</span>
                     </div>
-                    <span class="font-black text-emerald-400 text-base mt-1">₡${prod.precio.toLocaleString()}</span>
+                    ${imgHtml}
                 `;
                 grid.appendChild(btn);
             });
