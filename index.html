@@ -53,7 +53,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE COBRO (Métodos de pago) -->
+    <!-- MODAL DE COBRO -->
     <div id="modal-cobro" class="fixed inset-0 bg-slate-950/90 z-[55] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
             <div class="text-center mb-6 border-b border-slate-800 pb-4">
@@ -223,8 +223,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        // NUEVA IMPORTACIÓN DE FIREBASE STORAGE
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -237,7 +235,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const storage = getStorage(app); // INICIALIZAR STORAGE
 
         let pinAdmin = "1234";
 
@@ -509,7 +506,6 @@
                 if(datosRestaurante.categorias.length === 0) { opcionesCat = `<option value="general">General</option>`; } 
                 else { datosRestaurante.categorias.forEach(c => { opcionesCat += `<option value="${c.id}">${c.nombre}</option>`; }); }
 
-                // BOTÓN DE SUBIDA DE IMAGEN CAMBIADO A INPUT TYPE FILE
                 let html = `
                 <div class="max-w-5xl mx-auto w-full">
                     <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
@@ -520,10 +516,10 @@
                                 <select id="add-prod-cat" class="bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none text-amber-400 font-bold">${opcionesCat}</select>
                                 <input type="text" id="add-prod-nombre" placeholder="Nombre" class="w-28 bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none">
                                 <input type="number" id="add-prod-precio" placeholder="Precio ₡" class="w-20 bg-slate-950 border border-slate-700 px-2 py-1.5 rounded-lg text-sm focus:outline-none">
-                                <!-- INPUT PARA SUBIR ARCHIVO -->
-                                <input type="file" id="add-prod-img" accept="image/png, image/jpeg, image/webp" class="w-48 bg-slate-950 border border-slate-700 p-1.5 rounded-lg text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-900 hover:file:bg-amber-400 cursor-pointer">
+                                <!-- SELECTOR DE ARCHIVO ESTÁNDAR -->
+                                <input type="file" id="add-prod-file" accept="image/*" class="w-48 bg-slate-950 border border-slate-700 p-1.5 rounded-lg text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-900 hover:file:bg-amber-400 cursor-pointer">
                                 
-                                <button id="btn-add-prod" onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold min-w-[40px]"><i class="fa-solid fa-plus"></i></button>
+                                <button onclick="window.adminAgregarProductoConBase64()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold"><i class="fa-solid fa-plus"></i></button>
                             </div>
                         </div>
                     </div>
@@ -534,7 +530,7 @@
                 prodsFiltrados.forEach(p => {
                     const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
                     const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
-                    const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-8 h-8 object-contain rounded drop-shadow-md">` : '';
+                    const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-8 h-8 object-contain rounded bg-slate-950 p-0.5">` : '';
 
                     html += `<div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center shadow-sm hover:border-slate-600 transition"><div class="flex flex-col"><span class="text-[10px] text-amber-500 font-black tracking-wider uppercase">${catName}</span><div class="flex items-center gap-2"><span class="font-bold text-slate-200 text-base">${p.nombre}</span>${imgPreview}</div></div><div class="flex items-center gap-4"><span class="text-xs text-slate-500 mr-2">Ventas: ${p.ventas || 0}</span><span class="font-black text-emerald-400 text-lg w-20 text-right">₡${p.precio.toLocaleString()}</span><div class="flex gap-2"><button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-slate-300 rounded-lg text-xs hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarProducto('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-rose-950/40 text-rose-500 rounded-lg text-xs border border-rose-900/40 hover:bg-rose-900 hover:text-white"><i class="fa-solid fa-trash"></i></button></div></div></div>`;
                 });
@@ -589,50 +585,45 @@
 
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
         
-        // FUNCIÓN ACTUALIZADA PARA SUBIR IMÁGENES A FIREBASE STORAGE
-        window.adminAgregarProducto = async function() {
-            const btnSubmit = document.getElementById('btn-add-prod');
+        // MÉTODO FILEREADER PARA CONVERTIR A BASE64 Y GUARDAR DIRECTO EN FIRESTORE
+        window.adminAgregarProductoConBase64 = function() {
             const cat = document.getElementById('add-prod-cat').value;
             const nom = document.getElementById('add-prod-nombre').value;
             const pre = parseFloat(document.getElementById('add-prod-precio').value);
-            const fileInput = document.getElementById('add-prod-img');
+            const fileInput = document.getElementById('add-prod-file');
             const file = fileInput.files[0];
 
             if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
 
-            // Mostrar estado de carga en el botón
-            const btnHtml = btnSubmit.innerHTML;
-            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            btnSubmit.disabled = true;
-
-            try {
-                let imgUrl = "";
-
-                if (file) {
-                    // Crea una referencia única en Firebase Storage
-                    const fileName = `productos/${Date.now()}_${file.name}`;
-                    const storageRef = ref(storage, fileName);
-                    
-                    // Sube el archivo
-                    await uploadBytes(storageRef, file);
-                    // Obtiene la URL de descarga pública
-                    imgUrl = await getDownloadURL(storageRef);
-                }
-                
-                // Guarda en Firestore con la URL de la imagen
-                await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: imgUrl });
-                
-                // Limpiar campos
-                document.getElementById('add-prod-nombre').value = '';
-                document.getElementById('add-prod-precio').value = '';
-                fileInput.value = '';
-                
-            } catch (error) {
-                console.error("Error subiendo el archivo: ", error);
-                window.customAlert('Hubo un error al subir la imagen. Verifica los permisos de Storage en Firebase.');
-            } finally {
-                btnSubmit.innerHTML = btnHtml;
-                btnSubmit.disabled = false;
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const base64String = e.target.result;
+                    await addDoc(collection(db, "productos"), {
+                        categoria: cat,
+                        nombre: nom,
+                        precio: pre,
+                        ventas: 0,
+                        imagen: base64String
+                    });
+                    document.getElementById('add-prod-nombre').value = '';
+                    document.getElementById('add-prod-precio').value = '';
+                    fileInput.value = '';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // Guardar sin imagen si no seleccionó ninguna
+                addDoc(collection(db, "productos"), {
+                    categoria: cat,
+                    nombre: nom,
+                    precio: pre,
+                    ventas: 0,
+                    imagen: ""
+                }).then(() => {
+                    document.getElementById('add-prod-nombre').value = '';
+                    document.getElementById('add-prod-precio').value = '';
+                    fileInput.value = '';
+                });
             }
         };
 
