@@ -58,12 +58,9 @@
                 <button onclick="cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0">
-                <button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>
-                <button onclick="window.cambiarCategoriaModal('bebidas')" id="cat-bebidas" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap">Bebidas</button>
-                <button onclick="window.cambiarCategoriaModal('licores')" id="cat-licores" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap">Licores</button>
-                <button onclick="window.cambiarCategoriaModal('comidas')" id="cat-comidas" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap">Comidas</button>
-                <button onclick="window.cambiarCategoriaModal('promos')" id="cat-promos" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap">Promos</button>
+            <!-- Pestañas de Categorías Dinámicas -->
+            <div id="modal-categorias-container" class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0">
+                <!-- Se llena automáticamente con Firebase -->
             </div>
 
             <div class="p-3 bg-slate-950">
@@ -77,7 +74,6 @@
                 <div id="grid-modal-productos" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
             </div>
 
-            <!-- BOTÓN TERMINAR RONDA -->
             <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center">
                 <span id="txt-items-seleccionados" class="text-xs text-slate-400 font-bold">0 productos seleccionados en esta ronda</span>
                 <button onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg">
@@ -128,6 +124,7 @@
             <div class="border-b border-slate-800 bg-slate-900 px-4 py-3 flex gap-6 overflow-x-auto hide-scrollbar w-full">
                 <button onclick="cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap">Resumen de Caja</button>
                 <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Gestión de Menú</button>
+                <button onclick="cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Categorías</button>
                 <button onclick="cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap">Mesas y Zonas</button>
             </div>
             <div id="contenedor-admin" class="flex-1 p-4 md:p-6 overflow-y-auto pro-scroll w-full"></div>
@@ -189,9 +186,9 @@
         let busquedaMenu = '';
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
-        let itemsRondaTemporal = []; // Productos seleccionados en el modal antes de confirmar
+        let itemsRondaTemporal = [];
 
-        let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [] };
+        let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
 
         document.getElementById('firebase-status').innerText = "Conectado a bar-alaska ✅";
         document.getElementById('firebase-status').classList.remove('animate-pulse');
@@ -201,7 +198,6 @@
             datosRestaurante.barra = [];
             datosRestaurante.mesas = [];
             datosRestaurante.vip = [];
-            
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 data.id = doc.id;
@@ -209,10 +205,7 @@
                 else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
             });
-            if(rolUsuario) {
-                if(vistaActual === 'admin') renderizarModuloAdmin();
-                else renderizarGridOperacion();
-            }
+            if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
         });
 
         onSnapshot(collection(db, "productos"), (snapshot) => {
@@ -220,10 +213,20 @@
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 data.id = doc.id;
-                if(!data.categoria) data.categoria = 'bebidas';
                 datosRestaurante.productos.push(data);
             });
             if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
+        });
+
+        // Escuchar Categorías desde Firebase
+        onSnapshot(collection(db, "categorias"), (snapshot) => {
+            datosRestaurante.categorias = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.id = doc.id;
+                datosRestaurante.categorias.push(data);
+            });
+            if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
         onSnapshot(doc(db, "config", "cajaActual"), (doc) => {
@@ -329,10 +332,12 @@
         // ========================== SECCIÓN ADMIN ==========================
         window.cambiarSubVistaAdmin = function(vista) {
             adminSubVista = vista;
-            ['caja', 'menu', 'espacios'].forEach(v => {
+            ['caja', 'menu', 'categorias', 'espacios'].forEach(v => {
                 const btn = document.getElementById(`btn-admin-${v}`);
-                if(v === vista) btn.className = "pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap";
-                else btn.className = "pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap";
+                if(btn) {
+                    if(v === vista) btn.className = "pb-2 text-amber-500 border-b-2 border-amber-500 font-bold whitespace-nowrap";
+                    else btn.className = "pb-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 font-bold whitespace-nowrap";
+                }
             });
             renderizarModuloAdmin();
         };
@@ -345,7 +350,6 @@
                 cont.innerHTML = `
                     <div class="max-w-4xl mx-auto w-full pb-10">
                         <h2 class="text-2xl md:text-3xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2>
-                        
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full">
                             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
                                 <p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p>
@@ -360,36 +364,74 @@
                                 <p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p>
                             </div>
                         </div>
-
                         <div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8 relative">
                             <h3 class="text-lg font-bold text-slate-200 mb-4">Auditoría: Efectivo Físico</h3>
-                            <p class="text-sm text-slate-400 mb-4">Ingrese la cantidad exacta de dinero (monedas y billetes) que tiene actualmente en la gaveta.</p>
                             <div class="relative">
                                 <span class="absolute left-4 top-3.5 text-slate-400 font-bold text-xl">₡</span>
                                 <input type="number" id="input-efectivo-fisico" onkeyup="window.calcularCuadre()" class="w-full bg-slate-950 border-2 border-slate-600 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-2xl font-black text-white" placeholder="0">
                             </div>
                             <div id="mensaje-cuadre" class="mt-4 transition-all hidden"></div>
                         </div>
-
                         <button onclick="window.ejecutarCierreCaja()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center gap-2">
                             <i class="fa-solid fa-lock mt-1"></i> Confirmar Cierre Definitivo
                         </button>
                     </div>`;
             } 
+            else if(adminSubVista === 'categorias') {
+                // MÓDULO DE GESTIÓN DE CATEGORÍAS
+                let catHtml = `
+                    <div class="max-w-4xl mx-auto w-full pb-10">
+                        <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
+                            <h2 class="text-2xl font-black text-slate-100">Gestión de Categorías</h2>
+                            <div class="flex gap-2">
+                                <input type="text" id="add-cat-nombre" placeholder="Nombre de categoría" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm focus:outline-none text-white">
+                                <button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold">Crear</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
+                
+                if(datosRestaurante.categorias.length === 0) {
+                    catHtml += `<p class="text-slate-500">No hay categorías creadas. Agrega una arriba.</p>`;
+                } else {
+                    datosRestaurante.categorias.forEach(cat => {
+                        catHtml += `
+                            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center shadow-md">
+                                <span class="font-bold text-slate-200 uppercase">${cat.nombre}</span>
+                                <div class="flex gap-2">
+                                    <button onclick="window.adminEditarCategoria('${cat.id}', '${cat.nombre}')" class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-pen"></i> Editar</button>
+                                    <button onclick="window.adminEliminarCategoria('${cat.id}')" class="bg-rose-950/40 text-rose-500 border border-rose-900 px-3 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>`;
+                    });
+                }
+                catHtml += `</div></div>`;
+                cont.innerHTML = catHtml;
+            }
             else if(adminSubVista === 'menu') {
                 const prodsFiltrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()));
+                
+                // Generar opciones del select con las categorías existentes
+                let opcionesCat = '';
+                if(datosRestaurante.categorias.length === 0) {
+                    opcionesCat = `<option value="general">General</option>`;
+                } else {
+                    datosRestaurante.categorias.forEach(c => {
+                        opcionesCat += `<option value="${c.id}">${c.nombre}</option>`;
+                    });
+                }
+
                 let html = `
                     <div class="max-w-6xl mx-auto w-full">
                         <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
-                            <h2 class="text-2xl font-black text-slate-100">Menú</h2>
+                            <h2 class="text-2xl font-black text-slate-100">Menú y Productos</h2>
                             <div class="flex flex-col lg:flex-row gap-3">
                                 <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar..." class="w-full lg:w-48 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
                                 <div class="flex flex-wrap md:flex-nowrap gap-2">
-                                    <select id="add-prod-cat" class="bg-slate-900 border border-slate-700 px-2 py-2 rounded-xl text-sm focus:outline-none">
-                                        <option value="bebidas">Bebida</option><option value="licores">Licor</option><option value="comidas">Comida</option><option value="promos">Promo</option>
+                                    <select id="add-prod-cat" class="bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none text-amber-400 font-bold">
+                                        ${opcionesCat}
                                     </select>
                                     <input type="text" id="add-prod-nombre" placeholder="Producto" class="flex-1 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none">
-                                    <input type="number" id="add-prod-precio" placeholder="Precio" class="w-20 bg-slate-900 border border-slate-700 px-2 py-2 rounded-xl text-sm focus:outline-none">
+                                    <input type="number" id="add-prod-precio" placeholder="Precio" class="w-24 bg-slate-900 border border-slate-700 px-2 py-2 rounded-xl text-sm focus:outline-none">
                                     <button onclick="window.adminAgregarProducto()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus"></i></button>
                                 </div>
                             </div>
@@ -398,13 +440,14 @@
                 `;
                 if(prodsFiltrados.length === 0) html += `<div class="col-span-full text-slate-500">No hay productos.</div>`;
                 prodsFiltrados.forEach(p => {
-                    const catName = p.categoria ? p.categoria.toUpperCase() : 'BEBIDA';
+                    const catObj = datosRestaurante.categorias.find(c => c.id === p.categoria);
+                    const catName = catObj ? catObj.nombre.toUpperCase() : 'GENERAL';
                     html += `
                         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
                             <div class="mb-3">
-                                <p class="text-[10px] text-slate-500 font-bold mb-1">${catName}</p>
+                                <p class="text-[10px] text-amber-400 font-bold mb-1">${catName}</p>
                                 <h4 class="font-bold text-slate-200 truncate">${p.nombre}</h4>
-                                <p class="text-lg font-black text-amber-400">₡${p.precio.toLocaleString()}</p>
+                                <p class="text-lg font-black text-emerald-400">₡${p.precio.toLocaleString()}</p>
                             </div>
                             <div class="flex gap-2 border-t border-slate-800/60 pt-3">
                                 <button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="flex-1 bg-slate-800 text-slate-300 py-1.5 rounded-lg text-xs"><i class="fa-solid fa-pen"></i></button>
@@ -457,21 +500,35 @@
             }
         }
 
+        // FUNCIONES DE CATEGORÍAS
+        window.adminAgregarCategoria = async function() {
+            const nom = document.getElementById('add-cat-nombre').value.trim();
+            if(!nom) return;
+            await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() });
+            document.getElementById('add-cat-nombre').value = '';
+        };
+
+        window.adminEditarCategoria = async function(id, nombreActual) {
+            const nv = prompt("Nuevo nombre para la categoría:", nombreActual);
+            if(nv && nv.trim() !== '') {
+                await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() });
+            }
+        };
+
+        window.adminEliminarCategoria = async function(id) {
+            if(confirm('¿Eliminar esta categoría?')) {
+                await deleteDoc(doc(db, "categorias", id));
+            }
+        };
+
         window.calcularCuadre = function() {
             const esperado = montoCajaInicial + ventasTotalesTurno;
             const inputEfectivo = document.getElementById('input-efectivo-fisico').value;
             const msjBox = document.getElementById('mensaje-cuadre');
-            
-            if(!inputEfectivo) {
-                msjBox.classList.add('hidden');
-                return;
-            }
-            
+            if(!inputEfectivo) { msjBox.classList.add('hidden'); return; }
             const fisico = parseFloat(inputEfectivo);
             const diferencia = fisico - esperado;
-            
             msjBox.classList.remove('hidden');
-            
             if(diferencia < 0) {
                 msjBox.className = "mt-4 p-4 rounded-xl border-2 font-black text-rose-500 bg-rose-950/40 border-rose-900";
                 msjBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> FALTANTE: ₡${Math.abs(diferencia).toLocaleString()}`;
@@ -486,14 +543,9 @@
 
         window.ejecutarCierreCaja = async function() {
             const inputEfectivo = document.getElementById('input-efectivo-fisico').value;
-            
-            if(!inputEfectivo) {
-                return alert('Por favor, cuente el dinero físico e ingrese el monto antes de cerrar la caja.');
-            }
-
-            if(confirm('¿Está seguro de cerrar el turno? La caja volverá a cero para el día de mañana.')) {
+            if(!inputEfectivo) return alert('Por favor, ingrese el efectivo físico.');
+            if(confirm('¿Cerrar turno definitivo?')) {
                 await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString() });
-                alert('Turno cerrado correctamente.');
                 window.location.reload();
             }
         };
@@ -524,26 +576,21 @@
             document.getElementById('add-esp-nombre').value = '';
         };
         window.adminEliminarEspacio = async function(id, estado) {
-            if(estado === 'ocupada') return alert('Mesa ocupada. Ciérrela primero.');
-            if(confirm(`¿Eliminar este espacio?`)) await deleteDoc(doc(db, "espacios", id));
+            if(estado === 'ocupada') return alert('Mesa ocupada.');
+            if(confirm(`¿Eliminar espacio?`)) await deleteDoc(doc(db, "espacios", id));
         };
         window.adminEditarEspacio = async function(id, nombreActual) {
             const nv = prompt("Modificar nombre:", nombreActual);
             if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv });
         };
 
-        // ========================== OPERACIÓN PANEL DE CUENTA ==========================
-
         window.agregarClienteExtraBarra = async function() {
             const nom = prompt("Nombre del cliente:");
-            if(nom) {
-                await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
-            }
+            if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
         };
 
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
-            
             if (espacio.estado === 'libre') {
                 const nom = prompt(`Apertura de cuenta. Cliente:`);
                 if (!nom) return;
@@ -551,7 +598,6 @@
                 espacio.estado = 'ocupada';
                 espacio.cliente = nom;
             }
-            
             elementoSeleccionado = espacio;
             const panel = document.getElementById('panel-cuenta');
             panel.classList.remove('hidden');
@@ -561,28 +607,21 @@
             window.actualizarListaPanel();
         };
 
-        // RENDERIZADO POR RONDAS / LOTES
         window.actualizarListaPanel = function() {
             const cont = document.getElementById('lista-items-cuenta');
             cont.innerHTML = '';
-            
             if (!elementoSeleccionado.rondas || elementoSeleccionado.rondas.length === 0) {
                 cont.innerHTML = `<p class="text-slate-500 text-sm text-center italic mt-10">Sin productos aún</p>`;
                 document.getElementById('panel-total').innerText = `₡0`;
                 return;
             } 
-
-            // Itera cada ronda enviada
             elementoSeleccionado.rondas.forEach((ronda, rIndex) => {
                 let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0);
-                
-                // Agrupar items dentro de esta misma ronda para mostrarlos como 3x Light
                 let conteoLocal = {};
                 ronda.items.forEach(i => {
                     if(!conteoLocal[i.nombre]) conteoLocal[i.nombre] = { nombre: i.nombre, cantidad: 0, precio: i.precio };
                     conteoLocal[i.nombre].cantidad++;
                 });
-
                 let itemsHtml = '';
                 Object.values(conteoLocal).forEach(prod => {
                     itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800/50 last:border-0">
@@ -590,25 +629,19 @@
                         <span class="text-amber-400 font-semibold">₡${(prod.cantidad * prod.precio).toLocaleString()}</span>
                     </div>`;
                 });
-
                 cont.innerHTML += `
                     <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm mb-3 relative">
                         <div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800">
                             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ronda #${rIndex + 1}</span>
-                            <button onclick="window.eliminarRondaCuenta(${rIndex})" class="text-rose-500 hover:text-rose-400 text-xs bg-rose-950/40 border border-rose-900/50 px-2 py-0.5 rounded-md flex items-center gap-1 transition">
-                                <i class="fa-solid fa-trash-can"></i> Eliminar ronda
-                            </button>
+                            <button onclick="window.eliminarRondaCuenta(${rIndex})" class="text-rose-500 text-xs bg-rose-950/40 border border-rose-900/50 px-2 py-0.5 rounded-md"><i class="fa-solid fa-trash-can"></i> Eliminar</button>
                         </div>
-                        <div class="space-y-1 mb-2">
-                            ${itemsHtml}
-                        </div>
+                        <div class="space-y-1 mb-2">${itemsHtml}</div>
                         <div class="flex justify-between items-center pt-2 border-t border-slate-800 font-black text-emerald-400 text-sm">
                             <span>Subtotal ronda:</span>
                             <span>₡${subtotalRonda.toLocaleString()}</span>
                         </div>
                     </div>`;
             });
-            
             document.getElementById('panel-total').innerText = `₡${(elementoSeleccionado.total || 0).toLocaleString()}`;
         };
 
@@ -618,32 +651,24 @@
             elementoSeleccionado = null;
         };
 
-        // ELIMINAR UNA RONDA COMPLETA
         window.eliminarRondaCuenta = async function(rIndex) {
             if (!elementoSeleccionado) return;
             const rondas = [...(elementoSeleccionado.rondas || [])];
             const rondaEliminada = rondas[rIndex];
-            
             let totalRonda = rondaEliminada.items.reduce((acc, i) => acc + i.precio, 0);
             rondas.splice(rIndex, 1);
-            
             const nuevoTotal = Math.max(0, (elementoSeleccionado.total || 0) - totalRonda);
-            
             elementoSeleccionado.rondas = rondas;
             elementoSeleccionado.total = nuevoTotal;
             window.actualizarListaPanel();
-            
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal });
         };
 
         window.cobrarCuenta = async function() {
             if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel();
-            
             alert(`Pago procesado: ₡${elementoSeleccionado.total.toLocaleString()}`);
-            
             ventasTotalesTurno += elementoSeleccionado.total;
             await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
-
             if(elementoSeleccionado.nombre === 'Extra') {
                 await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
             } else {
@@ -652,17 +677,15 @@
             window.cerrarPanel();
         };
 
-        // ========================== MODAL CATEGORÍAS Y RONDAS ==========================
-
+        // MODAL PRODUCTOS Y CATEGORÍAS DINÁMICAS
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`;
             document.getElementById('input-buscar-modal').value = '';
             busquedaModal = '';
-            itemsRondaTemporal = []; // Reinicia la ronda temporal
+            itemsRondaTemporal = [];
             window.actualizarContadorModal();
-            categoriaActivaModal = 'todas';
-            window.cambiarCategoriaModal('todas');
+            window.renderizarPestanasModal();
             document.getElementById('modal-agregar-producto').classList.remove('hidden');
         };
 
@@ -670,18 +693,28 @@
             document.getElementById('modal-agregar-producto').classList.add('hidden');
         };
 
-        window.cambiarCategoriaModal = function(cat) {
-            categoriaActivaModal = cat;
-            ['todas', 'bebidas', 'licores', 'comidas', 'promos'].forEach(c => {
-                const btn = document.getElementById(`cat-${c}`);
-                if(btn) {
-                    btn.className = c === cat 
-                    ? "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap" 
-                    : "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap";
+        window.renderizarPestanasModal = function() {
+            const cont = document.getElementById('modal-categorias-container');
+            cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`;
+            
+            datosRestaurante.categorias.forEach(c => {
+                cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c.id}')" id="cat-${c.id}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c.nombre}</button>`;
+            });
+            window.cambiarCategoriaModal('todas');
+        };
+
+        window.cambiarCategoriaModal = function(catId) {
+            categoriaActivaModal = catId;
+            const botones = document.getElementById('modal-categorias-container').querySelectorAll('button');
+            botones.forEach(btn => {
+                if(btn.id === `cat-${catId}`) {
+                    btn.className = "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap uppercase";
+                } else {
+                    btn.className = "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase";
                 }
             });
             window.renderizarProductosModal();
-        }
+        };
 
         window.filtrarProductosModal = function(val) {
             busquedaModal = val;
@@ -691,7 +724,6 @@
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos');
             grid.innerHTML = '';
-            
             const filtrados = datosRestaurante.productos.filter(p => {
                 const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase());
                 const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
@@ -709,13 +741,12 @@
                 btn.onclick = () => window.agregarItemTemporal(prod);
                 btn.innerHTML = `
                     <span class="font-bold text-slate-200 text-sm leading-tight mb-2">${prod.nombre}</span>
-                    <span class="font-black text-amber-400 text-base">₡${prod.precio.toLocaleString()}</span>
+                    <span class="font-black text-emerald-400 text-base">₡${prod.precio.toLocaleString()}</span>
                 `;
                 grid.appendChild(btn);
             });
         };
 
-        // Acumular temporalmente en la ronda actual antes de confirmar
         window.agregarItemTemporal = function(prod) {
             itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio });
             window.actualizarContadorModal();
@@ -724,35 +755,21 @@
         window.actualizarContadorModal = function() {
             const totalItems = itemsRondaTemporal.length;
             const subtotalRonda = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0);
-            document.getElementById('txt-items-seleccionados').innerText = `${totalItems} productos en esta ronda (Subtotal: ₡${subtotalRonda.toLocaleString()})`;
+            document.getElementById('txt-items-seleccionados').innerText = `${totalItems} seleccionados (Subtotal: ₡${subtotalRonda.toLocaleString()})`;
         };
 
-        // CONFIRMAR LA RONDA Y ENVIARLA A FIREBASE
         window.guardarRondaActual = async function() {
-            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) {
-                return alert('Seleccione al menos un producto para confirmar la ronda.');
-            }
-
+            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return alert('Seleccione al menos un producto.');
             const rondasActuales = [...(elementoSeleccionado.rondas || [])];
             rondasActuales.push({ items: itemsRondaTemporal });
-
             let sumaTotal = 0;
-            rondasActuales.forEach(r => {
-                r.items.forEach(i => sumaTotal += i.precio);
-            });
-
+            rondasActuales.forEach(r => r.items.forEach(i => sumaTotal += i.precio));
             elementoSeleccionado.rondas = rondasActuales;
             elementoSeleccionado.total = sumaTotal;
-            
             window.actualizarListaPanel();
             window.cerrarModalProductos();
-
-            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { 
-                rondas: rondasActuales, 
-                total: sumaTotal 
-            });
+            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondasActuales, total: sumaTotal });
         };
-
     </script>
 </body>
 </html>
