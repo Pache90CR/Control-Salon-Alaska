@@ -152,8 +152,8 @@
             <button onclick="cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
             <button onclick="cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
             <button onclick="cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
-            <!-- AHORA INICIA OCULTO RIGUROSLAMENTE CON LA CLASE 'hidden' EN HTML -->
-            <button onclick="cambiarVista('admin')" id="btn-tab-admin" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap hidden"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
+            <!-- BOTÓN ADMIN CON ID EXCLUSIVO PARA CONTROLARLO DESDE JS -->
+            <button onclick="cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
         </div>
     </header>
 
@@ -353,6 +353,8 @@
         window.seleccionarRol = async function(rol) {
             rolUsuario = rol;
             document.getElementById('modal-login').classList.add('hidden');
+            const btnAdminTab = document.getElementById('btn-tab-admin');
+
             if(rol === 'admin') {
                 const pin = await window.customPrompt("Ingrese PIN Administrador:");
                 if(pin !== pinAdmin) {
@@ -360,8 +362,8 @@
                     return window.location.reload();
                 }
                 
-                // Muestra la pestaña Admin solo al entrar como administrador
-                document.getElementById('btn-tab-admin').classList.remove('hidden'); 
+                // Muestra la pestaña Admin estrictamente cuando es administrador
+                if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
                 if (cajaAbierta) {
@@ -370,8 +372,8 @@
                     document.getElementById('modal-caja').classList.remove('hidden'); 
                 }
             } else {
-                // Asegura ocultar la pestaña Admin al entrar como salonera
-                document.getElementById('btn-tab-admin').classList.add('hidden');
+                // Oculta estrictamente la pestaña Admin para la salonera
+                if(btnAdminTab) btnAdminTab.style.display = 'none';
                 document.getElementById('info-caja-header').classList.add('hidden');
                 window.cambiarVista('barra'); 
             }
@@ -396,7 +398,13 @@
             vistaActual = tipo;
             ['barra', 'mesas', 'vip', 'admin'].forEach(t => {
                 const btn = document.getElementById(`btn-tab-${t}`);
-                if(btn) btn.className = t === tipo ? (tipo==='admin' ? "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow-lg text-sm" : "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow text-sm") : "px-5 py-2 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 text-sm";
+                if(btn) {
+                    if (t === tipo) {
+                        btn.className = (tipo==='admin' ? "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow-lg text-sm" : "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow text-sm");
+                    } else if(t !== 'admin' || rolUsuario === 'admin') {
+                        btn.className = "px-5 py-2 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 text-sm";
+                    }
+                }
             });
             window.cerrarPanel();
             if(tipo === 'admin') {
