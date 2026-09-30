@@ -14,14 +14,13 @@
         .pro-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
         .pro-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
         .pro-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
-        /* Animación para el acordeón */
         .accordion-content { transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out; max-height: 0; overflow: hidden; }
         .accordion-content.open { max-height: 2000px; }
     </style>
 </head>
 <body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
 
-    <!-- DIÁLOGOS PERSONALIZADOS (Alerts, Confirms, Prompts) -->
+    <!-- DIÁLOGOS PERSONALIZADOS -->
     <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
             <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-bell"></i></div>
@@ -52,7 +51,7 @@
         </div>
     </div>
 
-    <!-- MODALES EXISTENTES: Cobro, Login, Caja, Productos -->
+    <!-- MODAL DE COBRO -->
     <div id="modal-cobro" class="fixed inset-0 bg-slate-950/90 z-[55] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
             <div class="text-center mb-6 border-b border-slate-800 pb-4">
@@ -69,6 +68,7 @@
         </div>
     </div>
 
+    <!-- MODAL DE INGRESO -->
     <div id="modal-login" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
             <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
@@ -81,6 +81,7 @@
         </div>
     </div>
 
+    <!-- MODAL DE APERTURA DE CAJA -->
     <div id="modal-caja" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-md shadow-2xl">
             <h3 class="text-2xl font-black text-amber-400 mb-2"><i class="fa-solid fa-cash-register mr-2"></i> Apertura de Caja</h3>
@@ -120,7 +121,7 @@
         </div>
     </div>
 
-    <!-- NUEVO: MODAL CREAR/EDITAR PRODUCTO (ADMIN) -->
+    <!-- MODAL CREAR PRODUCTO (ADMIN) - CON CAMPO DE STOCK -->
     <div id="modal-admin-producto" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
@@ -136,10 +137,18 @@
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre</label>
                     <input type="text" id="add-prod-nombre" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Ej. Cerveza Imperial">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Precio (₡)</label>
-                    <input type="number" id="add-prod-precio" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
+                
+                <div class="flex gap-4">
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Precio (₡)</label>
+                        <input type="number" id="add-prod-precio" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Stock Inicial</label>
+                        <input type="number" id="add-prod-stock" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
+                    </div>
                 </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Imagen (Opcional)</label>
                     <div class="relative border-2 border-dashed border-slate-700 rounded-xl p-4 text-center hover:border-amber-500 transition cursor-pointer bg-slate-950 h-32 flex flex-col items-center justify-center overflow-hidden">
@@ -171,7 +180,6 @@
             <button onclick="cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
             <button onclick="cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
         </div>
-        <!-- Botón para volver a Operación (Visible solo en Admin) -->
         <button onclick="cambiarVista('barra')" id="btn-volver-operacion" class="hidden px-5 py-2 rounded-xl font-bold bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-sm whitespace-nowrap shadow-md"><i class="fa-solid fa-arrow-left mr-2"></i> Volver a Salón</button>
     </header>
 
@@ -192,10 +200,9 @@
             <div id="grid-elementos" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 pb-20 w-full"></div>
         </section>
 
-        <!-- SECCIÓN ADMIN CON SIDEBAR -->
+        <!-- SECCIÓN ADMIN -->
         <section class="flex-1 overflow-hidden hidden w-full bg-slate-950 relative" id="area-admin">
             
-            <!-- Sidebar / Menú Lateral Admin -->
             <aside id="admin-sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl">
                 <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
                     <h3 class="font-black text-amber-500 tracking-wide uppercase text-sm"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Panel Admin</h3>
@@ -204,29 +211,25 @@
                 <div class="flex-1 overflow-y-auto py-4 space-y-1">
                     <button onclick="cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</button>
                     <button onclick="cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-cash-register w-5"></i> Cierres de Caja</button>
-                    <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-burger w-5"></i> Menú y Productos</button>
+                    <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-burger w-5"></i> Menú e Inventario</button>
                     <button onclick="cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-tags w-5"></i> Categorías</button>
                     <button onclick="cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
                 </div>
             </aside>
 
-            <!-- Overlay oscuro para celular al abrir sidebar -->
             <div id="admin-sidebar-overlay" onclick="window.toggleAdminSidebar(false)" class="absolute inset-0 bg-slate-950/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
 
-            <!-- Contenido Principal de Admin -->
             <div class="flex-1 flex flex-col overflow-hidden w-full relative">
-                <!-- Header móvil para Admin -->
                 <div class="md:hidden bg-slate-900 border-b border-slate-800 p-3 flex items-center gap-3 shadow-md z-20">
                     <button onclick="window.toggleAdminSidebar(true)" class="text-slate-300 hover:text-white px-3 py-2 bg-slate-800 rounded-xl"><i class="fa-solid fa-bars"></i></button>
                     <span class="font-black text-slate-200" id="admin-mobile-title">Dashboard</span>
                 </div>
                 
-                <!-- Área inyectable -->
                 <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
             </div>
         </section>
 
-        <!-- PANEL LATERAL DE CUENTA (Salón) -->
+        <!-- PANEL LATERAL DE CUENTA -->
         <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-30 hidden transition-all">
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div class="w-full overflow-hidden pr-4">
@@ -254,7 +257,7 @@
         </aside>
     </main>
 
-    <!-- SCRIPT FIREBASE E INTERFAZ -->
+    <!-- SCRIPT FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -290,7 +293,7 @@
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
 
-        // Utilidades Modal
+        // Utilidades
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
         window.customConfirm = function(msg) {
@@ -314,7 +317,6 @@
         document.getElementById('firebase-status').classList.remove('animate-pulse');
         document.getElementById('firebase-status').classList.add('text-emerald-500');
 
-        // Suscripciones Firebase
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
@@ -336,8 +338,7 @@
             datosRestaurante.categorias = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) {
-                renderizarModuloAdmin();
-                window.actualizarSelectCategoriasModal();
+                renderizarModuloAdmin(); window.actualizarSelectCategoriasModal();
             }
         });
 
@@ -357,8 +358,7 @@
         });
 
         window.seleccionarRol = async function(rol) {
-            rolUsuario = rol;
-            document.getElementById('modal-login').classList.add('hidden');
+            rolUsuario = rol; document.getElementById('modal-login').classList.add('hidden');
             const btnAdminTab = document.getElementById('btn-tab-admin');
 
             if(rol === 'admin') {
@@ -379,28 +379,23 @@
             const val = document.getElementById('input-monto-caja').value; if(!val) return;
             montoCajaInicial = parseFloat(val);
             await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: montoCajaInicial, ventasTurno: 0, fechaApertura: new Date().toISOString(), estado: 'abierta' });
-            document.getElementById('modal-caja').classList.add('hidden');
-            window.cambiarVista('barra');
+            document.getElementById('modal-caja').classList.add('hidden'); window.cambiarVista('barra');
         };
 
         window.cambiarVista = function(tipo) {
             if(tipo === 'admin' && rolUsuario !== 'admin') return;
             vistaActual = tipo;
             
-            // Lógica de Tabs Superiores
             const tabsOperacion = document.getElementById('tabs-operacion');
             const btnVolver = document.getElementById('btn-volver-operacion');
             
             if(tipo === 'admin') {
-                tabsOperacion.classList.add('hidden');
-                btnVolver.classList.remove('hidden');
+                tabsOperacion.classList.add('hidden'); btnVolver.classList.remove('hidden');
                 document.getElementById('area-operacion').classList.add('hidden');
-                document.getElementById('area-admin').classList.remove('hidden');
-                document.getElementById('area-admin').classList.add('flex');
-                cambiarSubVistaAdmin(adminSubVista); // Renders sidebar active state & content
+                document.getElementById('area-admin').classList.remove('hidden'); document.getElementById('area-admin').classList.add('flex');
+                cambiarSubVistaAdmin(adminSubVista); 
             } else {
-                tabsOperacion.classList.remove('hidden');
-                btnVolver.classList.add('hidden');
+                tabsOperacion.classList.remove('hidden'); btnVolver.classList.add('hidden');
                 ['barra', 'mesas', 'vip', 'admin'].forEach(t => {
                     const btn = document.getElementById(`btn-tab-${t}`);
                     if(btn) btn.className = (t === tipo) ? "px-5 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 shadow text-sm" : "px-5 py-2 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 text-sm";
@@ -409,28 +404,19 @@
                 document.getElementById('titulo-vista').innerText = titulos[tipo];
                 document.getElementById('btn-agregar-barra').style.display = tipo === 'barra' ? 'flex' : 'none';
                 document.getElementById('area-operacion').classList.remove('hidden');
-                document.getElementById('area-admin').classList.add('hidden');
-                document.getElementById('area-admin').classList.remove('flex');
+                document.getElementById('area-admin').classList.add('hidden'); document.getElementById('area-admin').classList.remove('flex');
                 renderizarGridOperacion();
             }
             window.cerrarPanel();
         };
 
-        // SIDEBAR ADMIN TOGGLE
         window.toggleAdminSidebar = function(forceShow = null) {
             const sidebar = document.getElementById('admin-sidebar');
             const overlay = document.getElementById('admin-sidebar-overlay');
             const isCurrentlyHidden = sidebar.classList.contains('-translate-x-full');
-            
             const shouldShow = forceShow !== null ? forceShow : isCurrentlyHidden;
-
-            if(shouldShow) {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.add('hidden');
-            }
+            if(shouldShow) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); } 
+            else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
         };
 
         function renderizarGridOperacion() {
@@ -450,8 +436,7 @@
         window.cambiarSubVistaAdmin = function(vista) {
             adminSubVista = vista;
             const menuIds = ['dashboard', 'caja', 'menu', 'categorias', 'espacios'];
-            const nombres = { dashboard: 'Dashboard', caja: 'Cierres de Caja', menu: 'Menú y Productos', categorias: 'Categorías', espacios: 'Zonas y Espacios' };
-            
+            const nombres = { dashboard: 'Dashboard', caja: 'Cierres de Caja', menu: 'Menú e Inventario', categorias: 'Categorías', espacios: 'Zonas y Espacios' };
             menuIds.forEach(v => {
                 const btn = document.getElementById(`btn-admin-${v}`);
                 if(btn) {
@@ -459,10 +444,8 @@
                     else btn.className = "w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3";
                 }
             });
-            
             document.getElementById('admin-mobile-title').innerText = nombres[vista];
-            window.toggleAdminSidebar(false); 
-            renderizarModuloAdmin();
+            window.toggleAdminSidebar(false); renderizarModuloAdmin();
         };
 
         function renderizarDashboard() {
@@ -470,25 +453,17 @@
             const ventasHoy = ventasHistorialData.filter(v => v.fecha && v.fecha.startsWith(hoyStr));
             let totalHoy = 0, totalEfectivo = 0, totalTarjeta = 0, totalSinpe = 0;
             ventasHoy.forEach(v => { totalHoy += v.total; if(v.metodo === 'Efectivo') totalEfectivo += v.total; if(v.metodo === 'Tarjeta') totalTarjeta += v.total; if(v.metodo === 'SINPE') totalSinpe += v.total; });
-            const ctx = document.getElementById('metodosChart');
-            if(!ctx) return;
+            const ctx = document.getElementById('metodosChart'); if(!ctx) return;
             if(chartInstancia) chartInstancia.destroy();
             chartInstancia = new Chart(ctx, { type: 'doughnut', data: { labels: ['Efectivo', 'Tarjeta', 'SINPE'], datasets: [{ data: [totalEfectivo, totalTarjeta, totalSinpe], backgroundColor: ['#10b981', '#3b82f6', '#f43f5e'], borderColor: '#0f172a', borderWidth: 2 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } } });
-            document.getElementById('dash-total-hoy').innerText = `₡${totalHoy.toLocaleString()}`;
-            document.getElementById('dash-tickets').innerText = ventasHoy.length;
+            document.getElementById('dash-total-hoy').innerText = `₡${totalHoy.toLocaleString()}`; document.getElementById('dash-tickets').innerText = ventasHoy.length;
         }
 
-        // CONTROL DE ACORDEÓN PARA MENÚ
         window.toggleAccordion = function(catId) {
             const content = document.getElementById(`acc-content-${catId}`);
             const icon = document.getElementById(`acc-icon-${catId}`);
-            if(content.classList.contains('open')) {
-                content.classList.remove('open');
-                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-            } else {
-                content.classList.add('open');
-                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-            }
+            if(content.classList.contains('open')) { content.classList.remove('open'); icon.classList.replace('fa-chevron-up', 'fa-chevron-down'); } 
+            else { content.classList.add('open'); icon.classList.replace('fa-chevron-down', 'fa-chevron-up'); }
         };
 
         function renderizarModuloAdmin() {
@@ -500,63 +475,51 @@
             }
             else if(adminSubVista === 'caja') {
                 const totalEsperado = montoCajaInicial + ventasTotalesTurno;
-                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full"><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p><p class="text-xl font-black text-slate-200">₡${montoCajaInicial.toLocaleString()}</p></div><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Ventas Turno</p><p class="text-xl font-black text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</p></div><div class="bg-slate-800 border-2 border-amber-500/50 p-5 rounded-2xl text-white"><p class="text-xs font-black uppercase text-amber-400 mb-1">Total Sistema (Esperado)</p><p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p></div></div><div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8 relative"><h3 class="text-lg font-bold text-slate-200 mb-4">Auditoría: Efectivo Físico</h3><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400 font-bold text-xl">₡</span><input type="number" id="input-efectivo-fisico" onkeyup="window.calcularCuadre()" class="w-full bg-slate-950 border-2 border-slate-600 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-2xl font-black text-white" placeholder="0"></div><div id="mensaje-cuadre" class="mt-4 transition-all hidden"></div></div><button onclick="window.ejecutarCierreCaja()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center gap-2"><i class="fa-solid fa-lock mt-1"></i> Confirmar Cierre Definitivo</button></div>`;
+                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full"><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p><p class="text-xl font-black text-slate-200">₡${montoCajaInicial.toLocaleString()}</p></div><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Ventas Turno</p><p class="text-xl font-black text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</p></div><div class="bg-slate-800 border-2 border-amber-500/50 p-5 rounded-2xl text-white"><p class="text-xs font-black uppercase text-amber-400 mb-1">Total Sistema (Esperado)</p><p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p></div></div><div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8 relative"><h3 class="text-lg font-bold text-slate-200 mb-4">Auditoría: Efectivo Físico</h3><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400 font-bold text-xl">₡</span><input type="number" id="input-efectivo-fisico" onkeyup="window.calcularCuadre()" class="w-full bg-slate-950 border-2 border-slate-600 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-2xl font-black text-white" placeholder="0"></div></div><button onclick="window.ejecutarCierreCaja()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center gap-2"><i class="fa-solid fa-lock mt-1"></i> Confirmar Cierre Definitivo</button></div>`;
             } 
             else if(adminSubVista === 'menu') {
                 let html = `
                 <div class="max-w-5xl mx-auto w-full pb-20">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-black text-slate-100">Gestión de Menú</h2>
-                        <button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition transform active:scale-95">
-                            <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Nuevo Producto</span>
-                        </button>
+                        <h2 class="text-2xl font-black text-slate-100">Menú e Inventario</h2>
+                        <button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition transform active:scale-95"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Nuevo Producto</span></button>
                     </div>
-                    
                     <div class="relative mb-6">
                         <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i>
                         <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto por nombre..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-amber-500 shadow-md">
                     </div>
                     <div class="space-y-4">`; 
 
-                // Agrupamos productos por categoría
                 const prodsFiltrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()));
                 const grupos = {};
                 datosRestaurante.categorias.forEach(c => grupos[c.id] = { nombre: c.nombre, items: [] });
                 grupos['general'] = { nombre: 'Sin Categoría / General', items: [] };
 
-                prodsFiltrados.forEach(p => {
-                    if(grupos[p.categoria]) grupos[p.categoria].items.push(p);
-                    else grupos['general'].items.push(p);
-                });
+                prodsFiltrados.forEach(p => { if(grupos[p.categoria]) grupos[p.categoria].items.push(p); else grupos['general'].items.push(p); });
 
                 let hayResultados = false;
-
                 for(const catId in grupos) {
                     const cat = grupos[catId];
                     if(cat.items.length === 0) continue; 
                     hayResultados = true;
-                    
                     cat.items.sort((a,b) => a.nombre.localeCompare(b.nombre));
-
-                    // Si hay búsqueda, abrimos todos. Si no, abrimos todos por defecto para mejor visual (o puedes cambiar a false).
-                    const isOpen = true; 
-                    const stateClass = isOpen ? 'open' : '';
-                    const iconClass = isOpen ? 'fa-chevron-up' : 'fa-chevron-down';
 
                     html += `
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                         <button onclick="window.toggleAccordion('${catId}')" class="w-full flex justify-between items-center p-4 bg-slate-800/60 hover:bg-slate-800 transition">
                             <span class="font-black text-amber-500 uppercase tracking-wider text-sm">${cat.nombre} <span class="text-slate-400 font-semibold text-xs ml-2 bg-slate-900 px-2 py-0.5 rounded-md">${cat.items.length}</span></span>
-                            <i id="acc-icon-${catId}" class="fa-solid ${iconClass} text-slate-500"></i>
+                            <i id="acc-icon-${catId}" class="fa-solid fa-chevron-up text-slate-500"></i>
                         </button>
-                        <div id="acc-content-${catId}" class="accordion-content ${stateClass}">
+                        <div id="acc-content-${catId}" class="accordion-content open">
                             <div class="divide-y divide-slate-800/50">`;
 
                     cat.items.forEach(p => {
                         const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-700"><i class="fa-solid fa-image"></i></div>`;
+                        const stockActual = p.stock !== undefined ? p.stock : 0;
+                        const stockColor = stockActual <= 5 ? 'text-rose-500' : 'text-amber-500';
 
                         html += `
-                            <div class="p-3 flex justify-between items-center hover:bg-slate-800/30 transition">
+                            <div class="p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/30 transition gap-4">
                                 <div class="flex items-center gap-4">
                                     ${imgPreview}
                                     <div class="flex flex-col">
@@ -564,21 +527,28 @@
                                         <span class="text-[11px] text-slate-500 font-medium"><i class="fa-solid fa-chart-line mr-1 text-slate-600"></i>Ventas: ${p.ventas || 0}</span>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-4">
-                                    <span class="font-black text-emerald-400 text-base">₡${p.precio.toLocaleString()}</span>
-                                    <div class="flex gap-2">
+                                <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+                                    <!-- Control Stock -->
+                                    <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 shadow-inner shrink-0">
+                                        <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'restar')" class="w-7 h-7 rounded-lg bg-slate-900 text-rose-400 hover:bg-rose-950 transition flex items-center justify-center" title="Mermar/Restar"><i class="fa-solid fa-minus text-xs"></i></button>
+                                        <div class="flex flex-col items-center justify-center w-12 cursor-pointer group" onclick="window.adminSetStockFijo('${p.id}', '${p.nombre}', ${stockActual})" title="Tocar para editar exacto">
+                                            <span class="text-[9px] text-slate-500 group-hover:text-amber-400 transition font-bold uppercase leading-none">Stock</span>
+                                            <span class="font-black ${stockColor} text-sm leading-none mt-0.5">${stockActual}</span>
+                                        </div>
+                                        <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'sumar')" class="w-7 h-7 rounded-lg bg-slate-900 text-emerald-400 hover:bg-emerald-950 transition flex items-center justify-center" title="Ingresar/Sumar"><i class="fa-solid fa-plus text-xs"></i></button>
+                                    </div>
+                                    <!-- Precio y Edición -->
+                                    <span class="font-black text-emerald-400 text-base w-20 text-right shrink-0">₡${p.precio.toLocaleString()}</span>
+                                    <div class="flex gap-2 shrink-0">
                                         <button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-9 h-9 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition" title="Editar Precio"><i class="fa-solid fa-pen text-sm"></i></button>
                                         <button onclick="window.adminEliminarProducto('${p.id}')" class="w-9 h-9 rounded-lg bg-rose-950/40 border border-rose-900/40 text-rose-500 hover:bg-rose-900 hover:text-white flex items-center justify-center transition" title="Eliminar"><i class="fa-solid fa-trash text-sm"></i></button>
                                     </div>
                                 </div>
                             </div>`;
                     });
-
                     html += `</div></div></div>`;
                 }
-
                 if(!hayResultados) html += `<div class="p-10 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800"><i class="fa-solid fa-magnifying-glass text-4xl mb-4 opacity-30"></i><p>No se encontraron productos.</p></div>`;
-                
                 html += `</div></div>`;
                 cont.innerHTML = html;
             }
@@ -603,26 +573,21 @@
             }
         }
 
-        // LÓGICA MODAL NUEVO PRODUCTO
+        // CONTROL CRUD INVENTARIO Y PRODUCTOS
         window.abrirModalProductoAdmin = function() {
             document.getElementById('add-prod-nombre').value = '';
             document.getElementById('add-prod-precio').value = '';
+            document.getElementById('add-prod-stock').value = '';
             document.getElementById('add-prod-file').value = '';
-            document.getElementById('add-prod-preview-img').src = '';
-            document.getElementById('add-prod-preview-img').classList.add('hidden');
+            document.getElementById('add-prod-preview-img').src = ''; document.getElementById('add-prod-preview-img').classList.add('hidden');
             document.getElementById('add-prod-preview-text').classList.remove('hidden');
             window.actualizarSelectCategoriasModal();
             document.getElementById('modal-admin-producto').classList.remove('hidden');
         };
-
-        window.cerrarModalProductoAdmin = function() {
-            document.getElementById('modal-admin-producto').classList.add('hidden');
-        };
+        window.cerrarModalProductoAdmin = function() { document.getElementById('modal-admin-producto').classList.add('hidden'); };
 
         window.actualizarSelectCategoriasModal = function() {
-            const select = document.getElementById('add-prod-cat');
-            if(!select) return;
-            select.innerHTML = '';
+            const select = document.getElementById('add-prod-cat'); if(!select) return; select.innerHTML = '';
             if(datosRestaurante.categorias.length === 0) { select.innerHTML = `<option value="general">General</option>`; } 
             else { datosRestaurante.categorias.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.nombre.toUpperCase()}</option>`; }); }
         };
@@ -630,67 +595,59 @@
         window.previsualizarImagen = function(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('add-prod-preview-img').src = e.target.result;
-                    document.getElementById('add-prod-preview-img').classList.remove('hidden');
-                    document.getElementById('add-prod-preview-text').classList.add('hidden');
-                };
+                reader.onload = function(e) { document.getElementById('add-prod-preview-img').src = e.target.result; document.getElementById('add-prod-preview-img').classList.remove('hidden'); document.getElementById('add-prod-preview-text').classList.add('hidden'); };
                 reader.readAsDataURL(input.files[0]);
             }
         };
 
         window.guardarProductoAdmin = async function() {
-            const cat = document.getElementById('add-prod-cat').value;
-            const nom = document.getElementById('add-prod-nombre').value;
-            const pre = parseFloat(document.getElementById('add-prod-precio').value);
-            const fileInput = document.getElementById('add-prod-file');
-            const file = fileInput.files[0];
+            const cat = document.getElementById('add-prod-cat').value; const nom = document.getElementById('add-prod-nombre').value;
+            const pre = parseFloat(document.getElementById('add-prod-precio').value); const stk = parseInt(document.getElementById('add-prod-stock').value) || 0;
+            const fileInput = document.getElementById('add-prod-file'); const file = fileInput.files[0];
 
             if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
-
-            // Botón en estado de carga
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`;
-            btn.disabled = true;
+            const btn = event.target; const originalText = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`; btn.disabled = true;
 
             try {
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = async function(e) {
-                        await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: e.target.result });
-                        window.cerrarModalProductoAdmin();
-                        window.customAlert('Producto guardado con éxito.');
-                    };
+                    reader.onload = async function(e) { await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: e.target.result }); window.cerrarModalProductoAdmin(); window.customAlert('Producto guardado.'); };
                     reader.readAsDataURL(file);
                 } else {
-                    await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, imagen: "" });
-                    window.cerrarModalProductoAdmin();
-                    window.customAlert('Producto guardado con éxito.');
+                    await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: "" });
+                    window.cerrarModalProductoAdmin(); window.customAlert('Producto guardado.');
                 }
-            } catch(e) {
-                console.error(e); window.customAlert('Error al guardar.');
-            } finally {
-                btn.innerHTML = originalText; btn.disabled = false;
+            } catch(e) { console.error(e); window.customAlert('Error al guardar.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        };
+
+        // FUNCIONES DE CONTROL DE STOCK
+        window.adminAjustarStock = async function(id, nombre, operacion) {
+            const titulo = operacion === 'sumar' ? `Sumar stock a ${nombre} (Ej. Ingreso):` : `Restar stock a ${nombre} (Ej. Merma/Daño):`;
+            const val = await window.customPrompt(titulo, "1");
+            if(val && !isNaN(val) && parseInt(val) > 0) {
+                const ajuste = operacion === 'sumar' ? parseInt(val) : -parseInt(val);
+                await updateDoc(doc(db, "productos", id), { stock: increment(ajuste) });
             }
         };
 
-        // RESTO DE FUNCIONES CRUD (Categorías, Espacios, etc.)
+        window.adminSetStockFijo = async function(id, nombre, stockActual) {
+            const val = await window.customPrompt(`Fijar stock exacto para ${nombre} (Auditoría física):`, stockActual);
+            if(val && !isNaN(val)) { await updateDoc(doc(db, "productos", id), { stock: parseInt(val) }); }
+        };
+
+        // OTRAS FUNCIONES CRUD Y OPERACIONES
         window.adminAgregarCategoria = async function() { const nom = document.getElementById('add-cat-nombre').value.trim(); if(!nom) return; await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() }); document.getElementById('add-cat-nombre').value = ''; };
         window.adminEditarCategoria = async function(id, nombreActual) { const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual); if(nv && nv.trim() !== '') await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() }); };
         window.adminEliminarCategoria = async function(id) { if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) await deleteDoc(doc(db, "categorias", id)); };
-        
         window.ejecutarCierreCaja = async function() { const inputEfectivo = document.getElementById('input-efectivo-fisico').value; if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.'); if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) { await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString(), estado: 'cerrada' }); window.location.reload(); } };
-        
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
         window.adminEliminarProducto = async function(id) { if(await window.customConfirm('¿Eliminar producto del menú permanentemente?')) await deleteDoc(doc(db, "productos", id)); };
         window.adminEditarPrecio = async function(id, nombre, precioActual) { const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual); if(nv && !isNaN(nv)) await updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) }); };
-        
         window.adminAgregarEspacio = async function() { const cat = document.getElementById('add-esp-tipo').value; const nom = document.getElementById('add-esp-nombre').value; if(!nom) return; await addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] }); document.getElementById('add-esp-nombre').value = ''; };
         window.adminEliminarEspacio = async function(id, estado) { if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.'); if(await window.customConfirm(`¿Eliminar este espacio?`)) await deleteDoc(doc(db, "espacios", id)); };
         window.adminEditarEspacio = async function(id, nombreActual) { const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual); if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv }); };
 
-        // PANEL OPERACIÓN MESAS
+        // SALÓN
         window.agregarClienteExtraBarra = async function() { const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:"); if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] }); };
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
@@ -705,8 +662,7 @@
             if (!elementoSeleccionado) return;
             if (elementoSeleccionado.total > 0) return window.customAlert('No se puede liberar un espacio con saldo pendiente. Cobre la cuenta o elimine los productos.');
             if (await window.customConfirm(`¿Desea limpiar y liberar el espacio: ${elementoSeleccionado.nombre}?`)) {
-                if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } 
-                else { await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] }); }
+                if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } else { await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] }); }
                 window.cerrarPanel();
             }
         };
@@ -741,17 +697,25 @@
             window.cerrarModalCobro(); const montoCobrado = elementoSeleccionado.total;
             await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: montoCobrado, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre, rondas: elementoSeleccionado.rondas });
             ventasTotalesTurno += montoCobrado; await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
-            let conteoProductos = {}; elementoSeleccionado.rondas.forEach(r => { r.items.forEach(item => { if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0; conteoProductos[item.nombre]++; }); });
+            
+            let conteoProductos = {}; 
+            elementoSeleccionado.rondas.forEach(r => { r.items.forEach(item => { if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0; conteoProductos[item.nombre]++; }); });
+            
+            // DEDUCCIÓN DE STOCK AL COBRAR
             for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
-                if (prod) updateDoc(doc(db, "productos", prod.id), { ventas: increment(cantidad) }).catch(e => console.log(e));
+                if (prod) {
+                    updateDoc(doc(db, "productos", prod.id), { 
+                        ventas: increment(cantidad),
+                        stock: increment(-cantidad) // Reduce automáticamente del inventario
+                    }).catch(e => console.log(e));
+                }
             }
             if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } 
             else { await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] }); }
             window.cerrarPanel(); window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
         };
 
-        // MODAL AGREGAR PRODUCTO SALÓN
         window.abrirModalAgregar = function() { if (!elementoSeleccionado) return; document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`; document.getElementById('input-buscar-modal').value = ''; busquedaModal = ''; itemsRondaTemporal = []; window.actualizarContadorModal(); window.renderizarPestanasModal(); document.getElementById('modal-agregar-producto').classList.remove('hidden'); };
         window.cerrarModalProductos = function() { document.getElementById('modal-agregar-producto').classList.add('hidden'); };
         window.renderizarPestanasModal = function() { const cont = document.getElementById('modal-categorias-container'); cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`; datosRestaurante.categorias.forEach(c => { cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c.id}')" id="cat-${c.id}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c.nombre}</button>`; }); window.cambiarCategoriaModal('todas'); };
