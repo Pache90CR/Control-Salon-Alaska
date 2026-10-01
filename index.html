@@ -13,11 +13,9 @@
         .pro-scroll::-webkit-scrollbar { width: 6px; }
         .pro-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
         .pro-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
-        .accordion-content { transition: max-height 0.3s ease-in-out; max-height: 0; overflow: hidden; }
-        .accordion-content.open { max-height: 2000px; }
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
+<body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw]">
 
     <!-- DIÁLOGOS PERSONALIZADOS -->
     <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
@@ -28,7 +26,6 @@
         </div>
     </div>
 
-    <!-- PROMPT CUSTOMIZADO -->
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
@@ -83,7 +80,7 @@
         </div>
     </div>
 
-    <!-- MODAL SELECCIÓN DE PRODUCTOS CON IMÁGENES -->
+    <!-- MODAL SELECCIÓN DE PRODUCTOS PARA MESAS -->
     <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
@@ -180,18 +177,18 @@
             <div id="grid-elementos" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 w-full"></div>
         </section>
 
-        <!-- SECCIÓN ADMIN -->
-        <section class="flex-1 overflow-hidden hidden w-full bg-slate-950 relative" id="area-admin">
-            <aside id="admin-sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-40 flex flex-col shadow-2xl">
-                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-                    <h3 class="font-black text-amber-500 uppercase text-sm"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Panel Admin</h3>
+        <!-- SECCIÓN ADMIN (CORREGIDA LA NAVEGACIÓN Y DISPOSICIÓN) -->
+        <section class="flex-1 hidden w-full bg-slate-950 relative flex-col md:flex-row overflow-hidden" id="area-admin">
+            <aside id="admin-sidebar" class="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 z-20 flex flex-row md:flex-col shrink-0 overflow-x-auto hide-scrollbar">
+                <div class="p-4 border-r md:border-r-0 md:border-b border-slate-800 flex items-center bg-slate-950 shrink-0">
+                    <h3 class="font-black text-amber-500 uppercase text-xs md:text-sm whitespace-nowrap"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Admin</h3>
                 </div>
-                <div class="flex-1 overflow-y-auto py-4 space-y-1">
-                    <button onclick="window.cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</button>
-                    <button onclick="window.cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3"><i class="fa-solid fa-cash-register w-5"></i> Cierres de Caja</button>
-                    <button onclick="window.cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3"><i class="fa-solid fa-burger w-5"></i> Menú e Inventario</button>
-                    <button onclick="window.cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3"><i class="fa-solid fa-tags w-5"></i> Categorías</button>
-                    <button onclick="window.cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
+                <div class="flex flex-row md:flex-col flex-1 p-1 md:p-0 space-x-1 md:space-x-0 md:space-y-1">
+                    <button onclick="window.cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="text-left px-4 md:px-6 py-3 md:py-4 text-amber-500 bg-slate-800/80 border-b-2 md:border-b-0 md:border-r-4 border-amber-500 font-bold transition flex items-center gap-2 md:gap-3 text-xs md:text-sm whitespace-nowrap"><i class="fa-solid fa-chart-pie w-4 md:w-5"></i> Dashboard</button>
+                    <button onclick="window.cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="text-left px-4 md:px-6 py-3 md:py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-2 md:gap-3 text-xs md:text-sm whitespace-nowrap"><i class="fa-solid fa-cash-register w-4 md:w-5"></i> Cierres de Caja</button>
+                    <button onclick="window.cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="text-left px-4 md:px-6 py-3 md:py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-2 md:gap-3 text-xs md:text-sm whitespace-nowrap"><i class="fa-solid fa-burger w-4 md:w-5"></i> Menú e Inventario</button>
+                    <button onclick="window.cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="text-left px-4 md:px-6 py-3 md:py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-2 md:gap-3 text-xs md:text-sm whitespace-nowrap"><i class="fa-solid fa-tags w-4 md:w-5"></i> Categorías</button>
+                    <button onclick="window.cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="text-left px-4 md:px-6 py-3 md:py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-2 md:gap-3 text-xs md:text-sm whitespace-nowrap"><i class="fa-solid fa-chair w-4 md:w-5"></i> Zonas y Espacios</button>
                 </div>
             </aside>
             <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
@@ -222,7 +219,7 @@
         </aside>
     </main>
 
-    <!-- SCRIPT DE NAVEGACIÓN Y FIREBASE CORREGIDO -->
+    <!-- SCRIPT CORREGIDO -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -249,12 +246,10 @@
         let ventasTotalesTurno = parseFloat(localStorage.getItem('alaska_caja_ventas')) || 0;
         let cajaAbierta = localStorage.getItem('alaska_caja_estado') === 'abierta';
 
-        let busquedaMenu = '';
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
 
-        // CATEGORÍAS BASE ESTÁNDAR
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
 
         let datosRestaurante = {
@@ -285,7 +280,7 @@
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
-        // MODALES
+        // MODALES Y ROL
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
 
@@ -338,12 +333,14 @@
             if(tipo === 'admin') {
                 tabsOperacion.classList.add('hidden'); btnVolver.classList.remove('hidden');
                 document.getElementById('area-operacion').classList.add('hidden');
-                document.getElementById('area-admin').classList.remove('hidden'); document.getElementById('area-admin').classList.add('flex');
+                document.getElementById('area-admin').classList.remove('hidden'); 
+                document.getElementById('area-admin').classList.add('flex');
                 cambiarSubVistaAdmin(adminSubVista); 
             } else {
                 tabsOperacion.classList.remove('hidden'); btnVolver.classList.add('hidden');
                 document.getElementById('area-operacion').classList.remove('hidden');
-                document.getElementById('area-admin').classList.add('hidden'); document.getElementById('area-admin').classList.remove('flex');
+                document.getElementById('area-admin').classList.add('hidden'); 
+                document.getElementById('area-admin').classList.remove('flex');
                 renderizarGridOperacion();
             }
             window.cerrarPanel();
@@ -364,15 +361,29 @@
 
         window.cambiarSubVistaAdmin = function(vista) {
             adminSubVista = vista;
+            const subs = ['dashboard', 'caja', 'menu', 'categorias', 'espacios'];
+            subs.forEach(s => {
+                const btn = document.getElementById(`btn-admin-${s}`);
+                if(btn) {
+                    if(s === vista) {
+                        btn.className = "text-left px-4 md:px-6 py-3 md:py-4 text-amber-500 bg-slate-800/80 border-b-2 md:border-b-0 md:border-r-4 border-amber-500 font-bold transition flex items-center gap-2 md:gap-3 text-xs md:text-sm whitespace-nowrap";
+                    } else {
+                        btn.className = "text-left px-4 md:px-6 py-3 md:py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-2 md:gap-3 text-xs md:text-sm whitespace-nowrap";
+                    }
+                }
+            });
             renderizarModuloAdmin();
         };
 
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
-            if(adminSubVista === 'menu') {
+            if(adminSubVista === 'dashboard') {
+                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full"><h2 class="text-2xl font-black text-slate-100 mb-6">Dashboard</h2><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl"><p class="text-slate-400 font-bold">Ventas Totales del Turno</p><p class="text-4xl font-black text-emerald-400 mt-2">₡${ventasTotalesTurno.toLocaleString()}</p></div></div>`;
+            } else if(adminSubVista === 'caja') {
+                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full"><h2 class="text-2xl font-black text-slate-100 mb-6">Estado de Caja</h2><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-2"><p class="text-slate-300">Fondo Base: <strong class="text-white">₡${montoCajaInicial.toLocaleString()}</strong></p><p class="text-slate-300">Ventas: <strong class="text-emerald-400">₡${ventasTotalesTurno.toLocaleString()}</strong></p><p class="text-slate-300">Total Esperado: <strong class="text-amber-400">₡${(montoCajaInicial + ventasTotalesTurno).toLocaleString()}</strong></p></div></div>`;
+            } else if(adminSubVista === 'menu') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black text-slate-100">Menú e Inventario</h2><button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg"><i class="fa-solid fa-plus"></i> Nuevo Producto</button></div><div class="space-y-4">`; 
 
-                // Obtenemos lista única de categorías en texto plano
                 const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
 
                 listaCats.forEach(catNombre => {
@@ -394,6 +405,8 @@
                 listaCats.forEach(cat => { catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center"><span class="font-bold text-slate-200 uppercase">${cat}</span></div>`; });
                 catHtml += `</div></div>`;
                 cont.innerHTML = catHtml;
+            } else if(adminSubVista === 'espacios') {
+                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full"><h2 class="text-2xl font-black text-slate-100 mb-6">Zonas y Espacios</h2><p class="text-slate-400">Espacios cargados dinámicamente desde Firebase.</p></div>`;
             }
         }
 
@@ -447,7 +460,7 @@
 
         window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto?')) await deleteDoc(doc(db, "productos", id)); };
 
-        // APERTURA DE MENÚ DE TOMA DE PEDIDOS CON FOTOS
+        // PEDIDOS Y SALÓN
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Cliente: ${elementoSeleccionado.cliente}`;
