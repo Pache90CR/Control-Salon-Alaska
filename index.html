@@ -91,7 +91,6 @@
                 <span class="absolute left-4 top-3 text-slate-400 font-bold text-lg">₡</span>
                 <input type="number" id="input-monto-caja" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xl font-bold text-emerald-400 focus:outline-none focus:border-amber-500" value="25000">
             </div>
-            <!-- SE CORRIGIÓ EL ONCLICK PARA QUE FUNCIONE CORRECTAMENTE EN EL ENTORNO DE MÓDULOS -->
             <button onclick="window.abrirCaja(event)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg">Abrir Turno</button>
         </div>
     </div>
@@ -260,7 +259,6 @@
     <!-- SCRIPT FIREBASE Y LÓGICA -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // SE AGREGÓ GETDOC PARA LEER EL ESTADO EN TIEMPO REAL AL INICIAR SESIÓN
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -375,16 +373,11 @@
             if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarDashboard();
         });
 
-        // ==========================================
-        //  MODIFICACIÓN: LÓGICA DE INGRESO SEGURA
-        // ==========================================
         window.seleccionarRol = async function(rol) {
             if(rol === 'admin') {
                 const pin = await window.customPrompt("Ingrese PIN Administrador:", "", "password");
-                // Si el pin falla, detenemos el código aquí, el modal de Login queda intacto y evitamos recargar la página
                 if(pin !== pinAdmin) { window.customAlert("PIN incorrecto"); return; }
                 
-                // Si el pin es correcto, avanzamos
                 rolUsuario = rol; 
                 document.getElementById('modal-login').classList.add('hidden');
                 
@@ -392,7 +385,6 @@
                 if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
-                // Leemos directamente de la base de datos para garantizar el 100% que sabemos si está abierta o no
                 try {
                     const cajaSnap = await getDoc(doc(db, "config", "cajaActual"));
                     if(cajaSnap.exists()) {
@@ -400,7 +392,6 @@
                     }
                 } catch(e) { console.error("Error validando caja:", e); }
 
-                // Verificamos y dirigimos
                 if (cajaAbierta) { 
                     window.cambiarVista('admin'); 
                 } else { 
@@ -416,14 +407,10 @@
             }
         };
 
-        // ==========================================
-        //  MODIFICACIÓN: APERTURA DE CAJA SEGURA
-        // ==========================================
         window.abrirCaja = async function(e) {
             const val = document.getElementById('input-monto-caja').value; 
             if(!val) return;
             
-            // Atrapamos el botón para ponerlo en modo carga y evitar clics dobles
             const btn = e ? e.currentTarget : event.target;
             const originalText = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Abriendo...`;
@@ -431,7 +418,6 @@
 
             try {
                 montoCajaInicial = parseFloat(val);
-                // Usamos await para asegurarnos que termine de guardar en Firebase
                 await setDoc(doc(db, "config", "cajaActual"), { 
                     fondoInicial: montoCajaInicial, 
                     ventasTurno: 0, 
@@ -441,8 +427,6 @@
                 
                 cajaAbierta = true;
                 document.getElementById('modal-caja').classList.add('hidden'); 
-                
-                // Lo llevamos a su área de Admin directo
                 window.cambiarVista('admin');
             } catch(error) {
                 console.error("Error abriendo turno:", error);
@@ -701,13 +685,20 @@
                     document.getElementById('add-prod-preview-img').classList.remove('hidden'); 
                     document.getElementById('add-prod-preview-text').classList.add('hidden'); 
                 };
+                reader.onerror = function() {
+                    window.customAlert("No se pudo cargar la imagen seleccionada.");
+                    input.value = "";
+                };
                 reader.readAsDataURL(input.files[0]);
             }
         };
 
+        // ==========================================
+        //  MODIFICACIÓN: SUBIDA DE IMAGEN ROBUSTA
+        // ==========================================
         window.guardarProductoAdmin = async function() {
             const cat = document.getElementById('add-prod-cat').value; 
-            const nom = document.getElementById('add-prod-nombre').value;
+            const nom = document.getElementById('add-prod-nombre').value.trim();
             const pre = parseFloat(document.getElementById('add-prod-precio').value); 
             
             const stkStr = document.getElementById('add-prod-stock').value;
@@ -716,28 +707,47 @@
             const fileInput = document.getElementById('add-prod-file'); 
             const file = fileInput.files[0];
 
-            if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
+            if(!nom || isNaN(pre)) return window.customAlert('El nombre y un precio válido son obligatorios.');
             
             const btn = document.getElementById('btn-guardar-prod'); 
             const originalText = btn.innerHTML; 
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`; 
             btn.disabled = true;
 
-            const subirAFirebase = async (imgBase64) => {
+            const enviarDatos = async (imgBase64) => {
                 try {
-                    await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: imgBase64 });
-                    window.cerrarModalProductoAdmin(); window.customAlert('Producto guardado con éxito.');
-                } catch(e) { console.error(e); window.customAlert('Error al guardar el producto.'); 
-                } finally { btn.innerHTML = originalText; btn.disabled = false; }
+                    await addDoc(collection(db, "productos"), { 
+                        categoria: cat, 
+                        nombre: nom, 
+                        precio: pre, 
+                        ventas: 0, 
+                        stock: stk, 
+                        imagen: imgBase64 
+                    });
+                    window.cerrarModalProductoAdmin(); 
+                    window.customAlert('¡Producto guardado con éxito!');
+                } catch(e) { 
+                    console.error("Error Firebase:", e); 
+                    window.customAlert('Error al guardar el producto en la nube.'); 
+                } finally { 
+                    btn.innerHTML = originalText; 
+                    btn.disabled = false; 
+                }
             };
 
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) { subirAFirebase(e.target.result); };
-                reader.onerror = function() { window.customAlert('Error al leer la imagen.'); btn.innerHTML = originalText; btn.disabled = false; };
+                reader.onload = function(e) { 
+                    enviarDatos(e.target.result); 
+                };
+                reader.onerror = function() { 
+                    // Si la imagen falla al leerse, permitimos guardar el producto sin imagen para no bloquear al usuario
+                    console.warn("Fallo al leer la imagen, guardando sin imagen...");
+                    enviarDatos(""); 
+                };
                 reader.readAsDataURL(file);
             } else {
-                subirAFirebase("");
+                enviarDatos("");
             }
         };
 
