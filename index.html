@@ -17,7 +17,7 @@
 <body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
 
     <!-- DIÁLOGOS PERSONALIZADOS -->
-    <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
             <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-bell"></i></div>
             <p id="alert-msg" class="text-slate-200 text-lg mb-6"></p>
@@ -37,11 +37,11 @@
         </div>
     </div>
 
-    <!-- PROMPT EXCLUSIVO PARA PIN DE ADMIN -->
+    <!-- PROMPT EXCLUSIVO PARA PIN DE ADMIN (MODIFICADO PARA EVITAR CHROME PASSWORDS) -->
     <div id="modal-pin-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="pin-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <input type="password" id="pin-input" autocomplete="new-password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
+            <input type="text" id="pin-input" style="-webkit-text-security: disc;" inputmode="numeric" autocomplete="off" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
             <div class="flex gap-3">
                 <button onclick="window.cancelarPinPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
                 <button onclick="window.aceptarPinPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
@@ -147,14 +147,12 @@
                     <input type="text" id="add-prod-nombre" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Ej. Centenario, Ceviche...">
                 </div>
                 
-                <!-- SECCIÓN DE PRECIOS Y VARIANTES -->
                 <div class="bg-slate-950 p-4 rounded-xl border border-slate-700">
                     <label class="flex items-center gap-2 text-sm font-bold text-slate-300 cursor-pointer mb-3">
                         <input type="checkbox" id="check-variantes" onchange="window.toggleVariantesAdmin()" class="w-4 h-4 accent-amber-500">
                         Tiene varios tamaños/precios (Ej. Trago, Botella)
                     </label>
                     
-                    <!-- MODO NORMAL (UN PRECIO) -->
                     <div id="div-precio-unico" class="flex gap-4">
                         <div class="w-1/2">
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Precio Único (₡)</label>
@@ -166,7 +164,6 @@
                         </div>
                     </div>
 
-                    <!-- MODO VARIANTES -->
                     <div id="div-variantes" class="hidden space-y-3">
                         <p class="text-xs text-slate-400 mb-1">Define los tamaños (El stock no aplica en modo variante)</p>
                         <div id="lista-variantes-admin" class="space-y-2"></div>
@@ -300,10 +297,9 @@
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
-        let productoVarianteActual = null; // Para la selección de variantes
+        let productoVarianteActual = null;
 
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
-
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
 
         // ESCUCHAS DE FIREBASE
@@ -331,11 +327,9 @@
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
-        // MODALES GENERALES
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
 
-        // PROMPT PARA NOMBRES Y CLIENTES
         window.customPrompt = function(msg, defaultVal = '') {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
@@ -348,7 +342,6 @@
             });
         };
 
-        // PROMPT SEGURO PARA EL PIN ADMIN
         window.customPromptPin = function(msg) {
             return new Promise((resolve) => {
                 document.getElementById('pin-msg').innerText = msg;
@@ -533,7 +526,6 @@
                     prods.forEach(p => {
                         const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 flex items-center justify-center text-slate-600 border border-slate-800"><i class="fa-solid fa-image"></i></div>`;
                         
-                        // LÓGICA DE RENDERIZADO DE PRECIOS SI TIENE VARIANTES
                         const isVar = p.variantes && p.variantes.length > 0;
                         const precioDisplay = isVar 
                             ? `<div class="text-right flex flex-col items-end gap-1">` + p.variantes.map(v => `<span class="text-[11px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">${v.nombre}: <span class="text-emerald-400">₡${v.precio.toLocaleString()}</span></span>`).join('') + `</div>`
@@ -626,10 +618,7 @@
             if(isChecked) {
                 document.getElementById('div-precio-unico').classList.add('hidden');
                 document.getElementById('div-variantes').classList.remove('hidden');
-                // Si está vacío, agrega la primera fila por defecto
-                if(document.getElementById('lista-variantes-admin').children.length === 0) {
-                    window.agregarFilaVarianteAdmin();
-                }
+                if(document.getElementById('lista-variantes-admin').children.length === 0) window.agregarFilaVarianteAdmin();
             } else {
                 document.getElementById('div-precio-unico').classList.remove('hidden');
                 document.getElementById('div-variantes').classList.add('hidden');
@@ -651,7 +640,6 @@
             document.getElementById('add-prod-preview-img').classList.add('hidden'); 
             document.getElementById('add-prod-preview-text').classList.remove('hidden');
             
-            // Limpiar variantes
             document.getElementById('check-variantes').checked = false;
             window.toggleVariantesAdmin();
             document.getElementById('lista-variantes-admin').innerHTML = '';
@@ -665,10 +653,40 @@
         
         window.cerrarModalProductoAdmin = function() { document.getElementById('modal-admin-producto').classList.add('hidden'); };
 
+        // COMPRESOR DE IMÁGENES AL VUELO
         window.previsualizarImagen = function(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) { document.getElementById('add-prod-preview-img').src = e.target.result; document.getElementById('add-prod-preview-img').classList.remove('hidden'); document.getElementById('add-prod-preview-text').classList.add('hidden'); };
+                reader.onload = function(e) { 
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const MAX_SIZE = 400; // Redimensiona máximo a 400px
+
+                        if (width > height && width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        } else if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Comprime a JPEG calidad 80%
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        
+                        document.getElementById('add-prod-preview-img').src = dataUrl; 
+                        document.getElementById('add-prod-preview-img').classList.remove('hidden'); 
+                        document.getElementById('add-prod-preview-text').classList.add('hidden'); 
+                    };
+                    img.src = e.target.result;
+                };
                 reader.readAsDataURL(input.files[0]);
             }
         };
@@ -679,9 +697,7 @@
             const img = document.getElementById('add-prod-preview-img').classList.contains('hidden') ? '' : document.getElementById('add-prod-preview-img').src;
             
             const isVariantes = document.getElementById('check-variantes').checked;
-            let precio = 0;
-            let stock = null;
-            let variantes = [];
+            let precio = 0; let stock = null; let variantes = [];
 
             if (isVariantes) {
                 const items = document.querySelectorAll('.variante-item');
@@ -700,15 +716,21 @@
             if(!nom) return window.customAlert('Indique el nombre del producto.');
 
             window.cerrarModalProductoAdmin();
-            await addDoc(collection(db, "productos"), { 
-                categoria: cat.toUpperCase(), 
-                nombre: nom, 
-                precio: isVariantes ? null : precio, 
-                variantes: isVariantes ? variantes : null,
-                stock: isVariantes ? null : stock, 
-                imagen: img 
-            });
-            window.customAlert('¡Producto creado exitosamente!');
+            
+            try {
+                await addDoc(collection(db, "productos"), { 
+                    categoria: cat.toUpperCase(), 
+                    nombre: nom, 
+                    precio: isVariantes ? null : precio, 
+                    variantes: isVariantes ? variantes : null,
+                    stock: isVariantes ? null : stock, 
+                    imagen: img 
+                });
+                window.customAlert('¡Producto creado exitosamente!');
+            } catch (error) {
+                console.error("Error en Firebase:", error);
+                window.customAlert('Ocurrió un error al guardar. Verifica tu conexión.');
+            }
         };
 
         window.adminAgregarCategoria = async function() {
@@ -719,7 +741,6 @@
 
         window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto de la base de datos?')) await deleteDoc(doc(db, "productos", id)); };
 
-        // PEDIDOS EN SALÓN Y SELECCIÓN DE VARIANTES
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Cliente: ${elementoSeleccionado.cliente}`;
@@ -775,7 +796,6 @@
             });
         };
 
-        // LÓGICA DE SELECCIÓN DE VARIANTE EN EL SALÓN
         window.abrirModalSelVariantes = function(prodId) {
             const prod = datosRestaurante.productos.find(p => p.id === prodId);
             if(!prod || !prod.variantes) return;
