@@ -331,6 +331,9 @@
         document.getElementById('firebase-status').classList.remove('animate-pulse');
         document.getElementById('firebase-status').classList.add('text-emerald-500');
 
+        // ==========================================
+        //  ESCUCHAS EN TIEMPO REAL (CARGA INICIAL)
+        // ==========================================
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
@@ -340,6 +343,7 @@
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
             });
             if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
+            if(vistaActual === 'admin' && adminSubVista === 'espacios') renderizarModuloAdmin();
         });
 
         onSnapshot(collection(db, "productos"), (snapshot) => {
@@ -352,8 +356,9 @@
             datosRestaurante.categorias = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) {
-                renderizarModuloAdmin(); window.actualizarSelectCategoriasModal();
+                renderizarModuloAdmin(); 
             }
+            window.actualizarSelectCategoriasModal();
         });
 
         onSnapshot(doc(db, "config", "cajaActual"), (docSnap) => {
@@ -693,9 +698,6 @@
             }
         };
 
-        // ==========================================
-        //  MODIFICACIÓN: SUBIDA DE IMAGEN ROBUSTA
-        // ==========================================
         window.guardarProductoAdmin = async function() {
             const cat = document.getElementById('add-prod-cat').value; 
             const nom = document.getElementById('add-prod-nombre').value.trim();
@@ -741,8 +743,6 @@
                     enviarDatos(e.target.result); 
                 };
                 reader.onerror = function() { 
-                    // Si la imagen falla al leerse, permitimos guardar el producto sin imagen para no bloquear al usuario
-                    console.warn("Fallo al leer la imagen, guardando sin imagen...");
                     enviarDatos(""); 
                 };
                 reader.readAsDataURL(file);
