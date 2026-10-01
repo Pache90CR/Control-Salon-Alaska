@@ -75,8 +75,8 @@
             <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
             <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
             <div class="space-y-4">
-                <button onclick="seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
-                <button onclick="seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
+                <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
+                <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
             <p id="firebase-status" class="mt-6 text-xs text-slate-500 animate-pulse">Conectando a la nube...</p>
         </div>
@@ -91,7 +91,8 @@
                 <span class="absolute left-4 top-3 text-slate-400 font-bold text-lg">₡</span>
                 <input type="number" id="input-monto-caja" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xl font-bold text-emerald-400 focus:outline-none focus:border-amber-500" value="25000">
             </div>
-            <button onclick="abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg">Abrir Turno</button>
+            <!-- SE CORRIGIÓ EL ONCLICK PARA QUE FUNCIONE CORRECTAMENTE EN EL ENTORNO DE MÓDULOS -->
+            <button onclick="window.abrirCaja(event)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg">Abrir Turno</button>
         </div>
     </div>
 
@@ -103,7 +104,7 @@
                     <h3 class="text-lg font-black text-amber-400">Menú - Seleccionar Ronda</h3>
                     <p id="modal-subtitulo-cliente" class="text-xs text-slate-400">Agregando a --</p>
                 </div>
-                <button onclick="cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="window.cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div id="modal-categorias-container" class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0"></div>
             <div class="p-3 bg-slate-950">
@@ -159,7 +160,6 @@
                         <img id="add-prod-preview-img" src="" class="hidden w-full h-full object-contain pointer-events-none absolute inset-0 p-2">
                     </div>
                 </div>
-                <!-- SE AGREGÓ UN ID PARA CONTROLARLO CORRECTAMENTE -->
                 <button id="btn-guardar-prod" onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg mt-2 text-lg">Guardar Producto</button>
             </div>
         </div>
@@ -175,12 +175,12 @@
             </div>
         </div>
         <div id="tabs-operacion" class="flex overflow-x-auto bg-slate-950 p-1 rounded-xl border border-slate-800 hide-scrollbar shrink-0 w-full sm:w-auto">
-            <button onclick="cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
-            <button onclick="cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
-            <button onclick="cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
-            <button onclick="cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
+            <button onclick="window.cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
+            <button onclick="window.cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
+            <button onclick="window.cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
+            <button onclick="window.cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
         </div>
-        <button onclick="cambiarVista('barra')" id="btn-volver-operacion" class="hidden px-5 py-2 rounded-xl font-bold bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-sm whitespace-nowrap shadow-md"><i class="fa-solid fa-arrow-left mr-2"></i> Volver a Salón</button>
+        <button onclick="window.cambiarVista('barra')" id="btn-volver-operacion" class="hidden px-5 py-2 rounded-xl font-bold bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-sm whitespace-nowrap shadow-md"><i class="fa-solid fa-arrow-left mr-2"></i> Volver a Salón</button>
     </header>
 
     <!-- CONTENIDO PRINCIPAL -->
@@ -190,7 +190,7 @@
             <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
                 <h2 id="titulo-vista" class="text-2xl font-black text-slate-100">Control de Barra</h2>
                 <div class="flex items-center gap-4 flex-wrap">
-                    <button id="btn-agregar-barra" onclick="agregarClienteExtraBarra()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center gap-2"><i class="fa-solid fa-user-plus"></i> Cliente Extra</button>
+                    <button id="btn-agregar-barra" onclick="window.agregarClienteExtraBarra()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center gap-2"><i class="fa-solid fa-user-plus"></i> Cliente Extra</button>
                     <div class="flex gap-4 text-xs font-bold text-slate-400 bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 shrink-0">
                         <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Libre</span>
                         <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Ocupada</span>
@@ -209,11 +209,11 @@
                     <button onclick="window.toggleAdminSidebar(false)" class="text-slate-400 hover:text-white md:hidden text-lg"><i class="fa-solid fa-xmark"></i></button>
                 </div>
                 <div class="flex-1 overflow-y-auto py-4 space-y-1">
-                    <button onclick="cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</button>
-                    <button onclick="cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-cash-register w-5"></i> Cierres de Caja</button>
-                    <button onclick="cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-burger w-5"></i> Menú e Inventario</button>
-                    <button onclick="cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-tags w-5"></i> Categorías</button>
-                    <button onclick="cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
+                    <button onclick="window.cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</button>
+                    <button onclick="window.cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-cash-register w-5"></i> Cierres de Caja</button>
+                    <button onclick="window.cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-burger w-5"></i> Menú e Inventario</button>
+                    <button onclick="window.cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-tags w-5"></i> Categorías</button>
+                    <button onclick="window.cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
                 </div>
             </aside>
 
@@ -238,7 +238,7 @@
                 </div>
                 <div class="flex items-center gap-1">
                     <button onclick="window.liberarMesa()" id="btn-liberar-mesa" class="text-rose-400 hover:text-white hover:bg-rose-900 p-2 rounded-lg text-sm transition mr-1" title="Liberar espacio sin cobrar"><i class="fa-solid fa-broom"></i></button>
-                    <button onclick="cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                    <button onclick="window.cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl shrink-0"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
             <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-900/50">
@@ -250,7 +250,7 @@
                     <span id="panel-total" class="text-emerald-400">₡0</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="abrirModalAgregar()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cart-plus"></i> Menú</button>
+                    <button onclick="window.abrirModalAgregar()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cart-plus"></i> Menú</button>
                     <button onclick="window.iniciarCobro()" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg"><i class="fa-solid fa-cash-register"></i> Cobrar</button>
                 </div>
             </div>
@@ -260,7 +260,8 @@
     <!-- SCRIPT FIREBASE Y LÓGICA -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // SE AGREGÓ GETDOC PARA LEER EL ESTADO EN TIEMPO REAL AL INICIAR SESIÓN
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -359,8 +360,10 @@
 
         onSnapshot(doc(db, "config", "cajaActual"), (docSnap) => {
             if(docSnap.exists()) {
-                const data = docSnap.data(); montoCajaInicial = data.fondoInicial || 0; ventasTotalesTurno = data.ventasTurno || 0;
-                cajaAbierta = data.estado === 'abierta' || (!data.fechaCierre && data.fechaApertura);
+                const data = docSnap.data(); 
+                montoCajaInicial = data.fondoInicial || 0; 
+                ventasTotalesTurno = data.ventasTurno || 0;
+                cajaAbierta = data.estado === 'abierta';
                 document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
                 if(vistaActual === 'admin' && adminSubVista === 'caja') renderizarModuloAdmin();
             } else { cajaAbierta = false; }
@@ -372,29 +375,82 @@
             if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarDashboard();
         });
 
+        // ==========================================
+        //  MODIFICACIÓN: LÓGICA DE INGRESO SEGURA
+        // ==========================================
         window.seleccionarRol = async function(rol) {
-            rolUsuario = rol; document.getElementById('modal-login').classList.add('hidden');
-            const btnAdminTab = document.getElementById('btn-tab-admin');
-
             if(rol === 'admin') {
                 const pin = await window.customPrompt("Ingrese PIN Administrador:", "", "password");
-                if(pin !== pinAdmin) { window.customAlert("PIN incorrecto"); return window.location.reload(); }
+                // Si el pin falla, detenemos el código aquí, el modal de Login queda intacto y evitamos recargar la página
+                if(pin !== pinAdmin) { window.customAlert("PIN incorrecto"); return; }
+                
+                // Si el pin es correcto, avanzamos
+                rolUsuario = rol; 
+                document.getElementById('modal-login').classList.add('hidden');
+                
+                const btnAdminTab = document.getElementById('btn-tab-admin');
                 if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
                 
-                if (cajaAbierta) { window.cambiarVista('admin'); } else { document.getElementById('modal-caja').classList.remove('hidden'); }
+                // Leemos directamente de la base de datos para garantizar el 100% que sabemos si está abierta o no
+                try {
+                    const cajaSnap = await getDoc(doc(db, "config", "cajaActual"));
+                    if(cajaSnap.exists()) {
+                        cajaAbierta = cajaSnap.data().estado === 'abierta';
+                    }
+                } catch(e) { console.error("Error validando caja:", e); }
+
+                // Verificamos y dirigimos
+                if (cajaAbierta) { 
+                    window.cambiarVista('admin'); 
+                } else { 
+                    document.getElementById('modal-caja').classList.remove('hidden'); 
+                }
             } else {
+                rolUsuario = rol; 
+                document.getElementById('modal-login').classList.add('hidden');
+                const btnAdminTab = document.getElementById('btn-tab-admin');
                 if(btnAdminTab) btnAdminTab.style.display = 'none';
                 document.getElementById('info-caja-header').classList.add('hidden');
                 window.cambiarVista('barra'); 
             }
         };
 
-        window.abrirCaja = async function() {
-            const val = document.getElementById('input-monto-caja').value; if(!val) return;
-            montoCajaInicial = parseFloat(val);
-            await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: montoCajaInicial, ventasTurno: 0, fechaApertura: new Date().toISOString(), estado: 'abierta' });
-            document.getElementById('modal-caja').classList.add('hidden'); window.cambiarVista('barra');
+        // ==========================================
+        //  MODIFICACIÓN: APERTURA DE CAJA SEGURA
+        // ==========================================
+        window.abrirCaja = async function(e) {
+            const val = document.getElementById('input-monto-caja').value; 
+            if(!val) return;
+            
+            // Atrapamos el botón para ponerlo en modo carga y evitar clics dobles
+            const btn = e ? e.currentTarget : event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Abriendo...`;
+            btn.disabled = true;
+
+            try {
+                montoCajaInicial = parseFloat(val);
+                // Usamos await para asegurarnos que termine de guardar en Firebase
+                await setDoc(doc(db, "config", "cajaActual"), { 
+                    fondoInicial: montoCajaInicial, 
+                    ventasTurno: 0, 
+                    fechaApertura: new Date().toISOString(), 
+                    estado: 'abierta' 
+                });
+                
+                cajaAbierta = true;
+                document.getElementById('modal-caja').classList.add('hidden'); 
+                
+                // Lo llevamos a su área de Admin directo
+                window.cambiarVista('admin');
+            } catch(error) {
+                console.error("Error abriendo turno:", error);
+                window.customAlert("Error conectando al servidor para abrir el turno.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         };
 
         window.cambiarVista = function(tipo) {
@@ -615,9 +671,6 @@
             }, 0);
         }
 
-        // ==========================================
-        //  MODIFICACIÓN: GUARDADO DE PRODUCTO BLINDADO
-        // ==========================================
         window.abrirModalProductoAdmin = function() {
             document.getElementById('add-prod-nombre').value = '';
             document.getElementById('add-prod-precio').value = '';
@@ -665,55 +718,29 @@
 
             if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
             
-            // Atrapamos el botón por su ID de manera segura
             const btn = document.getElementById('btn-guardar-prod'); 
             const originalText = btn.innerHTML; 
-            
-            // Bloqueamos el botón inmediatamente
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`; 
             btn.disabled = true;
 
-            // Función interna que sube todo a Firebase y asegura restaurar el botón al final
             const subirAFirebase = async (imgBase64) => {
                 try {
-                    await addDoc(collection(db, "productos"), { 
-                        categoria: cat, 
-                        nombre: nom, 
-                        precio: pre, 
-                        ventas: 0, 
-                        stock: stk, 
-                        imagen: imgBase64 
-                    });
-                    window.cerrarModalProductoAdmin(); 
-                    window.customAlert('Producto guardado con éxito.');
-                } catch(e) { 
-                    console.error(e); 
-                    window.customAlert('Error al guardar el producto.'); 
-                } finally { 
-                    // El botón solo se restaura CUANDO el proceso termina
-                    btn.innerHTML = originalText; 
-                    btn.disabled = false; 
-                }
+                    await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: imgBase64 });
+                    window.cerrarModalProductoAdmin(); window.customAlert('Producto guardado con éxito.');
+                } catch(e) { console.error(e); window.customAlert('Error al guardar el producto.'); 
+                } finally { btn.innerHTML = originalText; btn.disabled = false; }
             };
 
-            // Ejecutamos la lectura del archivo o el guardado directo
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) { 
-                    subirAFirebase(e.target.result); 
-                };
-                reader.onerror = function() { 
-                    window.customAlert('Error al leer la imagen.'); 
-                    btn.innerHTML = originalText; 
-                    btn.disabled = false; 
-                };
+                reader.onload = function(e) { subirAFirebase(e.target.result); };
+                reader.onerror = function() { window.customAlert('Error al leer la imagen.'); btn.innerHTML = originalText; btn.disabled = false; };
                 reader.readAsDataURL(file);
             } else {
                 subirAFirebase("");
             }
         };
 
-        // FUNCIONES DE CONTROL DE STOCK
         window.adminAjustarStock = async function(id, nombre, operacion) {
             const titulo = operacion === 'sumar' ? `Sumar stock a ${nombre} (Ej. Ingreso):` : `Restar stock a ${nombre} (Ej. Merma/Daño):`;
             const val = await window.customPrompt(titulo, "1", "number");
@@ -728,9 +755,7 @@
             if(val !== null) { 
                 const strLimpio = val.trim();
                 const nuevoStock = strLimpio === '' ? null : parseInt(strLimpio);
-                if(strLimpio === '' || !isNaN(nuevoStock)) {
-                    await updateDoc(doc(db, "productos", id), { stock: nuevoStock });
-                }
+                if(strLimpio === '' || !isNaN(nuevoStock)) { await updateDoc(doc(db, "productos", id), { stock: nuevoStock }); }
             }
         };
 
