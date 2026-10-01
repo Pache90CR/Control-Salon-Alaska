@@ -970,7 +970,7 @@
             await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: monto, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre });
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             window.cerrarPanel();
-            window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago}). El stock ha sido actualizado.`);
+            window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago})`);
         };
     </script>
 </body>
