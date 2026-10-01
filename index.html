@@ -78,7 +78,7 @@
                 <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-slate-900/50"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
                 <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
-            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Conectado a Firebase 🟢</p>
+            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Carga instantánea activa ⚡</p>
         </div>
     </div>
 
@@ -256,10 +256,10 @@
         </aside>
     </main>
 
-    <!-- SCRIPT FIREBASE EN TIEMPO REAL CON RESPALDO LOCAL -->
+    <!-- SCRIPT DE CARGA INSTANTÁNEA Y TIEMPO REAL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -287,13 +287,21 @@
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
-        let ventasHistorialData = [];
+        let ventasHistorialData = JSON.parse(localStorage.getItem('alaska_ventas_historial')) || [];
         let chartInstancia = null;
 
-        let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
+        // CARGA LOCAL INICIAL PARA CERO LAG (SE ACTUALIZA CON FIREBASE EN SEGUNDO PLANO)
+        let datosRestaurante = {
+            barra: JSON.parse(localStorage.getItem('alaska_cache_barra')) || [],
+            mesas: JSON.parse(localStorage.getItem('alaska_cache_mesas')) || [],
+            vip: JSON.parse(localStorage.getItem('alaska_cache_vip')) || [],
+            productos: JSON.parse(localStorage.getItem('alaska_cache_productos')) || [],
+            categorias: JSON.parse(localStorage.getItem('alaska_cache_categorias')) || []
+        };
+
         let estadoAcordeones = {};
 
-        // ESCUCHAS EN TIEMPO REAL DE FIREBASE (Para traer TODO tu menú, categorías y mesas automáticamente)
+        // SINCRONIZACIÓN EN TIEMPO REAL Y CACHÉ LOCAL
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
@@ -302,6 +310,10 @@
                 else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
             });
+            localStorage.setItem('alaska_cache_barra', JSON.stringify(datosRestaurante.barra));
+            localStorage.setItem('alaska_cache_mesas', JSON.stringify(datosRestaurante.mesas));
+            localStorage.setItem('alaska_cache_vip', JSON.stringify(datosRestaurante.vip));
+            
             if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
             if(vistaActual === 'admin' && adminSubVista === 'espacios') renderizarModuloAdmin();
         });
@@ -309,18 +321,21 @@
         onSnapshot(collection(db, "productos"), (snapshot) => {
             datosRestaurante.productos = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.productos.push(data); });
+            localStorage.setItem('alaska_cache_productos', JSON.stringify(datosRestaurante.productos));
             if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
         });
 
         onSnapshot(collection(db, "categorias"), (snapshot) => {
             datosRestaurante.categorias = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
+            localStorage.setItem('alaska_cache_categorias', JSON.stringify(datosRestaurante.categorias));
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
         onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
             ventasHistorialData = [];
             snapshot.forEach((doc) => ventasHistorialData.push(doc.data()));
+            localStorage.setItem('alaska_ventas_historial', JSON.stringify(ventasHistorialData));
             if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarDashboard();
         });
 
