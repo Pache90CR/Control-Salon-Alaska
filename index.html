@@ -25,13 +25,26 @@
         </div>
     </div>
 
+    <!-- PROMPT PARA TEXTO (NOMBRES DE CLIENTES) - SIN AUTOCOMPLETADO -->
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <input type="text" id="prompt-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
+            <input type="text" id="prompt-input" autocomplete="off" spellcheck="false" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
             <div class="flex gap-3">
                 <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
                 <button onclick="window.aceptarPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROMPT EXCLUSIVO PARA PIN DE ADMIN -->
+    <div id="modal-pin-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+            <p id="pin-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
+            <input type="password" id="pin-input" autocomplete="new-password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
+            <div class="flex gap-3">
+                <button onclick="window.cancelarPinPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
+                <button onclick="window.aceptarPinPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
             </div>
         </div>
     </div>
@@ -178,12 +191,10 @@
 
         <!-- SECCIÓN ADMIN -->
         <section class="flex-1 hidden w-full bg-slate-950 relative flex-col md:flex-row overflow-hidden" id="area-admin">
-            
             <div class="md:hidden bg-slate-900 border-b border-slate-800 p-3 flex items-center gap-3 shadow-md z-20 w-full shrink-0">
                 <button onclick="window.toggleAdminSidebar(true)" class="text-slate-300 hover:text-white px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl transition"><i class="fa-solid fa-bars text-lg"></i></button>
                 <span class="font-black text-amber-500 tracking-wide" id="admin-mobile-title">Dashboard</span>
             </div>
-
             <aside id="admin-sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl">
                 <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
                     <h3 class="font-black text-amber-500 uppercase text-sm"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Panel Admin</h3>
@@ -197,20 +208,22 @@
                     <button onclick="window.cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
                 </div>
             </aside>
-            
             <div id="admin-sidebar-overlay" onclick="window.toggleAdminSidebar(false)" class="absolute inset-0 bg-slate-950/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
-            
             <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
         </section>
 
-        <!-- PANEL LATERAL DE CUENTA -->
+        <!-- PANEL LATERAL DE CUENTA CON ESCOBITA AÑADIDA -->
         <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-30 hidden transition-all">
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div class="w-full overflow-hidden pr-4">
                     <h3 id="panel-cliente" class="text-xl font-black text-amber-400 truncate">Nombre Cliente</h3>
                     <p id="panel-titulo" class="text-xs text-slate-400 font-medium bg-slate-800 inline-block px-2 py-1 rounded-md mt-1">Ubicación</p>
                 </div>
-                <button onclick="window.cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl"><i class="fa-solid fa-xmark"></i></button>
+                <div class="flex items-center gap-1">
+                    <!-- BOTÓN ESCOBITA -->
+                    <button onclick="window.liberarEspacio()" class="text-rose-500 hover:text-rose-400 p-2 text-xl transition" title="Liberar espacio sin cobrar"><i class="fa-solid fa-broom"></i></button>
+                    <button onclick="window.cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl transition"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
             <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-900/50">
                 <div id="lista-items-cuenta" class="space-y-2"></div>
@@ -288,15 +301,15 @@
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
-        // MODALES Y ROL
+        // MODALES
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
 
-        window.customPrompt = function(msg, defaultVal = '', inputType = 'text') {
+        // PROMPT PARA TEXTO (NOMBRES)
+        window.customPrompt = function(msg, defaultVal = '') {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
                 const input = document.getElementById('prompt-input'); 
-                input.type = inputType === 'password' ? 'password' : 'text';
                 input.value = defaultVal;
                 document.getElementById('modal-custom-prompt').classList.remove('hidden'); 
                 setTimeout(() => input.focus(), 100);
@@ -305,9 +318,22 @@
             });
         };
 
+        // PROMPT EXCLUSIVO PARA PIN (CONTRASEÑA)
+        window.customPromptPin = function(msg) {
+            return new Promise((resolve) => {
+                document.getElementById('pin-msg').innerText = msg;
+                const input = document.getElementById('pin-input'); 
+                input.value = '';
+                document.getElementById('modal-pin-prompt').classList.remove('hidden'); 
+                setTimeout(() => input.focus(), 100);
+                window.aceptarPinPrompt = () => { document.getElementById('modal-pin-prompt').classList.add('hidden'); resolve(input.value.trim()); };
+                window.cancelarPinPrompt = () => { document.getElementById('modal-pin-prompt').classList.add('hidden'); resolve(null); };
+            });
+        };
+
         window.seleccionarRol = async function(rol) {
             if(rol === 'admin') {
-                const pin = await window.customPrompt("Ingrese PIN Administrador:", "", "password");
+                const pin = await window.customPromptPin("Ingrese PIN Administrador:");
                 if(pin !== pinAdmin) return window.customAlert("PIN incorrecto");
                 rolUsuario = rol; 
                 document.getElementById('modal-login').classList.add('hidden');
@@ -338,7 +364,6 @@
             const tabsOperacion = document.getElementById('tabs-operacion');
             const btnVolver = document.getElementById('btn-volver-operacion');
             
-            // Lógica corregida para cambiar color de pestañas activas
             const vistas = ['barra', 'mesas', 'vip', 'admin'];
             vistas.forEach(v => {
                 const btn = document.getElementById(`btn-tab-${v}`);
@@ -355,8 +380,6 @@
                 document.getElementById('area-operacion').classList.add('hidden');
                 document.getElementById('area-admin').classList.remove('hidden'); 
                 document.getElementById('area-admin').classList.add('flex');
-                
-                // Actualiza título de zona y muestra dashboard
                 document.getElementById('titulo-vista').innerText = "Panel Administrador";
                 cambiarSubVistaAdmin(adminSubVista); 
             } else {
@@ -364,11 +387,8 @@
                 document.getElementById('area-operacion').classList.remove('hidden');
                 document.getElementById('area-admin').classList.add('hidden'); 
                 document.getElementById('area-admin').classList.remove('flex');
-                
-                // Actualiza título de la zona actual
                 const titulos = { 'barra': 'Control de Barra', 'mesas': 'Control de Mesas', 'vip': 'Zona VIP' };
                 document.getElementById('titulo-vista').innerText = titulos[tipo];
-                
                 renderizarGridOperacion();
             }
             window.cerrarPanel();
@@ -420,7 +440,6 @@
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
             
-            // REDISEÑO DEL DASHBOARD
             if(adminSubVista === 'dashboard') {
                 const totalEspacios = datosRestaurante.barra.length + datosRestaurante.mesas.length + datosRestaurante.vip.length;
                 const espaciosOcupados = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].filter(e => e.estado === 'ocupada').length;
@@ -448,16 +467,11 @@
                     </div>
                 </div>`;
             } 
-            
-            // REDISEÑO CIERRE DE CAJA + FÍSICO
             else if(adminSubVista === 'caja') {
                 const totalEsperado = montoCajaInicial + ventasTotalesTurno;
-                
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-20">
                     <h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Cierre de Caja</h2>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Panel de Sistema -->
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-center">
                             <h3 class="text-amber-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-calculator mr-2"></i> Balance del Sistema</h3>
                             <div class="space-y-3 mb-6">
@@ -469,22 +483,16 @@
                                 <span class="text-2xl font-black text-amber-400">₡${totalEsperado.toLocaleString()}</span>
                             </div>
                         </div>
-                        
-                        <!-- Panel Físico -->
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
                             <h3 class="text-emerald-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-money-bill-wave mr-2"></i> Conteo Físico</h3>
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ingresa el dinero en caja (₡)</label>
-                            
                             <input type="number" id="input-dinero-fisico" onkeyup="window.calcularDiferenciaCaja(${totalEsperado})" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-4 text-2xl font-black text-emerald-400 focus:outline-none focus:border-amber-500 text-center shadow-inner mb-4 transition" placeholder="0">
-                            
                             <div id="resultado-diferencia" class="p-4 rounded-xl text-center font-bold text-lg hidden transition"></div>
-                            
                             <button onclick="window.cerrarTurnoDefinitivo()" class="w-full mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-lock"></i> Terminar y Cerrar Turno</button>
                         </div>
                     </div>
                 </div>`;
             } 
-            
             else if(adminSubVista === 'menu') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100 hidden md:block">Menú e Inventario</h2><button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto"><i class="fa-solid fa-plus"></i> Nuevo Producto</button></div><div class="space-y-4">`; 
                 const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
@@ -501,7 +509,6 @@
                 html += `</div></div>`;
                 cont.innerHTML = html;
             } 
-            
             else if(adminSubVista === 'categorias') {
                 let catHtml = `<div class="max-w-4xl mx-auto w-full pb-10"><div class="flex flex-col sm:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100 hidden md:block">Categorías de Menú</h2><div class="flex gap-2 w-full sm:w-auto"><input type="text" id="add-cat-nombre" placeholder="Nueva categoría" class="w-full sm:w-auto bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500"><button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-3 rounded-xl font-bold shadow-md">Crear</button></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
                 const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
@@ -509,8 +516,6 @@
                 catHtml += `</div></div>`;
                 cont.innerHTML = catHtml;
             } 
-            
-            // REDISEÑO Y CONEXIÓN DE ZONAS Y ESPACIOS
             else if(adminSubVista === 'espacios') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20">
                     <div class="flex flex-col sm:flex-row justify-between mb-6 gap-4">
@@ -541,7 +546,6 @@
             }
         }
 
-        // FUNCIONES DE CAJA
         window.calcularDiferenciaCaja = function(esperado) {
             const val = document.getElementById('input-dinero-fisico').value;
             const fisico = val === '' ? 0 : parseFloat(val);
@@ -550,43 +554,25 @@
             
             res.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-400', 'bg-rose-500/20', 'text-rose-400', 'bg-amber-500/20', 'text-amber-400');
             
-            if(dif > 0) {
-                res.classList.add('bg-emerald-500/20', 'text-emerald-400');
-                res.innerHTML = `Sobrante a favor: +₡${dif.toLocaleString()}`;
-            } else if (dif < 0) {
-                res.classList.add('bg-rose-500/20', 'text-rose-400');
-                res.innerHTML = `Faltante de caja: -₡${Math.abs(dif).toLocaleString()}`;
-            } else if (fisico > 0 && dif === 0) {
-                res.classList.add('bg-amber-500/20', 'text-amber-400');
-                res.innerHTML = `¡Caja cuadrada perfectamente!`;
-            } else {
-                res.classList.add('hidden');
-            }
+            if(dif > 0) { res.classList.add('bg-emerald-500/20', 'text-emerald-400'); res.innerHTML = `Sobrante a favor: +₡${dif.toLocaleString()}`; } 
+            else if (dif < 0) { res.classList.add('bg-rose-500/20', 'text-rose-400'); res.innerHTML = `Faltante de caja: -₡${Math.abs(dif).toLocaleString()}`; } 
+            else if (fisico > 0 && dif === 0) { res.classList.add('bg-amber-500/20', 'text-amber-400'); res.innerHTML = `¡Caja cuadrada perfectamente!`; } 
+            else { res.classList.add('hidden'); }
         };
 
         window.cerrarTurnoDefinitivo = async function() {
             if(confirm("¿Estás seguro de que deseas cerrar el turno actual? Las ventas en caja se pondrán en 0 y se cerrará la sesión.")) {
-                montoCajaInicial = 0;
-                ventasTotalesTurno = 0;
-                cajaAbierta = false;
-                localStorage.removeItem('alaska_caja_fondo');
-                localStorage.removeItem('alaska_caja_ventas');
-                localStorage.setItem('alaska_caja_estado', 'cerrada');
+                montoCajaInicial = 0; ventasTotalesTurno = 0; cajaAbierta = false;
+                localStorage.removeItem('alaska_caja_fondo'); localStorage.removeItem('alaska_caja_ventas'); localStorage.setItem('alaska_caja_estado', 'cerrada');
                 rolUsuario = '';
-                
                 window.customAlert("Turno cerrado exitosamente. Buen trabajo hoy.");
-                
-                document.getElementById('area-admin').classList.add('hidden');
-                document.getElementById('area-operacion').classList.add('hidden');
-                document.getElementById('tabs-operacion').classList.add('hidden');
-                document.getElementById('btn-volver-operacion').classList.add('hidden');
+                document.getElementById('area-admin').classList.add('hidden'); document.getElementById('area-operacion').classList.add('hidden');
+                document.getElementById('tabs-operacion').classList.add('hidden'); document.getElementById('btn-volver-operacion').classList.add('hidden');
                 document.getElementById('btn-tab-admin').style.display = 'none';
-                
                 document.getElementById('modal-login').classList.remove('hidden');
             }
         };
 
-        // FUNCIONES DE ZONAS
         window.adminAgregarEspacio = async function() {
             const zona = document.getElementById('add-espacio-zona').value;
             const nombre = document.getElementById('add-espacio-nombre').value.trim();
@@ -595,22 +581,14 @@
             document.getElementById('add-espacio-nombre').value = '';
         };
 
-        window.adminEliminarEspacio = async function(id) {
-            if(confirm('¿Seguro que desea eliminar este espacio?')) await deleteDoc(doc(db, "espacios", id));
-        };
+        window.adminEliminarEspacio = async function(id) { if(confirm('¿Seguro que desea eliminar este espacio?')) await deleteDoc(doc(db, "espacios", id)); };
 
-        // PRODUCTOS
         window.abrirModalProductoAdmin = function() {
-            document.getElementById('add-prod-nombre').value = '';
-            document.getElementById('add-prod-precio').value = '';
-            document.getElementById('add-prod-stock').value = '';
-            document.getElementById('add-prod-preview-img').classList.add('hidden');
-            document.getElementById('add-prod-preview-text').classList.remove('hidden');
-            
+            document.getElementById('add-prod-nombre').value = ''; document.getElementById('add-prod-precio').value = ''; document.getElementById('add-prod-stock').value = '';
+            document.getElementById('add-prod-preview-img').classList.add('hidden'); document.getElementById('add-prod-preview-text').classList.remove('hidden');
             const select = document.getElementById('add-prod-cat'); select.innerHTML = '';
             const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
             listaCats.forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
-            
             document.getElementById('modal-admin-producto').classList.remove('hidden');
         };
         
@@ -619,22 +597,15 @@
         window.previsualizarImagen = function(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('add-prod-preview-img').src = e.target.result;
-                    document.getElementById('add-prod-preview-img').classList.remove('hidden');
-                    document.getElementById('add-prod-preview-text').classList.add('hidden');
-                };
+                reader.onload = function(e) { document.getElementById('add-prod-preview-img').src = e.target.result; document.getElementById('add-prod-preview-img').classList.remove('hidden'); document.getElementById('add-prod-preview-text').classList.add('hidden'); };
                 reader.readAsDataURL(input.files[0]);
             }
         };
 
         window.guardarProductoAdmin = async function() {
-            const cat = document.getElementById('add-prod-cat').value;
-            const nom = document.getElementById('add-prod-nombre').value.trim();
-            const pre = parseFloat(document.getElementById('add-prod-precio').value);
-            const stk = document.getElementById('add-prod-stock').value.trim() === '' ? null : parseInt(document.getElementById('add-prod-stock').value);
+            const cat = document.getElementById('add-prod-cat').value; const nom = document.getElementById('add-prod-nombre').value.trim();
+            const pre = parseFloat(document.getElementById('add-prod-precio').value); const stk = document.getElementById('add-prod-stock').value.trim() === '' ? null : parseInt(document.getElementById('add-prod-stock').value);
             const img = document.getElementById('add-prod-preview-img').classList.contains('hidden') ? '' : document.getElementById('add-prod-preview-img').src;
-
             if(!nom || isNaN(pre)) return window.customAlert('Indique nombre y precio válido.');
             window.cerrarModalProductoAdmin();
             await addDoc(collection(db, "productos"), { categoria: cat.toUpperCase(), nombre: nom, precio: pre, stock: stk, imagen: img });
@@ -644,19 +615,15 @@
         window.adminAgregarCategoria = async function() {
             const nom = document.getElementById('add-cat-nombre').value.trim().toUpperCase();
             if(!nom) return;
-            await addDoc(collection(db, "categorias"), { nombre: nom });
-            document.getElementById('add-cat-nombre').value = '';
+            await addDoc(collection(db, "categorias"), { nombre: nom }); document.getElementById('add-cat-nombre').value = '';
         };
 
         window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto?')) await deleteDoc(doc(db, "productos", id)); };
 
-        // PEDIDOS
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Cliente: ${elementoSeleccionado.cliente}`;
-            itemsRondaTemporal = [];
-            window.renderizarPestanasModal();
-            document.getElementById('modal-agregar-producto').classList.remove('hidden');
+            itemsRondaTemporal = []; window.renderizarPestanasModal(); document.getElementById('modal-agregar-producto').classList.remove('hidden');
         };
 
         window.cerrarModalProductos = function() { document.getElementById('modal-agregar-producto').classList.add('hidden'); };
@@ -664,20 +631,15 @@
         window.renderizarPestanasModal = function() {
             const cont = document.getElementById('modal-categorias-container');
             cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">TODAS</button>`;
-            
             const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
-            listaCats.forEach(c => {
-                cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c}')" id="cat-${c}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c}</button>`;
-            });
+            listaCats.forEach(c => { cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c}')" id="cat-${c}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c}</button>`; });
             window.cambiarCategoriaModal('todas');
         };
 
         window.cambiarCategoriaModal = function(catId) {
             categoriaActivaModal = catId;
             const botones = document.getElementById('modal-categorias-container').querySelectorAll('button');
-            botones.forEach(btn => {
-                btn.className = (btn.id === `cat-${catId}`) ? "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm uppercase whitespace-nowrap transition" : "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm uppercase whitespace-nowrap hover:bg-slate-700 transition";
-            });
+            botones.forEach(btn => { btn.className = (btn.id === `cat-${catId}`) ? "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm uppercase whitespace-nowrap transition" : "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm uppercase whitespace-nowrap hover:bg-slate-700 transition"; });
             window.renderizarProductosModal();
         };
 
@@ -690,18 +652,12 @@
                 const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
                 return matchTexto && matchCat;
             });
-
             if(filtrados.length === 0) return grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p>No hay productos disponibles.</p></div>`;
-
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
                 btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-3 rounded-2xl flex flex-col justify-between text-center transition shadow-lg h-auto relative overflow-hidden active:scale-95";
                 btn.onclick = () => window.agregarItemTemporal(prod);
-                
-                const imgTag = prod.imagen 
-                    ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md"></div>` 
-                    : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
-                
+                const imgTag = prod.imagen ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md"></div>` : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
                 btn.innerHTML = `${imgTag}<span class="font-bold text-slate-200 text-sm truncate w-full mb-1">${prod.nombre}</span><span class="font-black text-emerald-400 text-base w-full">₡${prod.precio.toLocaleString()}</span>`;
                 grid.appendChild(btn);
             });
@@ -717,34 +673,61 @@
             let suma = 0; elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
             elementoSeleccionado.total = suma;
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: elementoSeleccionado.rondas, total: suma });
-            window.actualizarListaPanel();
-            window.cerrarModalProductos();
+            window.actualizarListaPanel(); window.cerrarModalProductos();
         };
 
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
             if (espacio.estado === 'libre') {
-                const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nCliente:`, "", "text");
+                const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nCliente:`, "");
                 if (!nom) return;
                 await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom });
                 espacio.estado = 'ocupada'; espacio.cliente = nom;
             }
             elementoSeleccionado = espacio;
             document.getElementById('panel-cuenta').classList.remove('hidden'); document.getElementById('panel-cuenta').classList.add('flex');
-            document.getElementById('panel-cliente').innerText = espacio.cliente;
-            document.getElementById('panel-titulo').innerText = espacio.nombre;
-            window.actualizarListaPanel();
-            renderizarGridOperacion();
+            document.getElementById('panel-cliente').innerText = espacio.cliente; document.getElementById('panel-titulo').innerText = espacio.nombre;
+            window.actualizarListaPanel(); renderizarGridOperacion();
+        };
+
+        // FUNCIÓN NUEVA: LIBERAR ESPACIO SIN COBRAR (ESCOBITA)
+        window.liberarEspacio = async function() {
+            if(confirm('¿Deseas liberar este espacio sin procesar cobro? (Se eliminarán todos los registros)')) {
+                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
+                window.cerrarPanel();
+            }
+        };
+
+        // FUNCIÓN NUEVA: ELIMINAR UNA RONDA ESPECÍFICA
+        window.eliminarRonda = async function(index) {
+            if(confirm('¿Eliminar esta ronda?')) {
+                elementoSeleccionado.rondas.splice(index, 1);
+                let suma = 0;
+                elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
+                elementoSeleccionado.total = suma;
+                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: elementoSeleccionado.rondas, total: suma });
+                window.actualizarListaPanel(); renderizarGridOperacion();
+            }
         };
 
         window.actualizarListaPanel = function() {
             const cont = document.getElementById('lista-items-cuenta'); cont.innerHTML = '';
             if (!elementoSeleccionado.rondas || elementoSeleccionado.rondas.length === 0) { cont.innerHTML = `<p class="text-slate-500 text-sm text-center italic mt-10">Sin productos agregados</p>`; document.getElementById('panel-total').innerText = `₡0`; return; }
+            
             elementoSeleccionado.rondas.forEach((ronda, rIndex) => {
                 let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0);
                 let itemsHtml = '';
-                ronda.items.forEach(i => { itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800"><span class="font-bold text-slate-200">${i.nombre}</span><span class="text-amber-400">₡${i.precio.toLocaleString()}</span></div>`; });
-                cont.innerHTML += `<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3"><div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800"><span class="text-xs font-bold text-slate-400">Ronda #${rIndex + 1}</span></div>${itemsHtml}<div class="flex justify-between items-center pt-2 font-black text-emerald-400 text-sm"><span>Subtotal:</span><span>₡${subtotalRonda.toLocaleString()}</span></div></div>`;
+                ronda.items.forEach(i => { itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800/50"><span class="font-bold text-slate-200">${i.nombre}</span><span class="text-amber-400">₡${i.precio.toLocaleString()}</span></div>`; });
+                
+                // Botón de eliminar ronda añadido en la cabecera de cada ronda
+                cont.innerHTML += `<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3">
+                    <div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800">
+                        <span class="text-xs font-bold text-slate-400">Ronda #${rIndex + 1}</span>
+                        <button onclick="window.eliminarRonda(${rIndex})" class="text-rose-500 text-xs font-bold hover:text-rose-400 transition flex items-center gap-1"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                    </div>
+                    ${itemsHtml}
+                    <div class="flex justify-between items-center pt-2 font-black text-emerald-400 text-sm"><span>Subtotal:</span><span>₡${subtotalRonda.toLocaleString()}</span></div>
+                </div>`;
             });
             document.getElementById('panel-total').innerText = `₡${(elementoSeleccionado.total || 0).toLocaleString()}`;
         };
