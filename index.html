@@ -145,7 +145,6 @@
                     </div>
                     <div class="w-1/2">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Stock Inicial</label>
-                        <!-- MODIFICADO: Placeholder indica que es opcional -->
                         <input type="number" id="add-prod-stock" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 placeholder:text-slate-600" placeholder="Opcional">
                     </div>
                 </div>
@@ -160,7 +159,8 @@
                         <img id="add-prod-preview-img" src="" class="hidden w-full h-full object-contain pointer-events-none absolute inset-0 p-2">
                     </div>
                 </div>
-                <button onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg mt-2 text-lg">Guardar Producto</button>
+                <!-- SE AGREGÓ UN ID PARA CONTROLARLO CORRECTAMENTE -->
+                <button id="btn-guardar-prod" onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg mt-2 text-lg">Guardar Producto</button>
             </div>
         </div>
     </div>
@@ -292,8 +292,6 @@
         let chartInstancia = null;
 
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
-        
-        // Memoria para evitar el LAG de pestañas y saltos
         let estadoAcordeones = {}; 
 
         // UTILIDADES Y MODALES
@@ -546,7 +544,6 @@
                     cat.items.forEach(p => {
                         const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-700"><i class="fa-solid fa-image"></i></div>`;
                         
-                        // MODIFICADO: Verificación de si el producto usa stock
                         let controlStockHtml = '';
                         if(p.stock !== null && p.stock !== undefined) {
                             const stockActual = p.stock;
@@ -578,7 +575,6 @@
                                 </div>
                                 <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
                                     ${controlStockHtml}
-                                    <!-- Precio y Edición -->
                                     <span class="font-black text-emerald-400 text-base w-20 text-right shrink-0">₡${p.precio.toLocaleString()}</span>
                                     <div class="flex gap-2 shrink-0">
                                         <button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-9 h-9 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition" title="Editar Precio"><i class="fa-solid fa-pen text-sm"></i></button>
@@ -619,18 +615,24 @@
             }, 0);
         }
 
-        // CONTROL CRUD INVENTARIO Y PRODUCTOS
+        // ==========================================
+        //  MODIFICACIÓN: GUARDADO DE PRODUCTO BLINDADO
+        // ==========================================
         window.abrirModalProductoAdmin = function() {
             document.getElementById('add-prod-nombre').value = '';
             document.getElementById('add-prod-precio').value = '';
             document.getElementById('add-prod-stock').value = '';
             document.getElementById('add-prod-file').value = '';
-            document.getElementById('add-prod-preview-img').src = ''; document.getElementById('add-prod-preview-img').classList.add('hidden');
+            document.getElementById('add-prod-preview-img').src = ''; 
+            document.getElementById('add-prod-preview-img').classList.add('hidden');
             document.getElementById('add-prod-preview-text').classList.remove('hidden');
             window.actualizarSelectCategoriasModal();
             document.getElementById('modal-admin-producto').classList.remove('hidden');
         };
-        window.cerrarModalProductoAdmin = function() { document.getElementById('modal-admin-producto').classList.add('hidden'); };
+        
+        window.cerrarModalProductoAdmin = function() { 
+            document.getElementById('modal-admin-producto').classList.add('hidden'); 
+        };
 
         window.actualizarSelectCategoriasModal = function() {
             const select = document.getElementById('add-prod-cat'); if(!select) return; select.innerHTML = '';
@@ -641,7 +643,11 @@
         window.previsualizarImagen = function(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) { document.getElementById('add-prod-preview-img').src = e.target.result; document.getElementById('add-prod-preview-img').classList.remove('hidden'); document.getElementById('add-prod-preview-text').classList.add('hidden'); };
+                reader.onload = function(e) { 
+                    document.getElementById('add-prod-preview-img').src = e.target.result; 
+                    document.getElementById('add-prod-preview-img').classList.remove('hidden'); 
+                    document.getElementById('add-prod-preview-text').classList.add('hidden'); 
+                };
                 reader.readAsDataURL(input.files[0]);
             }
         };
@@ -651,25 +657,60 @@
             const nom = document.getElementById('add-prod-nombre').value;
             const pre = parseFloat(document.getElementById('add-prod-precio').value); 
             
-            // MODIFICADO: Lógica para stock Opcional
             const stkStr = document.getElementById('add-prod-stock').value;
             const stk = stkStr.trim() === '' ? null : parseInt(stkStr);
 
-            const fileInput = document.getElementById('add-prod-file'); const file = fileInput.files[0];
+            const fileInput = document.getElementById('add-prod-file'); 
+            const file = fileInput.files[0];
 
             if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
-            const btn = event.target; const originalText = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`; btn.disabled = true;
+            
+            // Atrapamos el botón por su ID de manera segura
+            const btn = document.getElementById('btn-guardar-prod'); 
+            const originalText = btn.innerHTML; 
+            
+            // Bloqueamos el botón inmediatamente
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`; 
+            btn.disabled = true;
 
-            try {
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = async function(e) { await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: e.target.result }); window.cerrarModalProductoAdmin(); window.customAlert('Producto guardado.'); };
-                    reader.readAsDataURL(file);
-                } else {
-                    await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: "" });
-                    window.cerrarModalProductoAdmin(); window.customAlert('Producto guardado.');
+            // Función interna que sube todo a Firebase y asegura restaurar el botón al final
+            const subirAFirebase = async (imgBase64) => {
+                try {
+                    await addDoc(collection(db, "productos"), { 
+                        categoria: cat, 
+                        nombre: nom, 
+                        precio: pre, 
+                        ventas: 0, 
+                        stock: stk, 
+                        imagen: imgBase64 
+                    });
+                    window.cerrarModalProductoAdmin(); 
+                    window.customAlert('Producto guardado con éxito.');
+                } catch(e) { 
+                    console.error(e); 
+                    window.customAlert('Error al guardar el producto.'); 
+                } finally { 
+                    // El botón solo se restaura CUANDO el proceso termina
+                    btn.innerHTML = originalText; 
+                    btn.disabled = false; 
                 }
-            } catch(e) { console.error(e); window.customAlert('Error al guardar.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+            };
+
+            // Ejecutamos la lectura del archivo o el guardado directo
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) { 
+                    subirAFirebase(e.target.result); 
+                };
+                reader.onerror = function() { 
+                    window.customAlert('Error al leer la imagen.'); 
+                    btn.innerHTML = originalText; 
+                    btn.disabled = false; 
+                };
+                reader.readAsDataURL(file);
+            } else {
+                subirAFirebase("");
+            }
         };
 
         // FUNCIONES DE CONTROL DE STOCK
@@ -682,7 +723,6 @@
             }
         };
 
-        // MODIFICADO: Permite borrar el contenido para dejar el producto sin control de stock
         window.adminSetStockFijo = async function(id, nombre, stockActual) {
             const val = await window.customPrompt(`Stock para ${nombre}\n(Deje vacío para quitar el control de inventario):`, stockActual !== null ? stockActual : "", "text");
             if(val !== null) { 
@@ -764,7 +804,6 @@
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
                 if (prod) {
                     let updates = { ventas: increment(cantidad) };
-                    // MODIFICADO: Solo descontar si el producto sí usa control de stock
                     if(prod.stock !== null && prod.stock !== undefined) {
                         updates.stock = increment(-cantidad);
                     }
