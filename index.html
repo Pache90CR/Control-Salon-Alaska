@@ -75,10 +75,10 @@
             <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
             <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
             <div class="space-y-4">
-                <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
-                <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
+                <button id="btn-login-salonera" onclick="window.seleccionarRol('salonera')" disabled class="w-full bg-slate-800 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
+                <button id="btn-login-admin" onclick="window.seleccionarRol('admin')" disabled class="w-full bg-amber-600 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
-            <p id="firebase-status" class="mt-6 text-xs text-slate-500 animate-pulse">Conectando a la nube...</p>
+            <p id="firebase-status" class="mt-6 text-xs text-slate-500 animate-pulse">Sincronizando con la nube...</p>
         </div>
     </div>
 
@@ -293,6 +293,30 @@
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
         let estadoAcordeones = {}; 
 
+        // ESTADO DE CARGA PARA PREVENIR ERRORES
+        let datosCargados = { espacios: false, productos: false, categorias: false, config: false };
+        function verificarCargaCompleta() {
+            if(datosCargados.espacios && datosCargados.productos && datosCargados.categorias && datosCargados.config) {
+                const btnSalonera = document.getElementById('btn-login-salonera');
+                const btnAdmin = document.getElementById('btn-login-admin');
+                const statusEl = document.getElementById('firebase-status');
+                
+                if(btnSalonera && btnSalonera.disabled) {
+                    btnSalonera.disabled = false;
+                    btnSalonera.className = "w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3";
+                    
+                    btnAdmin.disabled = false;
+                    btnAdmin.className = "w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3";
+                    
+                    if(statusEl) {
+                        statusEl.innerText = "Sincronizado y listo ✅";
+                        statusEl.classList.remove('animate-pulse');
+                        statusEl.classList.add('text-emerald-500');
+                    }
+                }
+            }
+        }
+
         // UTILIDADES Y MODALES
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
@@ -336,6 +360,7 @@
                 else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
             });
+            datosCargados.espacios = true; verificarCargaCompleta();
             if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
             if(vistaActual === 'admin' && adminSubVista === 'espacios') renderizarModuloAdmin();
         }, (error) => { console.error("Error en espacios:", error); });
@@ -343,12 +368,14 @@
         onSnapshot(collection(db, "productos"), (snapshot) => {
             datosRestaurante.productos = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.productos.push(data); });
+            datosCargados.productos = true; verificarCargaCompleta();
             if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
         }, (error) => { console.error("Error en productos:", error); });
 
         onSnapshot(collection(db, "categorias"), (snapshot) => {
             datosRestaurante.categorias = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
+            datosCargados.categorias = true; verificarCargaCompleta();
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) {
                 renderizarModuloAdmin(); 
             }
@@ -364,14 +391,7 @@
                 document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
                 if(vistaActual === 'admin' && adminSubVista === 'caja') renderizarModuloAdmin();
             } else { cajaAbierta = false; }
-            
-            // CONEXIÓN EXITOSA CONFIRMADA
-            const statusEl = document.getElementById('firebase-status');
-            if(statusEl) {
-                statusEl.innerText = "Conectado a bar-alaska ✅";
-                statusEl.classList.remove('animate-pulse');
-                statusEl.classList.add('text-emerald-500');
-            }
+            datosCargados.config = true; verificarCargaCompleta();
         }, (error) => { 
             console.error("Error en cajaActual:", error);
             const statusEl = document.getElementById('firebase-status');
@@ -395,13 +415,6 @@
                 const btnAdminTab = document.getElementById('btn-tab-admin');
                 if(btnAdminTab) btnAdminTab.style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
-                
-                try {
-                    const cajaSnap = await getDoc(doc(db, "config", "cajaActual"));
-                    if(cajaSnap.exists()) {
-                        cajaAbierta = cajaSnap.data().estado === 'abierta';
-                    }
-                } catch(e) { console.error("Error validando caja:", e); }
 
                 if (cajaAbierta) { 
                     window.cambiarVista('admin'); 
@@ -429,19 +442,27 @@
 
             try {
                 montoCajaInicial = parseFloat(val);
-                await setDoc(doc(db, "config", "cajaActual"), { 
+                
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000));
+                const guardarCajaPromise = setDoc(doc(db, "config", "cajaActual"), { 
                     fondoInicial: montoCajaInicial, 
                     ventasTurno: 0, 
                     fechaApertura: new Date().toISOString(), 
                     estado: 'abierta' 
                 });
+
+                await Promise.race([guardarCajaPromise, timeoutPromise]);
                 
                 cajaAbierta = true;
                 document.getElementById('modal-caja').classList.add('hidden'); 
                 window.cambiarVista('admin');
             } catch(error) {
                 console.error("Error abriendo turno:", error);
-                window.customAlert("Error conectando al servidor para abrir el turno.");
+                if(error.message === 'Timeout') {
+                    window.customAlert("La conexión tardó demasiado. Por favor verifica tu internet e intenta nuevamente.");
+                } else {
+                    window.customAlert("Error conectando al servidor para abrir el turno.");
+                }
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
