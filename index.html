@@ -37,7 +37,7 @@
         </div>
     </div>
 
-    <!-- PROMPT EXCLUSIVO PARA PIN DE ADMIN (MODIFICADO PARA EVITAR CHROME PASSWORDS) -->
+    <!-- PROMPT EXCLUSIVO PARA PIN DE ADMIN -->
     <div id="modal-pin-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="pin-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
@@ -92,7 +92,7 @@
         </div>
     </div>
 
-    <!-- MODAL SELECCIÓN DE VARIANTES (TAMAÑOS) EN EL SALÓN -->
+    <!-- MODAL SELECCIÓN DE VARIANTES EN EL SALÓN -->
     <div id="modal-seleccion-variantes" class="fixed inset-0 bg-slate-950/90 z-[45] flex items-end sm:items-center justify-center p-4 hidden backdrop-blur-sm transition-all">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden pb-6 sm:pb-0">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- MODAL SELECCIÓN DE PRODUCTOS CON IMÁGENES -->
+    <!-- MODAL SELECCIÓN DE PRODUCTOS -->
     <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
@@ -238,7 +238,7 @@
             <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
         </section>
 
-        <!-- PANEL LATERAL DE CUENTA CON ESCOBITA AÑADIDA -->
+        <!-- PANEL LATERAL DE CUENTA CON ESCOBITA -->
         <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-30 hidden transition-all">
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div class="w-full overflow-hidden pr-4">
@@ -246,7 +246,6 @@
                     <p id="panel-titulo" class="text-xs text-slate-400 font-medium bg-slate-800 inline-block px-2 py-1 rounded-md mt-1">Ubicación</p>
                 </div>
                 <div class="flex items-center gap-1">
-                    <!-- BOTÓN ESCOBITA -->
                     <button onclick="window.liberarEspacio()" class="text-rose-500 hover:text-rose-400 p-2 text-xl transition" title="Liberar espacio sin cobrar"><i class="fa-solid fa-broom"></i></button>
                     <button onclick="window.cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl transition"><i class="fa-solid fa-xmark"></i></button>
                 </div>
@@ -298,6 +297,9 @@
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
         let productoVarianteActual = null;
+        
+        // ESTADO DE CATEGORÍAS PLEGABLES
+        let categoriasColapsadas = new Set();
 
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
@@ -460,6 +462,25 @@
             renderizarModuloAdmin();
         };
 
+        // FUNCIÓN NUEVA: COLLAPSE DE CATEGORÍAS
+        window.toggleCategoriaAdmin = function(catNombre) {
+            if(categoriasColapsadas.has(catNombre)) {
+                categoriasColapsadas.delete(catNombre);
+            } else {
+                categoriasColapsadas.add(catNombre);
+            }
+            renderizarModuloAdmin();
+        };
+
+        // FUNCIÓN NUEVA: ACTUALIZAR STOCK (+ / -)
+        window.adminActualizarStock = async function(id, cambio) {
+            const prod = datosRestaurante.productos.find(p => p.id === id);
+            if(!prod || prod.stock === null || prod.stock === undefined) return;
+            let nuevoStock = prod.stock + cambio;
+            if(nuevoStock < 0) nuevoStock = 0;
+            await updateDoc(doc(db, "productos", id), { stock: nuevoStock });
+        };
+
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
             
@@ -518,20 +539,52 @@
             } 
             else if(adminSubVista === 'menu') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100 hidden md:block">Menú e Inventario</h2><button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto"><i class="fa-solid fa-plus"></i> Nuevo Producto</button></div><div class="space-y-4">`; 
+                
                 const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
+                
                 listaCats.forEach(catNombre => {
                     const prods = datosRestaurante.productos.filter(p => (p.categoria || '').toUpperCase() === catNombre);
                     if(prods.length === 0) return;
-                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md"><h3 class="font-black text-amber-500 uppercase mb-3">${catNombre} (${prods.length})</h3><div class="divide-y divide-slate-800/50">`;
+                    
+                    const isCollapsed = categoriasColapsadas.has(catNombre);
+                    const iconDir = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
+                    
+                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-md overflow-hidden">
+                        <button onclick="window.toggleCategoriaAdmin('${catNombre}')" class="w-full flex justify-between items-center p-4 bg-slate-800/30 hover:bg-slate-800/50 transition">
+                            <h3 class="font-black text-amber-500 uppercase">${catNombre} (${prods.length})</h3>
+                            <i class="fa-solid ${iconDir} text-slate-400"></i>
+                        </button>
+                        <div class="divide-y divide-slate-800/50 px-4 ${isCollapsed ? 'hidden' : ''}">`;
+                    
                     prods.forEach(p => {
-                        const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 flex items-center justify-center text-slate-600 border border-slate-800"><i class="fa-solid fa-image"></i></div>`;
+                        const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 flex items-center justify-center text-slate-600 border border-slate-800 shrink-0"><i class="fa-solid fa-image"></i></div>`;
                         
                         const isVar = p.variantes && p.variantes.length > 0;
                         const precioDisplay = isVar 
                             ? `<div class="text-right flex flex-col items-end gap-1">` + p.variantes.map(v => `<span class="text-[11px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">${v.nombre}: <span class="text-emerald-400">₡${v.precio.toLocaleString()}</span></span>`).join('') + `</div>`
-                            : `<span class="font-black text-emerald-400 text-lg">₡${p.precio.toLocaleString()}</span>`;
+                            : `<span class="font-black text-emerald-400 text-lg whitespace-nowrap">₡${p.precio.toLocaleString()}</span>`;
 
-                        html += `<div class="py-3 flex justify-between items-center gap-4"><div class="flex items-center gap-4">${img}<span class="font-bold text-slate-200">${p.nombre}</span></div><div class="flex items-center gap-4">${precioDisplay}<button onclick="window.adminEliminarProducto('${p.id}')" class="text-rose-500 hover:text-rose-400 p-2 bg-rose-500/10 rounded-lg shrink-0"><i class="fa-solid fa-trash"></i></button></div></div>`;
+                        // Renderizar botones de stock si aplica
+                        let stockDisplay = '';
+                        if (!isVar && p.stock !== null && p.stock !== undefined) {
+                            stockDisplay = `<div class="flex items-center gap-1 bg-slate-950 rounded-lg p-1 border border-slate-700 shrink-0">
+                                <button onclick="window.adminActualizarStock('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-minus text-xs"></i></button>
+                                <span class="font-black text-amber-500 w-8 text-center text-sm">${p.stock}</span>
+                                <button onclick="window.adminActualizarStock('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-plus text-xs"></i></button>
+                            </div>`;
+                        }
+
+                        html += `<div class="py-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                            <div class="flex items-center gap-4 overflow-hidden w-full sm:w-auto">
+                                ${img}
+                                <span class="font-bold text-slate-200 truncate">${p.nombre}</span>
+                            </div>
+                            <div class="flex items-center justify-end gap-3 shrink-0 w-full sm:w-auto">
+                                ${stockDisplay}
+                                ${precioDisplay}
+                                <button onclick="window.adminEliminarProducto('${p.id}')" class="text-rose-500 hover:text-rose-400 p-2 bg-rose-500/10 rounded-lg shrink-0 transition ml-2"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>`;
                     });
                     html += `</div></div>`;
                 });
