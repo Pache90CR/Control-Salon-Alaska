@@ -297,8 +297,6 @@
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
         let productoVarianteActual = null;
-        
-        // ESTADO DE CATEGORÍAS PLEGABLES
         let categoriasColapsadas = new Set();
 
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
@@ -462,7 +460,6 @@
             renderizarModuloAdmin();
         };
 
-        // FUNCIÓN NUEVA: COLLAPSE DE CATEGORÍAS
         window.toggleCategoriaAdmin = function(catNombre) {
             if(categoriasColapsadas.has(catNombre)) {
                 categoriasColapsadas.delete(catNombre);
@@ -472,7 +469,6 @@
             renderizarModuloAdmin();
         };
 
-        // FUNCIÓN NUEVA: ACTUALIZAR STOCK (+ / -)
         window.adminActualizarStock = async function(id, cambio) {
             const prod = datosRestaurante.productos.find(p => p.id === id);
             if(!prod || prod.stock === null || prod.stock === undefined) return;
@@ -564,7 +560,6 @@
                             ? `<div class="text-right flex flex-col items-end gap-1">` + p.variantes.map(v => `<span class="text-[11px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">${v.nombre}: <span class="text-emerald-400">₡${v.precio.toLocaleString()}</span></span>`).join('') + `</div>`
                             : `<span class="font-black text-emerald-400 text-lg whitespace-nowrap">₡${p.precio.toLocaleString()}</span>`;
 
-                        // Renderizar botones de stock si aplica
                         let stockDisplay = '';
                         if (!isVar && p.stock !== null && p.stock !== undefined) {
                             stockDisplay = `<div class="flex items-center gap-1 bg-slate-950 rounded-lg p-1 border border-slate-700 shrink-0">
@@ -665,7 +660,6 @@
 
         window.adminEliminarEspacio = async function(id) { if(confirm('¿Seguro que desea eliminar este espacio?')) await deleteDoc(doc(db, "espacios", id)); };
 
-        // LÓGICA DE VARIANTES EN ADMIN
         window.toggleVariantesAdmin = function() {
             const isChecked = document.getElementById('check-variantes').checked;
             if(isChecked) {
@@ -706,7 +700,6 @@
         
         window.cerrarModalProductoAdmin = function() { document.getElementById('modal-admin-producto').classList.add('hidden'); };
 
-        // COMPRESOR DE IMÁGENES AL VUELO
         window.previsualizarImagen = function(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -716,7 +709,7 @@
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-                        const MAX_SIZE = 400; // Redimensiona máximo a 400px
+                        const MAX_SIZE = 400;
 
                         if (width > height && width > MAX_SIZE) {
                             height *= MAX_SIZE / width;
@@ -731,7 +724,6 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Comprime a JPEG calidad 80%
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
                         
                         document.getElementById('add-prod-preview-img').src = dataUrl; 
@@ -955,10 +947,30 @@
             const monto = elementoSeleccionado.total;
             ventasTotalesTurno += monto;
             localStorage.setItem('alaska_caja_ventas', ventasTotalesTurno);
+            
+            // DESCUENTO DE STOCK AUTOMÁTICO
+            let cantidadesVendidas = {};
+            if (elementoSeleccionado.rondas) {
+                elementoSeleccionado.rondas.forEach(ronda => {
+                    ronda.items.forEach(item => {
+                        cantidadesVendidas[item.nombre] = (cantidadesVendidas[item.nombre] || 0) + 1;
+                    });
+                });
+            }
+
+            for (const [nombre, cant] of Object.entries(cantidadesVendidas)) {
+                const prod = datosRestaurante.productos.find(p => p.nombre === nombre);
+                if (prod && prod.stock !== null && prod.stock !== undefined) {
+                    let nuevoStock = prod.stock - cant;
+                    if (nuevoStock < 0) nuevoStock = 0;
+                    await updateDoc(doc(db, "productos", prod.id), { stock: nuevoStock });
+                }
+            }
+
             await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: monto, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre });
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             window.cerrarPanel();
-            window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago})`);
+            window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago}). El stock ha sido actualizado.`);
         };
     </script>
 </body>
