@@ -78,7 +78,7 @@
                 <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-slate-900/50"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
                 <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
-            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Carga instantánea activa ⚡</p>
+            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Sistema Alaska 100% Estable 🟢</p>
         </div>
     </div>
 
@@ -131,8 +131,8 @@
             </div>
             <div class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Categoría</label>
-                    <select id="add-prod-cat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 font-bold"></select>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Categoría (Ej. refrescos, cervezas, licores)</label>
+                    <input type="text" id="add-prod-cat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 font-bold uppercase" placeholder="refrescos">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre</label>
@@ -256,7 +256,7 @@
         </aside>
     </main>
 
-    <!-- SCRIPT DE CARGA INSTANTÁNEA Y TIEMPO REAL -->
+    <!-- SCRIPT BLINDADO Y SINCRONIZADO -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -290,7 +290,6 @@
         let ventasHistorialData = JSON.parse(localStorage.getItem('alaska_ventas_historial')) || [];
         let chartInstancia = null;
 
-        // CARGA LOCAL INICIAL PARA CERO LAG (SE ACTUALIZA CON FIREBASE EN SEGUNDO PLANO)
         let datosRestaurante = {
             barra: JSON.parse(localStorage.getItem('alaska_cache_barra')) || [],
             mesas: JSON.parse(localStorage.getItem('alaska_cache_mesas')) || [],
@@ -301,7 +300,7 @@
 
         let estadoAcordeones = {};
 
-        // SINCRONIZACIÓN EN TIEMPO REAL Y CACHÉ LOCAL
+        // SINCRONIZACIÓN EN TIEMPO REAL CON FIREBASE
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
@@ -343,14 +342,6 @@
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
         
-        window.customConfirm = function(msg) {
-            return new Promise((resolve) => {
-                document.getElementById('confirm-msg').innerText = msg; document.getElementById('modal-custom-confirm').classList.remove('hidden');
-                window.aceptarConfirm = () => { document.getElementById('modal-custom-confirm').classList.add('hidden'); resolve(true); };
-                window.cancelarConfirm = () => { document.getElementById('modal-custom-confirm').classList.add('hidden'); resolve(false); };
-            });
-        };
-
         window.customPrompt = function(msg, defaultVal = '', inputType = 'text') {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
@@ -498,17 +489,18 @@
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black text-slate-100">Menú e Inventario</h2><button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition"><i class="fa-solid fa-plus"></i> Nuevo Producto</button></div><div class="relative mb-6"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i><input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto por nombre..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-amber-500 shadow-md"></div><div class="space-y-4">`; 
 
                 const prodsFiltrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()));
+                
+                // AGRUPACIÓN BLINDADA DIRECTAMENTE DE LOS PRODUCTOS
                 const grupos = {};
-                datosRestaurante.categorias.forEach(c => grupos[c.id] = { nombre: c.nombre, items: [] });
-                grupos['general'] = { nombre: 'Sin Categoría / General', items: [] };
+                prodsFiltrados.forEach(p => {
+                    const catKey = (p.categoria || 'general').toLowerCase();
+                    if (!grupos[catKey]) grupos[catKey] = { nombre: catKey, items: [] };
+                    grupos[catKey].items.push(p);
+                });
 
-                prodsFiltrados.forEach(p => { if(grupos[p.categoria]) grupos[p.categoria].items.push(p); else grupos['general'].items.push(p); });
-
-                let hayResultados = false;
+                let hayResultados = Object.keys(grupos).length > 0;
                 for(const catId in grupos) {
                     const cat = grupos[catId];
-                    if(cat.items.length === 0) continue; 
-                    hayResultados = true;
                     cat.items.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
                     let isOpen = estadoAcordeones[catId] !== false; 
@@ -522,13 +514,18 @@
                     });
                     html += `</div></div></div>`;
                 }
-                if(!hayResultados) html += `<div class="p-10 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800"><p>No se encontraron productos.</p></div>`;
+                if(!hayResultados || prodsFiltrados.length === 0) html += `<div class="p-10 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800"><p>No se encontraron productos.</p></div>`;
                 html += `</div></div>`;
                 cont.innerHTML = html;
             }
             else if(adminSubVista === 'categorias') {
                 let catHtml = `<div class="max-w-4xl mx-auto w-full pb-10"><div class="flex justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Categorías de Menú</h2><div class="flex gap-2"><input type="text" id="add-cat-nombre" placeholder="Nueva categoría" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm text-white"><button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold">Crear</button></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
-                datosRestaurante.categorias.forEach(cat => { catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center"><span class="font-bold text-slate-200 uppercase">${cat.nombre}</span><button onclick="window.adminEliminarCategoria('${cat.id}')" class="text-rose-500 px-3 py-2 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button></div>`; });
+                
+                // Extraer categorías únicas directamente de los productos para que siempre coincidan
+                const catsUnicas = [...new Set(datosRestaurante.productos.map(p => (p.categoria || 'general').toLowerCase()))];
+                catsUnicas.forEach(catNombre => { 
+                    catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center"><span class="font-bold text-slate-200 uppercase">${catNombre}</span><span class="text-xs text-slate-500">Activa en productos</span></div>`; 
+                });
                 catHtml += `</div></div>`;
                 cont.innerHTML = catHtml;
             }
@@ -550,11 +547,10 @@
             document.getElementById('add-prod-nombre').value = '';
             document.getElementById('add-prod-precio').value = '';
             document.getElementById('add-prod-stock').value = '';
+            document.getElementById('add-prod-cat').value = '';
             document.getElementById('add-prod-file').value = '';
             document.getElementById('add-prod-preview-img').classList.add('hidden');
             document.getElementById('add-prod-preview-text').classList.remove('hidden');
-            const select = document.getElementById('add-prod-cat'); select.innerHTML = '';
-            datosRestaurante.categorias.forEach(c => select.innerHTML += `<option value="${c.id}">${c.nombre.toUpperCase()}</option>`);
             document.getElementById('modal-admin-producto').classList.remove('hidden');
         };
         
@@ -573,7 +569,7 @@
         };
 
         window.guardarProductoAdmin = async function() {
-            const cat = document.getElementById('add-prod-cat').value;
+            const cat = document.getElementById('add-prod-cat').value.trim().toLowerCase() || 'general';
             const nom = document.getElementById('add-prod-nombre').value.trim();
             const pre = parseFloat(document.getElementById('add-prod-precio').value);
             const stk = document.getElementById('add-prod-stock').value.trim() === '' ? null : parseInt(document.getElementById('add-prod-stock').value);
@@ -591,14 +587,11 @@
         };
 
         window.adminAgregarCategoria = async function() {
-            const nom = document.getElementById('add-cat-nombre').value.trim();
+            const nom = document.getElementById('add-cat-nombre').value.trim().toLowerCase();
             if(!nom) return;
-            await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() });
+            await addDoc(collection(db, "categorias"), { nombre: nom });
             document.getElementById('add-cat-nombre').value = '';
-        };
-
-        window.adminEliminarCategoria = async function(id) {
-            if(confirm('¿Eliminar categoría?')) await deleteDoc(doc(db, "categorias", id));
+            window.customAlert('Categoría creada');
         };
 
         window.adminAgregarEspacio = async function() {
@@ -711,19 +704,48 @@
 
         window.abrirModalAgregar = function() { if (!elementoSeleccionado) return; document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`; document.getElementById('input-buscar-modal').value = ''; busquedaModal = ''; itemsRondaTemporal = []; window.actualizarContadorModal(); window.renderizarPestanasModal(); document.getElementById('modal-agregar-producto').classList.remove('hidden'); };
         window.cerrarModalProductos = function() { document.getElementById('modal-agregar-producto').classList.add('hidden'); };
-        window.renderizarPestanasModal = function() { const cont = document.getElementById('modal-categorias-container'); cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`; datosRestaurante.categorias.forEach(c => { cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c.id}')" id="cat-${c.id}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c.nombre}</button>`; }); window.cambiarCategoriaModal('todas'); };
-        window.cambiarCategoriaModal = function(catId) { categoriaActivaModal = catId; const botones = document.getElementById('modal-categorias-container').querySelectorAll('button'); botones.forEach(btn => { btn.className = btn.id === `cat-${catId}` ? "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm uppercase" : "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm uppercase"; }); window.renderizarProductosModal(); };
+        
+        window.renderizarPestanasModal = function() { 
+            const cont = document.getElementById('modal-categorias-container'); 
+            cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`; 
+            
+            // Extraer categorías únicas directamente de los productos disponibles
+            const categoriasUnicas = [...new Set(datosRestaurante.productos.map(p => (p.categoria || 'general').toLowerCase()))];
+            categoriasUnicas.forEach(cat => { 
+                cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${cat}')" id="cat-${cat}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${cat}</button>`; 
+            }); 
+            window.cambiarCategoriaModal('todas'); 
+        };
+
+        window.cambiarCategoriaModal = function(catId) { 
+            categoriaActivaModal = catId; 
+            const botones = document.getElementById('modal-categorias-container').querySelectorAll('button'); 
+            botones.forEach(btn => { 
+                btn.className = btn.id === `cat-${catId}` ? "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm uppercase" : "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm uppercase"; 
+            }); 
+            window.renderizarProductosModal(); 
+        };
+
         window.filtrarProductosModal = function(val) { busquedaModal = val; window.renderizarProductosModal(); };
+        
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos'); grid.innerHTML = '';
-            const filtrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaModal.toLowerCase()) && (categoriaActivaModal === 'todas' || p.categoria === categoriaActivaModal));
-            if(filtrados.length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos</p>`;
+            const filtrados = datosRestaurante.productos.filter(p => {
+                const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase());
+                const prodCat = (p.categoria || 'general').toLowerCase();
+                const matchCat = (categoriaActivaModal === 'todas') || (prodCat === categoriaActivaModal);
+                return matchTexto && matchCat;
+            });
+
+            if(filtrados.length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos en esta categoría</p>`;
+            
             filtrados.forEach(prod => {
                 const btn = document.createElement('button'); btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-2.5 rounded-2xl flex items-center justify-between text-left transition shadow-md"; btn.onclick = () => window.agregarItemTemporal(prod);
                 btn.innerHTML = `<div class="flex flex-col justify-center flex-1 min-w-0 pr-1"><span class="font-bold text-slate-200 text-sm truncate mb-1">${prod.nombre}</span><span class="font-black text-emerald-400 text-sm">₡${prod.precio.toLocaleString()}</span></div>`;
                 grid.appendChild(btn);
             });
         };
+
         window.agregarItemTemporal = function(prod) { itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio }); window.actualizarContadorModal(); };
         window.actualizarContadorModal = function() { const sub = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} seleccionados (Subtotal: ₡${sub.toLocaleString()})`; };
         
