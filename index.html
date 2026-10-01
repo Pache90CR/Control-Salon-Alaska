@@ -91,7 +91,7 @@
                 <span class="absolute left-4 top-3 text-slate-400 font-bold text-lg">₡</span>
                 <input type="number" id="input-monto-caja" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xl font-bold text-emerald-400 focus:outline-none focus:border-amber-500" value="25000">
             </div>
-            <button onclick="window.abrirCaja(event)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg">Abrir Turno</button>
+            <button onclick="window.abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg shadow-lg shadow-amber-500/20">Abrir Turno</button>
         </div>
     </div>
 
@@ -293,7 +293,7 @@
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
         let estadoAcordeones = {}; 
 
-        // ESTADO DE CARGA PARA PREVENIR ERRORES
+        // ESTADO DE CARGA PARA HABILITAR LOGIN (Sincronización inicial rápida)
         let datosCargados = { espacios: false, productos: false, categorias: false, config: false };
         function verificarCargaCompleta() {
             if(datosCargados.espacios && datosCargados.productos && datosCargados.categorias && datosCargados.config) {
@@ -303,10 +303,10 @@
                 
                 if(btnSalonera && btnSalonera.disabled) {
                     btnSalonera.disabled = false;
-                    btnSalonera.className = "w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3";
+                    btnSalonera.className = "w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-slate-900/50";
                     
                     btnAdmin.disabled = false;
-                    btnAdmin.className = "w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3";
+                    btnAdmin.className = "w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20";
                     
                     if(statusEl) {
                         statusEl.innerText = "Sincronizado y listo ✅";
@@ -431,42 +431,26 @@
             }
         };
 
-        window.abrirCaja = async function(e) {
+        // ACTUALIZACIÓN OPTIMISTA: Ejecución INMEDIATA sin hacer esperar a Firebase
+        window.abrirCaja = function() {
             const val = document.getElementById('input-monto-caja').value; 
             if(!val) return;
             
-            const btn = e ? e.currentTarget : event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Abriendo...`;
-            btn.disabled = true;
+            montoCajaInicial = parseFloat(val);
+            cajaAbierta = true;
+            
+            // 1. Reflejamos los cambios en la pantalla al instante (Sin bloqueos)
+            document.getElementById('modal-caja').classList.add('hidden'); 
+            document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
+            window.cambiarVista('admin');
 
-            try {
-                montoCajaInicial = parseFloat(val);
-                
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000));
-                const guardarCajaPromise = setDoc(doc(db, "config", "cajaActual"), { 
-                    fondoInicial: montoCajaInicial, 
-                    ventasTurno: 0, 
-                    fechaApertura: new Date().toISOString(), 
-                    estado: 'abierta' 
-                });
-
-                await Promise.race([guardarCajaPromise, timeoutPromise]);
-                
-                cajaAbierta = true;
-                document.getElementById('modal-caja').classList.add('hidden'); 
-                window.cambiarVista('admin');
-            } catch(error) {
-                console.error("Error abriendo turno:", error);
-                if(error.message === 'Timeout') {
-                    window.customAlert("La conexión tardó demasiado. Por favor verifica tu internet e intenta nuevamente.");
-                } else {
-                    window.customAlert("Error conectando al servidor para abrir el turno.");
-                }
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
+            // 2. Enviamos la orden a Firebase en segundo plano silenciosamente
+            setDoc(doc(db, "config", "cajaActual"), { 
+                fondoInicial: montoCajaInicial, 
+                ventasTurno: 0, 
+                fechaApertura: new Date().toISOString(), 
+                estado: 'abierta' 
+            }).catch(e => console.error("Error de sincronización en segundo plano", e));
         };
 
         window.cambiarVista = function(tipo) {
@@ -744,7 +728,8 @@
             }
         };
 
-        window.guardarProductoAdmin = async function() {
+        // ACTUALIZACIÓN OPTIMISTA: Guardar producto sin bloquear
+        window.guardarProductoAdmin = function() {
             const cat = document.getElementById('add-prod-cat').value; 
             const nom = document.getElementById('add-prod-nombre').value.trim();
             const pre = parseFloat(document.getElementById('add-prod-precio').value); 
@@ -756,79 +741,76 @@
             const imgBase64 = !previewImg.classList.contains('hidden') ? previewImg.src : "";
 
             if(!nom || isNaN(pre)) return window.customAlert('El nombre y un precio válido son obligatorios.');
-            
-            const btn = document.getElementById('btn-guardar-prod'); 
-            const originalText = btn.innerHTML; 
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`; 
-            btn.disabled = true;
 
-            try {
-                await addDoc(collection(db, "productos"), { 
-                    categoria: cat, 
-                    nombre: nom, 
-                    precio: pre, 
-                    ventas: 0, 
-                    stock: stk, 
-                    imagen: imgBase64 
-                });
-                window.cerrarModalProductoAdmin(); 
-                window.customAlert('¡Producto guardado con éxito!');
-            } catch(e) { 
-                console.error("Error Firebase:", e); 
-                window.customAlert('Error al guardar el producto en la nube. Verifique su conexión.'); 
-            } finally { 
-                btn.innerHTML = originalText; 
-                btn.disabled = false; 
-            }
+            window.cerrarModalProductoAdmin(); 
+            window.customAlert('¡Producto guardado exitosamente!');
+
+            addDoc(collection(db, "productos"), { 
+                categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: imgBase64 
+            }).catch(e => console.error("Error al guardar producto", e));
         };
 
+        // ACTUALIZACIONES OPTIMISTAS: Operaciones secundarias sin await
         window.adminAjustarStock = async function(id, nombre, operacion) {
             const titulo = operacion === 'sumar' ? `Sumar stock a ${nombre} (Ej. Ingreso):` : `Restar stock a ${nombre} (Ej. Merma/Daño):`;
             const val = await window.customPrompt(titulo, "1", "number");
             if(val && !isNaN(val) && parseInt(val) > 0) {
                 const ajuste = operacion === 'sumar' ? parseInt(val) : -parseInt(val);
-                await updateDoc(doc(db, "productos", id), { stock: increment(ajuste) });
+                updateDoc(doc(db, "productos", id), { stock: increment(ajuste) }).catch(e=>console.log(e));
             }
         };
 
         window.adminSetStockFijo = async function(id, nombre, stockActual) {
-            const val = await window.customPrompt(`Stock para ${nombre}\n(Deje vacío para quitar el control de inventario):`, stockActual !== null ? stockActual : "", "text");
+            const val = await window.customPrompt(`Stock para ${nombre}\n(Deje vacío para quitar el control):`, stockActual !== null ? stockActual : "", "text");
             if(val !== null) { 
                 const strLimpio = val.trim();
                 const nuevoStock = strLimpio === '' ? null : parseInt(strLimpio);
-                if(strLimpio === '' || !isNaN(nuevoStock)) { await updateDoc(doc(db, "productos", id), { stock: nuevoStock }); }
+                if(strLimpio === '' || !isNaN(nuevoStock)) { updateDoc(doc(db, "productos", id), { stock: nuevoStock }).catch(e=>console.log(e)); }
             }
         };
 
-        // OTRAS FUNCIONES CRUD Y OPERACIONES
-        window.adminAgregarCategoria = async function() { const nom = document.getElementById('add-cat-nombre').value.trim(); if(!nom) return; await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() }); document.getElementById('add-cat-nombre').value = ''; };
-        window.adminEditarCategoria = async function(id, nombreActual) { const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual, "text"); if(nv && nv.trim() !== '') await updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() }); };
-        window.adminEliminarCategoria = async function(id) { if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) await deleteDoc(doc(db, "categorias", id)); };
+        window.adminAgregarCategoria = function() { const nom = document.getElementById('add-cat-nombre').value.trim(); if(!nom) return; addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() }).catch(e=>console.log(e)); document.getElementById('add-cat-nombre').value = ''; };
+        window.adminEditarCategoria = async function(id, nombreActual) { const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual, "text"); if(nv && nv.trim() !== '') updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() }).catch(e=>console.log(e)); };
+        window.adminEliminarCategoria = async function(id) { if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) deleteDoc(doc(db, "categorias", id)).catch(e=>console.log(e)); };
         window.ejecutarCierreCaja = async function() { const inputEfectivo = document.getElementById('input-efectivo-fisico').value; if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.'); if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) { await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString(), estado: 'cerrada' }); window.location.reload(); } };
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
-        window.adminEliminarProducto = async function(id) { if(await window.customConfirm('¿Eliminar producto del menú permanentemente?')) await deleteDoc(doc(db, "productos", id)); };
-        window.adminEditarPrecio = async function(id, nombre, precioActual) { const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual, "number"); if(nv && !isNaN(nv)) await updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) }); };
-        window.adminAgregarEspacio = async function() { const cat = document.getElementById('add-esp-tipo').value; const nom = document.getElementById('add-esp-nombre').value; if(!nom) return; await addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] }); document.getElementById('add-esp-nombre').value = ''; };
-        window.adminEliminarEspacio = async function(id, estado) { if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.'); if(await window.customConfirm(`¿Eliminar este espacio?`)) await deleteDoc(doc(db, "espacios", id)); };
-        window.adminEditarEspacio = async function(id, nombreActual) { const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual, "text"); if(nv) await updateDoc(doc(db, "espacios", id), { nombre: nv }); };
+        window.adminEliminarProducto = async function(id) { if(await window.customConfirm('¿Eliminar producto del menú permanentemente?')) deleteDoc(doc(db, "productos", id)).catch(e=>console.log(e)); };
+        window.adminEditarPrecio = async function(id, nombre, precioActual) { const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual, "number"); if(nv && !isNaN(nv)) updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) }).catch(e=>console.log(e)); };
+        window.adminAgregarEspacio = function() { const cat = document.getElementById('add-esp-tipo').value; const nom = document.getElementById('add-esp-nombre').value; if(!nom) return; addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] }).catch(e=>console.log(e)); document.getElementById('add-esp-nombre').value = ''; };
+        window.adminEliminarEspacio = async function(id, estado) { if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.'); if(await window.customConfirm(`¿Eliminar este espacio?`)) deleteDoc(doc(db, "espacios", id)).catch(e=>console.log(e)); };
+        window.adminEditarEspacio = async function(id, nombreActual) { const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual, "text"); if(nv) updateDoc(doc(db, "espacios", id), { nombre: nv }).catch(e=>console.log(e)); };
 
-        // SALÓN
-        window.agregarClienteExtraBarra = async function() { const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:", "", "text"); if(nom) await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] }); };
+        // SALÓN Y OPTIMIZACIÓN DE VISTA
+        window.agregarClienteExtraBarra = async function() { const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:", "", "text"); if(nom) addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] }).catch(e=>console.log(e)); };
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
-            if (espacio.estado === 'libre') { const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`, "", "text"); if (!nom) return; await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom }); espacio.estado = 'ocupada'; espacio.cliente = nom; }
+            if (espacio.estado === 'libre') { 
+                const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`, "", "text"); 
+                if (!nom) return; 
+                
+                // Actualizar localmente de inmediato
+                espacio.estado = 'ocupada'; 
+                espacio.cliente = nom; 
+                updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom }).catch(e=>console.log(e)); 
+            }
             elementoSeleccionado = espacio;
-            const panel = document.getElementById('panel-cuenta'); panel.classList.remove('hidden'); panel.classList.add('flex');
-            document.getElementById('panel-cliente').innerText = espacio.cliente; document.getElementById('panel-titulo').innerText = espacio.nombre;
+            const panel = document.getElementById('panel-cuenta'); 
+            panel.classList.remove('hidden'); panel.classList.add('flex');
+            document.getElementById('panel-cliente').innerText = espacio.cliente; 
+            document.getElementById('panel-titulo').innerText = espacio.nombre;
             window.actualizarListaPanel();
+            renderizarGridOperacion(); 
         };
 
         window.liberarMesa = async function() {
             if (!elementoSeleccionado) return;
             if (elementoSeleccionado.total > 0) return window.customAlert('No se puede liberar un espacio con saldo pendiente. Cobre la cuenta o elimine los productos.');
             if (await window.customConfirm(`¿Desea limpiar y liberar el espacio: ${elementoSeleccionado.nombre}?`)) {
-                if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } else { await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] }); }
+                const idEspacio = elementoSeleccionado.id;
+                const nombreZona = elementoSeleccionado.nombre;
                 window.cerrarPanel();
+                if(nombreZona === 'Extra') { deleteDoc(doc(db, "espacios", idEspacio)).catch(e=>console.log(e)); } 
+                else { updateDoc(doc(db, "espacios", idEspacio), { estado: 'libre', cliente: '', total: 0, rondas: [] }).catch(e=>console.log(e)); }
             }
         };
 
@@ -846,25 +828,46 @@
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
 
-        window.eliminarRondaCuenta = async function(rIndex) {
+        // ACTUALIZACIÓN OPTIMISTA: Eliminar rondas instantáneamente
+        window.eliminarRondaCuenta = function(rIndex) {
             if (!elementoSeleccionado) return;
             const rondas = [...(elementoSeleccionado.rondas || [])]; const rondaEliminada = rondas[rIndex];
             let totalRonda = rondaEliminada.items.reduce((acc, i) => acc + i.precio, 0); rondas.splice(rIndex, 1);
             const nuevoTotal = Math.max(0, (elementoSeleccionado.total || 0) - totalRonda);
-            elementoSeleccionado.rondas = rondas; elementoSeleccionado.total = nuevoTotal; window.actualizarListaPanel();
-            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal });
+            
+            // Reflejar cambios visualmente
+            elementoSeleccionado.rondas = rondas; 
+            elementoSeleccionado.total = nuevoTotal; 
+            window.actualizarListaPanel();
+            renderizarGridOperacion();
+            
+            // Sincronizar en segundo plano
+            updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal }).catch(e=>console.log(e));
         };
 
         window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
         window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('hidden'); };
 
-        window.procesarPagoConfirmado = async function(metodoPago) {
-            window.cerrarModalCobro(); const montoCobrado = elementoSeleccionado.total;
-            await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: montoCobrado, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre, rondas: elementoSeleccionado.rondas });
-            ventasTotalesTurno += montoCobrado; await updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno });
+        // ACTUALIZACIÓN OPTIMISTA: Cobrar y liberar mesa sin demoras
+        window.procesarPagoConfirmado = function(metodoPago) {
+            window.cerrarModalCobro(); 
+            const montoCobrado = elementoSeleccionado.total;
+            const cliente = elementoSeleccionado.cliente;
+            const zona = elementoSeleccionado.nombre;
+            const rondas = [...elementoSeleccionado.rondas];
+            const idEspacio = elementoSeleccionado.id;
+
+            // 1. Limpiamos la pantalla y avisamos éxito al instante
+            ventasTotalesTurno += montoCobrado; 
+            window.cerrarPanel(); 
+            window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
+
+            // 2. Operaciones a Firebase en segundo plano
+            addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: montoCobrado, cliente: cliente, zona: zona, rondas: rondas }).catch(e=>console.log(e));
+            updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno }).catch(e=>console.log(e));
             
             let conteoProductos = {}; 
-            elementoSeleccionado.rondas.forEach(r => { r.items.forEach(item => { if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0; conteoProductos[item.nombre]++; }); });
+            rondas.forEach(r => { r.items.forEach(item => { if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0; conteoProductos[item.nombre]++; }); });
             
             for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
@@ -876,9 +879,8 @@
                     updateDoc(doc(db, "productos", prod.id), updates).catch(e => console.log(e));
                 }
             }
-            if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } 
-            else { await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] }); }
-            window.cerrarPanel(); window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
+            if(zona === 'Extra') { deleteDoc(doc(db, "espacios", idEspacio)).catch(e=>console.log(e)); } 
+            else { updateDoc(doc(db, "espacios", idEspacio), { estado: 'libre', cliente: '', total: 0, rondas: [] }).catch(e=>console.log(e)); }
         };
 
         window.abrirModalAgregar = function() { if (!elementoSeleccionado) return; document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`; document.getElementById('input-buscar-modal').value = ''; busquedaModal = ''; itemsRondaTemporal = []; window.actualizarContadorModal(); window.renderizarPestanasModal(); document.getElementById('modal-agregar-producto').classList.remove('hidden'); };
@@ -898,7 +900,25 @@
         };
         window.agregarItemTemporal = function(prod) { itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio }); window.actualizarContadorModal(); };
         window.actualizarContadorModal = function() { const subtotalRonda = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} seleccionados (Subtotal: ₡${subtotalRonda.toLocaleString()})`; };
-        window.guardarRondaActual = async function() { if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione al menos un producto.'); const rondasActuales = [...(elementoSeleccionado.rondas || [])]; rondasActuales.push({ items: itemsRondaTemporal }); let sumaTotal = 0; rondasActuales.forEach(r => r.items.forEach(i => sumaTotal += i.precio)); elementoSeleccionado.rondas = rondasActuales; elementoSeleccionado.total = sumaTotal; window.actualizarListaPanel(); window.cerrarModalProductos(); await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondasActuales, total: sumaTotal }); };
+        
+        // ACTUALIZACIÓN OPTIMISTA: Agregar rondas inmediatamente
+        window.guardarRondaActual = function() { 
+            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione al menos un producto.'); 
+            const rondasActuales = [...(elementoSeleccionado.rondas || [])]; 
+            rondasActuales.push({ items: itemsRondaTemporal }); 
+            let sumaTotal = 0; 
+            rondasActuales.forEach(r => r.items.forEach(i => sumaTotal += i.precio)); 
+            
+            // Cambios instantáneos en pantalla
+            elementoSeleccionado.rondas = rondasActuales; 
+            elementoSeleccionado.total = sumaTotal; 
+            window.actualizarListaPanel(); 
+            window.cerrarModalProductos(); 
+            renderizarGridOperacion();
+
+            // Guardar en la base de datos sin esperas
+            updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondasActuales, total: sumaTotal }).catch(e=>console.log(e)); 
+        }; 
     </script>
 </body>
 </html>
