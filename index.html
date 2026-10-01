@@ -75,10 +75,10 @@
             <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
             <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
             <div class="space-y-4">
-                <button id="btn-login-salonera" onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-slate-900/50"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
-                <button id="btn-login-admin" onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
+                <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-slate-900/50"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
+                <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
-            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Sistema listo ✅</p>
+            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Conectado a Firebase 🟢</p>
         </div>
     </div>
 
@@ -256,10 +256,10 @@
         </aside>
     </main>
 
-    <!-- SCRIPT LOCAL ROBUSTO CON RESPALDO FIREBASE -->
+    <!-- SCRIPT FIREBASE EN TIEMPO REAL CON RESPALDO LOCAL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -279,7 +279,6 @@
         let elementoSeleccionado = null;
         let rolUsuario = '';
 
-        // CAJA Y DATOS PERSISTENTES EN LOCALSTORAGE (Para evitar que se pierdan o colapsen)
         let montoCajaInicial = parseFloat(localStorage.getItem('alaska_caja_fondo')) || 0;
         let ventasTotalesTurno = parseFloat(localStorage.getItem('alaska_caja_ventas')) || 0;
         let cajaAbierta = localStorage.getItem('alaska_caja_estado') === 'abierta';
@@ -288,46 +287,42 @@
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
-        let ventasHistorialData = JSON.parse(localStorage.getItem('alaska_ventas')) || [];
+        let ventasHistorialData = [];
         let chartInstancia = null;
 
-        // DATOS POR DEFECTO PARA QUE JAMÁS INICIE VACÍO
-        let datosRestaurante = {
-            barra: JSON.parse(localStorage.getItem('alaska_barra')) || [
-                { id: 'b1', categoria: 'barra', nombre: 'Asiento 1', estado: 'libre', cliente: '', total: 0, rondas: [] },
-                { id: 'b2', categoria: 'barra', nombre: 'Asiento 2', estado: 'libre', cliente: '', total: 0, rondas: [] },
-                { id: 'b3', categoria: 'barra', nombre: 'Asiento 3', estado: 'libre', cliente: '', total: 0, rondas: [] }
-            ],
-            mesas: JSON.parse(localStorage.getItem('alaska_mesas')) || [
-                { id: 'm1', categoria: 'mesas', nombre: 'Mesa 1', estado: 'libre', cliente: '', total: 0, rondas: [] },
-                { id: 'm2', categoria: 'mesas', nombre: 'Mesa 2', estado: 'libre', cliente: '', total: 0, rondas: [] }
-            ],
-            vip: JSON.parse(localStorage.getItem('alaska_vip')) || [
-                { id: 'v1', categoria: 'vip', nombre: 'VIP 1', estado: 'libre', cliente: '', total: 0, rondas: [] }
-            ],
-            productos: JSON.parse(localStorage.getItem('alaska_productos')) || [
-                { id: 'p1', categoria: 'refrescos', nombre: 'Gin', precio: 1300, stock: 10, ventas: 1, imagen: '' },
-                { id: 'p2', categoria: 'refrescos', nombre: 'J. Tomate 🌶️', precio: 1000, stock: 8, ventas: 0, imagen: '' }
-            ],
-            categorias: JSON.parse(localStorage.getItem('alaska_categorias')) || [
-                { id: 'refrescos', nombre: 'refrescos' },
-                { id: 'licores', nombre: 'licores' }
-            ]
-        };
-
+        let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
         let estadoAcordeones = {};
 
-        function guardarLocal() {
-            localStorage.setItem('alaska_barra', JSON.stringify(datosRestaurante.barra));
-            localStorage.setItem('alaska_mesas', JSON.stringify(datosRestaurante.mesas));
-            localStorage.setItem('alaska_vip', JSON.stringify(datosRestaurante.vip));
-            localStorage.setItem('alaska_productos', JSON.stringify(datosRestaurante.productos));
-            localStorage.setItem('alaska_categorias', JSON.stringify(datosRestaurante.categorias));
-            localStorage.setItem('alaska_ventas', JSON.stringify(ventasHistorialData));
-            localStorage.setItem('alaska_caja_fondo', montoCajaInicial);
-            localStorage.setItem('alaska_caja_ventas', ventasTotalesTurno);
-            localStorage.setItem('alaska_caja_estado', cajaAbierta ? 'abierta' : 'cerrada');
-        }
+        // ESCUCHAS EN TIEMPO REAL DE FIREBASE (Para traer TODO tu menú, categorías y mesas automáticamente)
+        onSnapshot(collection(db, "espacios"), (snapshot) => {
+            datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data(); data.id = doc.id;
+                if(data.categoria === 'barra') datosRestaurante.barra.push(data);
+                else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
+                else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
+            });
+            if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
+            if(vistaActual === 'admin' && adminSubVista === 'espacios') renderizarModuloAdmin();
+        });
+
+        onSnapshot(collection(db, "productos"), (snapshot) => {
+            datosRestaurante.productos = [];
+            snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.productos.push(data); });
+            if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
+        });
+
+        onSnapshot(collection(db, "categorias"), (snapshot) => {
+            datosRestaurante.categorias = [];
+            snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
+            if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
+        });
+
+        onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
+            ventasHistorialData = [];
+            snapshot.forEach((doc) => ventasHistorialData.push(doc.data()));
+            if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarDashboard();
+        });
 
         // UTILIDADES Y MODALES
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
@@ -382,7 +377,8 @@
             if(!val) return;
             montoCajaInicial = parseFloat(val);
             cajaAbierta = true;
-            guardarLocal();
+            localStorage.setItem('alaska_caja_fondo', montoCajaInicial);
+            localStorage.setItem('alaska_caja_estado', 'abierta');
             document.getElementById('modal-caja').classList.add('hidden'); 
             document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
             window.cambiarVista('admin');
@@ -505,7 +501,7 @@
 
                     cat.items.forEach(p => {
                         const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-700"><i class="fa-solid fa-image"></i></div>`;
-                        let controlStockHtml = p.stock !== null && p.stock !== undefined ? `<div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 shrink-0"><button onclick="window.adminAjustarStock('${p.id}', 'restar')" class="w-7 h-7 rounded-lg bg-slate-900 text-rose-400"><i class="fa-solid fa-minus text-xs"></i></button><span class="font-black text-amber-500 text-sm w-8 text-center">${p.stock}</span><button onclick="window.adminAjustarStock('${p.id}', 'sumar')" class="w-7 h-7 rounded-lg bg-slate-900 text-emerald-400"><i class="fa-solid fa-plus text-xs"></i></button></div>` : `<span class="text-xs font-bold text-slate-500">Sin stock</span>`;
+                        let controlStockHtml = p.stock !== null && p.stock !== undefined ? `<div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 shrink-0"><button onclick="window.adminAjustarStock('${p.id}', '${p.stock}', 'restar')" class="w-7 h-7 rounded-lg bg-slate-900 text-rose-400"><i class="fa-solid fa-minus text-xs"></i></button><span class="font-black text-amber-500 text-sm w-8 text-center">${p.stock}</span><button onclick="window.adminAjustarStock('${p.id}', '${p.stock}', 'sumar')" class="w-7 h-7 rounded-lg bg-slate-900 text-emerald-400"><i class="fa-solid fa-plus text-xs"></i></button></div>` : `<span class="text-xs font-bold text-slate-500">Sin stock</span>`;
 
                         html += `<div class="p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/30 transition gap-4"><div class="flex items-center gap-4">${imgPreview}<div class="flex flex-col"><span class="font-bold text-slate-200">${p.nombre}</span><span class="text-[11px] text-slate-500">Ventas: ${p.ventas || 0}</span></div></div><div class="flex items-center gap-3">${controlStockHtml}<span class="font-black text-emerald-400 text-base w-20 text-right">₡${p.precio.toLocaleString()}</span><button onclick="window.adminEliminarProducto('${p.id}')" class="w-9 h-9 rounded-lg bg-rose-950/40 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button></div></div>`;
                     });
@@ -526,7 +522,7 @@
                 const zonas = [{ key: 'barra', title: 'Barra' }, { key: 'mesas', title: 'Salón Principal' }, { key: 'vip', title: 'Área VIP' }];
                 zonas.forEach(z => {
                     html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg"><h3 class="text-base font-black mb-4 uppercase text-amber-400">${z.title}</h3><div class="space-y-2">`;
-                    datosRestaurante[z.key].forEach(esp => { html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800"><span class="font-bold text-slate-300 text-sm">${esp.nombre}</span><button onclick="window.adminEliminarEspacio('${z.key}', '${esp.id}')" class="text-rose-500"><i class="fa-solid fa-trash text-xs"></i></button></div>`; });
+                    datosRestaurante[z.key].forEach(esp => { html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800"><span class="font-bold text-slate-300 text-sm">${esp.nombre}</span><button onclick="window.adminEliminarEspacio('${esp.id}')" class="text-rose-500"><i class="fa-solid fa-trash text-xs"></i></button></div>`; });
                     html += `</div></div>`;
                 });
                 html += `</div></div>`;
@@ -561,7 +557,7 @@
             }
         };
 
-        window.guardarProductoAdmin = function() {
+        window.guardarProductoAdmin = async function() {
             const cat = document.getElementById('add-prod-cat').value;
             const nom = document.getElementById('add-prod-nombre').value.trim();
             const pre = parseFloat(document.getElementById('add-prod-precio').value);
@@ -569,73 +565,57 @@
             const img = document.getElementById('add-prod-preview-img').classList.contains('hidden') ? '' : document.getElementById('add-prod-preview-img').src;
 
             if(!nom || isNaN(pre)) return window.customAlert('Nombre y precio obligatorios.');
-            datosRestaurante.productos.push({ id: 'p_' + Date.now(), categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: img });
-            guardarLocal();
             window.cerrarModalProductoAdmin();
-            renderizarModuloAdmin();
-            window.customAlert('¡Producto creado con éxito!');
+            await addDoc(collection(db, "productos"), { categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: img });
+            window.customAlert('¡Producto creado en Firebase!');
         };
 
-        window.adminAjustarStock = function(id, op) {
-            const prod = datosRestaurante.productos.find(p => p.id === id);
-            if(prod && prod.stock !== null) {
-                prod.stock = op === 'sumar' ? prod.stock + 1 : Math.max(0, prod.stock - 1);
-                guardarLocal();
-                renderizarModuloAdmin();
-            }
+        window.adminAjustarStock = async function(id, stockActual, op) {
+            const nuevoStock = op === 'sumar' ? parseInt(stockActual) + 1 : Math.max(0, parseInt(stockActual) - 1);
+            await updateDoc(doc(db, "productos", id), { stock: nuevoStock });
         };
 
-        window.adminAgregarCategoria = function() {
+        window.adminAgregarCategoria = async function() {
             const nom = document.getElementById('add-cat-nombre').value.trim();
             if(!nom) return;
-            datosRestaurante.categorias.push({ id: nom.toLowerCase(), nombre: nom.toLowerCase() });
-            guardarLocal();
-            renderizarModuloAdmin();
+            await addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() });
             document.getElementById('add-cat-nombre').value = '';
         };
 
-        window.adminEliminarCategoria = function(id) {
-            datosRestaurante.categorias = datosRestaurante.categorias.filter(c => c.id !== id);
-            guardarLocal();
-            renderizarModuloAdmin();
+        window.adminEliminarCategoria = async function(id) {
+            if(confirm('¿Eliminar categoría?')) await deleteDoc(doc(db, "categorias", id));
         };
 
-        window.adminAgregarEspacio = function() {
+        window.adminAgregarEspacio = async function() {
             const tipo = document.getElementById('add-esp-tipo').value;
             const nom = document.getElementById('add-esp-nombre').value.trim();
             if(!nom) return;
-            datosRestaurante[tipo].push({ id: 'esp_' + Date.now(), categoria: tipo, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] });
-            guardarLocal();
-            renderizarModuloAdmin();
+            await addDoc(collection(db, "espacios"), { categoria: tipo, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] });
             document.getElementById('add-esp-nombre').value = '';
         };
 
-        window.adminEliminarEspacio = function(tipo, id) {
-            datosRestaurante[tipo] = datosRestaurante[tipo].filter(e => e.id !== id);
-            guardarLocal();
-            renderizarModuloAdmin();
+        window.adminEliminarEspacio = async function(id) {
+            if(confirm('¿Eliminar espacio?')) await deleteDoc(doc(db, "espacios", id));
         };
 
-        window.ejecutarCierreCaja = function() {
+        window.ejecutarCierreCaja = async function() {
             const efect = document.getElementById('input-efectivo-fisico').value;
             if(!efect) return window.customAlert('Ingrese el efectivo físico contado.');
             if(confirm('¿Cerrar turno definitivo?')) {
                 montoCajaInicial = 0; ventasTotalesTurno = 0; cajaAbierta = false;
-                guardarLocal();
+                localStorage.clear();
                 window.location.reload();
             }
         };
 
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
-        window.adminEliminarProducto = function(id) { datosRestaurante.productos = datosRestaurante.productos.filter(p => p.id !== id); guardarLocal(); renderizarModuloAdmin(); };
+        window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto?')) await deleteDoc(doc(db, "productos", id)); };
 
         // SALÓN Y OPERACIONES
         window.agregarClienteExtraBarra = async function() {
             const nom = await window.customPrompt("Nombre del cliente (Barra Extra):", "", "text");
             if(nom) {
-                datosRestaurante.barra.push({ id: 'extra_' + Date.now(), categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
-                guardarLocal();
-                renderizarGridOperacion();
+                await addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
             }
         };
 
@@ -644,9 +624,9 @@
             if (espacio.estado === 'libre') { 
                 const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`, "", "text"); 
                 if (!nom) return; 
-                espacio.estado = 'ocupada'; 
-                espacio.cliente = nom; 
-                guardarLocal();
+                await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom });
+                espacio.estado = 'ocupada';
+                espacio.cliente = nom;
             }
             elementoSeleccionado = espacio;
             const panel = document.getElementById('panel-cuenta'); 
@@ -657,21 +637,16 @@
             renderizarGridOperacion();
         };
 
-        window.liberarMesa = function() {
+        window.liberarMesa = async function() {
             if (!elementoSeleccionado) return;
             if (elementoSeleccionado.total > 0) return window.customAlert('No se puede liberar con saldo pendiente.');
             if (confirm(`¿Liberar espacio ${elementoSeleccionado.nombre}?`)) {
                 if(elementoSeleccionado.nombre === 'Extra') {
-                    datosRestaurante.barra = datosRestaurante.barra.filter(e => e.id !== elementoSeleccionado.id);
+                    await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
                 } else {
-                    elementoSeleccionado.estado = 'libre';
-                    elementoSeleccionado.cliente = '';
-                    elementoSeleccionado.total = 0;
-                    elementoSeleccionado.rondas = [];
+                    await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
                 }
-                guardarLocal();
                 window.cerrarPanel();
-                renderizarGridOperacion();
             }
         };
 
@@ -689,36 +664,33 @@
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
 
-        window.eliminarRondaCuenta = function(rIndex) {
+        window.eliminarRondaCuenta = async function(rIndex) {
             if (!elementoSeleccionado) return;
-            const eliminada = elementoSeleccionado.rondas.splice(rIndex, 1)[0];
-            const totalRonda = eliminada.items.reduce((acc, i) => acc + i.precio, 0);
-            elementoSeleccionado.total = Math.max(0, elementoSeleccionado.total - totalRonda);
-            guardarLocal();
+            elementoSeleccionado.rondas.splice(rIndex, 1);
+            let suma = 0;
+            elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
+            elementoSeleccionado.total = suma;
+            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: elementoSeleccionado.rondas, total: suma });
             window.actualizarListaPanel();
-            renderizarGridOperacion();
         };
 
         window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
         window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('hidden'); };
 
-        window.procesarPagoConfirmado = function(metodoPago) {
+        window.procesarPagoConfirmado = async function(metodoPago) {
             window.cerrarModalCobro(); 
             const monto = elementoSeleccionado.total;
             ventasTotalesTurno += monto;
-            ventasHistorialData.push({ fecha: new Date().toISOString(), metodo: metodoPago, total: monto, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre });
+            localStorage.setItem('alaska_caja_ventas', ventasTotalesTurno);
+
+            await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: monto, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre });
             
             if(elementoSeleccionado.nombre === 'Extra') {
-                datosRestaurante.barra = datosRestaurante.barra.filter(e => e.id !== elementoSeleccionado.id);
+                await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
             } else {
-                elementoSeleccionado.estado = 'libre';
-                elementoSeleccionado.cliente = '';
-                elementoSeleccionado.total = 0;
-                elementoSeleccionado.rondas = [];
+                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             }
-            guardarLocal();
             window.cerrarPanel();
-            renderizarGridOperacion();
             window.customAlert(`✅ Pago procesado por ₡${monto.toLocaleString()} con ${metodoPago}`);
         };
 
@@ -740,17 +712,17 @@
         window.agregarItemTemporal = function(prod) { itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio }); window.actualizarContadorModal(); };
         window.actualizarContadorModal = function() { const sub = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} seleccionados (Subtotal: ₡${sub.toLocaleString()})`; };
         
-        window.guardarRondaActual = function() { 
+        window.guardarRondaActual = async function() { 
             if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione al menos un producto.'); 
             if(!elementoSeleccionado.rondas) elementoSeleccionado.rondas = [];
             elementoSeleccionado.rondas.push({ items: itemsRondaTemporal }); 
             let suma = 0; 
             elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio)); 
             elementoSeleccionado.total = suma; 
-            guardarLocal();
+            
+            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: elementoSeleccionado.rondas, total: suma });
             window.actualizarListaPanel(); 
             window.cerrarModalProductos(); 
-            renderizarGridOperacion();
         }; 
     </script>
 </body>
