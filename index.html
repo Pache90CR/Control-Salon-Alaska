@@ -327,10 +327,7 @@
             });
         };
 
-        document.getElementById('firebase-status').innerText = "Conectado a bar-alaska ✅";
-        document.getElementById('firebase-status').classList.remove('animate-pulse');
-        document.getElementById('firebase-status').classList.add('text-emerald-500');
-
+        // ESCUCHAS EN TIEMPO REAL
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
@@ -341,13 +338,13 @@
             });
             if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
             if(vistaActual === 'admin' && adminSubVista === 'espacios') renderizarModuloAdmin();
-        });
+        }, (error) => { console.error("Error en espacios:", error); });
 
         onSnapshot(collection(db, "productos"), (snapshot) => {
             datosRestaurante.productos = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.productos.push(data); });
             if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
-        });
+        }, (error) => { console.error("Error en productos:", error); });
 
         onSnapshot(collection(db, "categorias"), (snapshot) => {
             datosRestaurante.categorias = [];
@@ -356,7 +353,7 @@
                 renderizarModuloAdmin(); 
             }
             window.actualizarSelectCategoriasModal();
-        });
+        }, (error) => { console.error("Error en categorias:", error); });
 
         onSnapshot(doc(db, "config", "cajaActual"), (docSnap) => {
             if(docSnap.exists()) {
@@ -367,13 +364,25 @@
                 document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
                 if(vistaActual === 'admin' && adminSubVista === 'caja') renderizarModuloAdmin();
             } else { cajaAbierta = false; }
+            
+            // CONEXIÓN EXITOSA CONFIRMADA
+            const statusEl = document.getElementById('firebase-status');
+            if(statusEl) {
+                statusEl.innerText = "Conectado a bar-alaska ✅";
+                statusEl.classList.remove('animate-pulse');
+                statusEl.classList.add('text-emerald-500');
+            }
+        }, (error) => { 
+            console.error("Error en cajaActual:", error);
+            const statusEl = document.getElementById('firebase-status');
+            if(statusEl) statusEl.innerText = "Error de conexión ❌";
         });
 
         onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
             ventasHistorialData = [];
             snapshot.forEach((doc) => ventasHistorialData.push(doc.data()));
             if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarDashboard();
-        });
+        }, (error) => { console.error("Error en ventas:", error); });
 
         window.seleccionarRol = async function(rol) {
             if(rol === 'admin') {
@@ -838,7 +847,7 @@
             
             for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
-                *if (prod) {
+                if (prod) {
                     let updates = { ventas: increment(cantidad) };
                     if(prod.stock !== null && prod.stock !== undefined) {
                         updates.stock = increment(-cantidad);
