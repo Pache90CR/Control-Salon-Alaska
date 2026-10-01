@@ -40,7 +40,7 @@
         </div>
     </div>
 
-    <!-- PROMPT CUSTOMIZADO (Arreglo Guardar Contraseña) -->
+    <!-- PROMPT CUSTOMIZADO -->
     <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
             <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
@@ -145,7 +145,8 @@
                     </div>
                     <div class="w-1/2">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Stock Inicial</label>
-                        <input type="number" id="add-prod-stock" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
+                        <!-- MODIFICADO: Placeholder indica que es opcional -->
+                        <input type="number" id="add-prod-stock" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 placeholder:text-slate-600" placeholder="Opcional">
                     </div>
                 </div>
                 <div>
@@ -273,7 +274,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let pinAdmin = "1806";
+        let pinAdmin = "1234";
 
         let vistaActual = 'barra';
         let adminSubVista = 'dashboard';
@@ -307,22 +308,17 @@
             });
         };
 
-        // Custom Prompt actualizado para burlar al gestor de contraseñas de Chrome
         window.customPrompt = function(msg, defaultVal = '', inputType = 'text') {
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
                 const input = document.getElementById('prompt-input'); 
                 
-                // Si es "password", usamos el teclado numérico pero lo ocultamos con CSS para engañar a Chrome
                 if(inputType === 'password') {
-                    input.type = 'tel';
-                    input.style.webkitTextSecurity = 'disc';
+                    input.type = 'tel'; input.style.webkitTextSecurity = 'disc';
                 } else if(inputType === 'number') {
-                    input.type = 'tel'; // tel abre teclado numérico en móviles
-                    input.style.webkitTextSecurity = 'none';
+                    input.type = 'tel'; input.style.webkitTextSecurity = 'none';
                 } else {
-                    input.type = 'text';
-                    input.style.webkitTextSecurity = 'none';
+                    input.type = 'text'; input.style.webkitTextSecurity = 'none';
                 }
                 
                 input.value = defaultVal;
@@ -486,18 +482,16 @@
             if(content.classList.contains('open')) { 
                 content.classList.remove('open'); 
                 icon.classList.replace('fa-chevron-up', 'fa-chevron-down'); 
-                estadoAcordeones[catId] = false; // Guarda el estado en memoria
+                estadoAcordeones[catId] = false; 
             } else { 
                 content.classList.add('open'); 
                 icon.classList.replace('fa-chevron-down', 'fa-chevron-up'); 
-                estadoAcordeones[catId] = true; // Guarda el estado en memoria
+                estadoAcordeones[catId] = true; 
             }
         };
 
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
-            
-            // MEMORIA: Guardar posición exacta del scroll antes de redibujar
             let scrollActual = 0;
             if(cont) scrollActual = cont.scrollTop;
             
@@ -536,8 +530,7 @@
                     hayResultados = true;
                     cat.items.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-                    // MEMORIA: Verificamos si este acordeón estaba abierto o cerrado antes del refresh
-                    let isOpen = estadoAcordeones[catId] !== false; // Por defecto true, a menos que lo hayan cerrado
+                    let isOpen = estadoAcordeones[catId] !== false; 
                     const stateClass = isOpen ? 'open' : '';
                     const iconClass = isOpen ? 'fa-chevron-up' : 'fa-chevron-down';
 
@@ -552,8 +545,27 @@
 
                     cat.items.forEach(p => {
                         const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-700"><i class="fa-solid fa-image"></i></div>`;
-                        const stockActual = p.stock !== undefined ? p.stock : 0;
-                        const stockColor = stockActual <= 5 ? 'text-rose-500' : 'text-amber-500';
+                        
+                        // MODIFICADO: Verificación de si el producto usa stock
+                        let controlStockHtml = '';
+                        if(p.stock !== null && p.stock !== undefined) {
+                            const stockActual = p.stock;
+                            const stockColor = stockActual <= 5 ? 'text-rose-500' : 'text-amber-500';
+                            controlStockHtml = `
+                            <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 shadow-inner shrink-0">
+                                <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'restar')" class="w-7 h-7 rounded-lg bg-slate-900 text-rose-400 hover:bg-rose-950 transition flex items-center justify-center" title="Mermar/Restar"><i class="fa-solid fa-minus text-xs"></i></button>
+                                <div class="flex flex-col items-center justify-center w-12 cursor-pointer group" onclick="window.adminSetStockFijo('${p.id}', '${p.nombre}', ${stockActual})" title="Tocar para editar exacto">
+                                    <span class="text-[9px] text-slate-500 group-hover:text-amber-400 transition font-bold uppercase leading-none">Stock</span>
+                                    <span class="font-black ${stockColor} text-sm leading-none mt-0.5">${stockActual}</span>
+                                </div>
+                                <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'sumar')" class="w-7 h-7 rounded-lg bg-slate-900 text-emerald-400 hover:bg-emerald-950 transition flex items-center justify-center" title="Ingresar/Sumar"><i class="fa-solid fa-plus text-xs"></i></button>
+                            </div>`;
+                        } else {
+                            controlStockHtml = `
+                            <div class="flex items-center justify-center bg-slate-950/50 px-3 py-1 rounded-xl border border-slate-800/50 shadow-inner shrink-0 h-9 cursor-pointer hover:border-slate-600 transition" onclick="window.adminSetStockFijo('${p.id}', '${p.nombre}', null)" title="Tocar para asignarle control de stock">
+                                <span class="text-xs font-bold text-slate-500 uppercase">Sin Stock</span>
+                            </div>`;
+                        }
 
                         html += `
                             <div class="p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/30 transition gap-4">
@@ -565,15 +577,7 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-                                    <!-- Control Stock -->
-                                    <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 shadow-inner shrink-0">
-                                        <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'restar')" class="w-7 h-7 rounded-lg bg-slate-900 text-rose-400 hover:bg-rose-950 transition flex items-center justify-center" title="Mermar/Restar"><i class="fa-solid fa-minus text-xs"></i></button>
-                                        <div class="flex flex-col items-center justify-center w-12 cursor-pointer group" onclick="window.adminSetStockFijo('${p.id}', '${p.nombre}', ${stockActual})" title="Tocar para editar exacto">
-                                            <span class="text-[9px] text-slate-500 group-hover:text-amber-400 transition font-bold uppercase leading-none">Stock</span>
-                                            <span class="font-black ${stockColor} text-sm leading-none mt-0.5">${stockActual}</span>
-                                        </div>
-                                        <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'sumar')" class="w-7 h-7 rounded-lg bg-slate-900 text-emerald-400 hover:bg-emerald-950 transition flex items-center justify-center" title="Ingresar/Sumar"><i class="fa-solid fa-plus text-xs"></i></button>
-                                    </div>
+                                    ${controlStockHtml}
                                     <!-- Precio y Edición -->
                                     <span class="font-black text-emerald-400 text-base w-20 text-right shrink-0">₡${p.precio.toLocaleString()}</span>
                                     <div class="flex gap-2 shrink-0">
@@ -609,7 +613,6 @@
                 cont.innerHTML = html;
             }
 
-            // MEMORIA: Restaurar el scroll a donde estaba
             setTimeout(() => {
                 const updatedCont = document.getElementById('contenedor-admin');
                 if(updatedCont) updatedCont.scrollTop = scrollActual;
@@ -644,8 +647,14 @@
         };
 
         window.guardarProductoAdmin = async function() {
-            const cat = document.getElementById('add-prod-cat').value; const nom = document.getElementById('add-prod-nombre').value;
-            const pre = parseFloat(document.getElementById('add-prod-precio').value); const stk = parseInt(document.getElementById('add-prod-stock').value) || 0;
+            const cat = document.getElementById('add-prod-cat').value; 
+            const nom = document.getElementById('add-prod-nombre').value;
+            const pre = parseFloat(document.getElementById('add-prod-precio').value); 
+            
+            // MODIFICADO: Lógica para stock Opcional
+            const stkStr = document.getElementById('add-prod-stock').value;
+            const stk = stkStr.trim() === '' ? null : parseInt(stkStr);
+
             const fileInput = document.getElementById('add-prod-file'); const file = fileInput.files[0];
 
             if(!nom || !pre) return window.customAlert('El nombre y el precio son obligatorios.');
@@ -663,7 +672,7 @@
             } catch(e) { console.error(e); window.customAlert('Error al guardar.'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
 
-        // FUNCIONES DE CONTROL DE STOCK (Usa tipo "number" para el teclado móvil)
+        // FUNCIONES DE CONTROL DE STOCK
         window.adminAjustarStock = async function(id, nombre, operacion) {
             const titulo = operacion === 'sumar' ? `Sumar stock a ${nombre} (Ej. Ingreso):` : `Restar stock a ${nombre} (Ej. Merma/Daño):`;
             const val = await window.customPrompt(titulo, "1", "number");
@@ -673,9 +682,16 @@
             }
         };
 
+        // MODIFICADO: Permite borrar el contenido para dejar el producto sin control de stock
         window.adminSetStockFijo = async function(id, nombre, stockActual) {
-            const val = await window.customPrompt(`Fijar stock exacto para ${nombre} (Auditoría física):`, stockActual, "number");
-            if(val && !isNaN(val)) { await updateDoc(doc(db, "productos", id), { stock: parseInt(val) }); }
+            const val = await window.customPrompt(`Stock para ${nombre}\n(Deje vacío para quitar el control de inventario):`, stockActual !== null ? stockActual : "", "text");
+            if(val !== null) { 
+                const strLimpio = val.trim();
+                const nuevoStock = strLimpio === '' ? null : parseInt(strLimpio);
+                if(strLimpio === '' || !isNaN(nuevoStock)) {
+                    await updateDoc(doc(db, "productos", id), { stock: nuevoStock });
+                }
+            }
         };
 
         // OTRAS FUNCIONES CRUD Y OPERACIONES
@@ -747,10 +763,12 @@
             for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
                 if (prod) {
-                    updateDoc(doc(db, "productos", prod.id), { 
-                        ventas: increment(cantidad),
-                        stock: increment(-cantidad)
-                    }).catch(e => console.log(e));
+                    let updates = { ventas: increment(cantidad) };
+                    // MODIFICADO: Solo descontar si el producto sí usa control de stock
+                    if(prod.stock !== null && prod.stock !== undefined) {
+                        updates.stock = increment(-cantidad);
+                    }
+                    updateDoc(doc(db, "productos", prod.id), updates).catch(e => console.log(e));
                 }
             }
             if(elementoSeleccionado.nombre === 'Extra') { await deleteDoc(doc(db, "espacios", elementoSeleccionado.id)); } 
