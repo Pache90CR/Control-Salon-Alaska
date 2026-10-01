@@ -331,9 +331,6 @@
         document.getElementById('firebase-status').classList.remove('animate-pulse');
         document.getElementById('firebase-status').classList.add('text-emerald-500');
 
-        // ==========================================
-        //  ESCUCHAS EN TIEMPO REAL (CARGA INICIAL)
-        // ==========================================
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             snapshot.forEach((doc) => {
@@ -684,17 +681,36 @@
 
         window.previsualizarImagen = function(input) {
             if (input.files && input.files[0]) {
+                const file = input.files[0];
                 const reader = new FileReader();
-                reader.onload = function(e) { 
-                    document.getElementById('add-prod-preview-img').src = e.target.result; 
-                    document.getElementById('add-prod-preview-img').classList.remove('hidden'); 
-                    document.getElementById('add-prod-preview-text').classList.add('hidden'); 
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxWidth = 300;
+                        const maxHeight = 300;
+
+                        if (width > height) {
+                            if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                        } else {
+                            if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('add-prod-preview-img').src = compressedDataUrl;
+                        document.getElementById('add-prod-preview-img').classList.remove('hidden');
+                        document.getElementById('add-prod-preview-text').classList.add('hidden');
+                    };
+                    img.src = e.target.result;
                 };
-                reader.onerror = function() {
-                    window.customAlert("No se pudo cargar la imagen seleccionada.");
-                    input.value = "";
-                };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             }
         };
 
@@ -706,8 +722,8 @@
             const stkStr = document.getElementById('add-prod-stock').value;
             const stk = stkStr.trim() === '' ? null : parseInt(stkStr);
 
-            const fileInput = document.getElementById('add-prod-file'); 
-            const file = fileInput.files[0];
+            const previewImg = document.getElementById('add-prod-preview-img');
+            const imgBase64 = !previewImg.classList.contains('hidden') ? previewImg.src : "";
 
             if(!nom || isNaN(pre)) return window.customAlert('El nombre y un precio válido son obligatorios.');
             
@@ -716,38 +732,23 @@
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`; 
             btn.disabled = true;
 
-            const enviarDatos = async (imgBase64) => {
-                try {
-                    await addDoc(collection(db, "productos"), { 
-                        categoria: cat, 
-                        nombre: nom, 
-                        precio: pre, 
-                        ventas: 0, 
-                        stock: stk, 
-                        imagen: imgBase64 
-                    });
-                    window.cerrarModalProductoAdmin(); 
-                    window.customAlert('¡Producto guardado con éxito!');
-                } catch(e) { 
-                    console.error("Error Firebase:", e); 
-                    window.customAlert('Error al guardar el producto en la nube.'); 
-                } finally { 
-                    btn.innerHTML = originalText; 
-                    btn.disabled = false; 
-                }
-            };
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) { 
-                    enviarDatos(e.target.result); 
-                };
-                reader.onerror = function() { 
-                    enviarDatos(""); 
-                };
-                reader.readAsDataURL(file);
-            } else {
-                enviarDatos("");
+            try {
+                await addDoc(collection(db, "productos"), { 
+                    categoria: cat, 
+                    nombre: nom, 
+                    precio: pre, 
+                    ventas: 0, 
+                    stock: stk, 
+                    imagen: imgBase64 
+                });
+                window.cerrarModalProductoAdmin(); 
+                window.customAlert('¡Producto guardado con éxito!');
+            } catch(e) { 
+                console.error("Error Firebase:", e); 
+                window.customAlert('Error al guardar el producto en la nube. Verifique su conexión.'); 
+            } finally { 
+                btn.innerHTML = originalText; 
+                btn.disabled = false; 
             }
         };
 
@@ -837,7 +838,7 @@
             
             for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
                 const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
-                if (prod) {
+                *if (prod) {
                     let updates = { ventas: increment(cantidad) };
                     if(prod.stock !== null && prod.stock !== undefined) {
                         updates.stock = increment(-cantidad);
