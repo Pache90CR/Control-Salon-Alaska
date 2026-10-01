@@ -6,15 +6,12 @@
     <title>Bar Restaurante Alaska - Control Total</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .pro-scroll::-webkit-scrollbar { width: 6px; }
         .pro-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
         .pro-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
-        .accordion-content { transition: max-height 0.3s ease-in-out; max-height: 0; overflow: hidden; }
-        .accordion-content.open { max-height: 2000px; }
     </style>
 </head>
 <body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
@@ -100,7 +97,6 @@
                 </div>
             </div>
             <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-950">
-                <!-- Ajustado a grid-cols-2 en móvil, y más columnas en pantallas más grandes -->
                 <div id="grid-modal-productos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
             </div>
             <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center shrink-0">
@@ -180,16 +176,14 @@
             <div id="grid-elementos" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 w-full"></div>
         </section>
 
-        <!-- SECCIÓN ADMIN (SIDEBAR REDISEÑADO PARA MÓVIL) -->
+        <!-- SECCIÓN ADMIN -->
         <section class="flex-1 hidden w-full bg-slate-950 relative flex-col md:flex-row overflow-hidden" id="area-admin">
             
-            <!-- Botón de hamburguesa visible solo en móvil -->
             <div class="md:hidden bg-slate-900 border-b border-slate-800 p-3 flex items-center gap-3 shadow-md z-20 w-full shrink-0">
                 <button onclick="window.toggleAdminSidebar(true)" class="text-slate-300 hover:text-white px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl transition"><i class="fa-solid fa-bars text-lg"></i></button>
                 <span class="font-black text-amber-500 tracking-wide" id="admin-mobile-title">Dashboard</span>
             </div>
 
-            <!-- Sidebar lateral -->
             <aside id="admin-sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl">
                 <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
                     <h3 class="font-black text-amber-500 uppercase text-sm"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Panel Admin</h3>
@@ -204,10 +198,8 @@
                 </div>
             </aside>
             
-            <!-- Overlay oscuro para cerrar el sidebar en móvil -->
             <div id="admin-sidebar-overlay" onclick="window.toggleAdminSidebar(false)" class="absolute inset-0 bg-slate-950/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
             
-            <!-- Contenido principal del admin -->
             <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
         </section>
 
@@ -281,6 +273,7 @@
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
             });
             if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
+            if(vistaActual === 'admin' && adminSubVista === 'espacios') renderizarModuloAdmin();
         });
 
         onSnapshot(collection(db, "productos"), (snapshot) => {
@@ -345,17 +338,37 @@
             const tabsOperacion = document.getElementById('tabs-operacion');
             const btnVolver = document.getElementById('btn-volver-operacion');
             
+            // Lógica corregida para cambiar color de pestañas activas
+            const vistas = ['barra', 'mesas', 'vip', 'admin'];
+            vistas.forEach(v => {
+                const btn = document.getElementById(`btn-tab-${v}`);
+                if (!btn) return;
+                if (v === tipo) {
+                    btn.className = "px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap";
+                } else {
+                    btn.className = "px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap";
+                }
+            });
+
             if(tipo === 'admin') {
                 tabsOperacion.classList.add('hidden'); btnVolver.classList.remove('hidden');
                 document.getElementById('area-operacion').classList.add('hidden');
                 document.getElementById('area-admin').classList.remove('hidden'); 
                 document.getElementById('area-admin').classList.add('flex');
+                
+                // Actualiza título de zona y muestra dashboard
+                document.getElementById('titulo-vista').innerText = "Panel Administrador";
                 cambiarSubVistaAdmin(adminSubVista); 
             } else {
                 tabsOperacion.classList.remove('hidden'); btnVolver.classList.add('hidden');
                 document.getElementById('area-operacion').classList.remove('hidden');
                 document.getElementById('area-admin').classList.add('hidden'); 
                 document.getElementById('area-admin').classList.remove('flex');
+                
+                // Actualiza título de la zona actual
+                const titulos = { 'barra': 'Control de Barra', 'mesas': 'Control de Mesas', 'vip': 'Zona VIP' };
+                document.getElementById('titulo-vista').innerText = titulos[tipo];
+                
                 renderizarGridOperacion();
             }
             window.cerrarPanel();
@@ -374,19 +387,13 @@
             });
         }
 
-        // CONTROL DEL SIDEBAR LATERAL (NUEVO)
         window.toggleAdminSidebar = function(forceShow = null) {
             const sidebar = document.getElementById('admin-sidebar');
             const overlay = document.getElementById('admin-sidebar-overlay');
             const isCurrentlyHidden = sidebar.classList.contains('-translate-x-full');
             const shouldShow = forceShow !== null ? forceShow : isCurrentlyHidden;
-            if(shouldShow) { 
-                sidebar.classList.remove('-translate-x-full'); 
-                overlay.classList.remove('hidden'); 
-            } else { 
-                sidebar.classList.add('-translate-x-full'); 
-                overlay.classList.add('hidden'); 
-            }
+            if(shouldShow) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); } 
+            else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
         };
 
         window.cambiarSubVistaAdmin = function(vista) {
@@ -405,28 +412,85 @@
                 }
             });
             
-            // Actualiza título móvil y cierra el sidebar al seleccionar
             document.getElementById('admin-mobile-title').innerText = nombresTitulos[vista];
             window.toggleAdminSidebar(false);
-            
             renderizarModuloAdmin();
         };
 
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
+            
+            // REDISEÑO DEL DASHBOARD
             if(adminSubVista === 'dashboard') {
-                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full"><h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Dashboard</h2><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl"><p class="text-slate-400 font-bold">Ventas Totales del Turno</p><p class="text-4xl font-black text-emerald-400 mt-2">₡${ventasTotalesTurno.toLocaleString()}</p></div></div>`;
-            } else if(adminSubVista === 'caja') {
-                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full"><h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Estado de Caja</h2><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-2 shadow-xl"><p class="text-slate-300">Fondo Base: <strong class="text-white">₡${montoCajaInicial.toLocaleString()}</strong></p><p class="text-slate-300">Ventas: <strong class="text-emerald-400">₡${ventasTotalesTurno.toLocaleString()}</strong></p><p class="text-slate-300 text-lg pt-2 border-t border-slate-800 mt-2">Total Esperado: <strong class="text-amber-400">₡${(montoCajaInicial + ventasTotalesTurno).toLocaleString()}</strong></p></div></div>`;
-            } else if(adminSubVista === 'menu') {
+                const totalEspacios = datosRestaurante.barra.length + datosRestaurante.mesas.length + datosRestaurante.vip.length;
+                const espaciosOcupados = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].filter(e => e.estado === 'ocupada').length;
+                const totalProductos = datosRestaurante.productos.length;
+
+                cont.innerHTML = `<div class="max-w-5xl mx-auto w-full">
+                    <h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Resumen del Turno</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase">Ventas Hoy</p><p class="text-2xl font-black text-white">₡${ventasTotalesTurno.toLocaleString()}</p></div>
+                        </div>
+                        <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl"><i class="fa-solid fa-cash-register"></i></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase">Fondo Base</p><p class="text-2xl font-black text-white">₡${montoCajaInicial.toLocaleString()}</p></div>
+                        </div>
+                        <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase">Ocupación</p><p class="text-2xl font-black text-white">${espaciosOcupados} / ${totalEspacios}</p></div>
+                        </div>
+                        <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xl"><i class="fa-solid fa-box-open"></i></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase">Productos</p><p class="text-2xl font-black text-white">${totalProductos}</p></div>
+                        </div>
+                    </div>
+                </div>`;
+            } 
+            
+            // REDISEÑO CIERRE DE CAJA + FÍSICO
+            else if(adminSubVista === 'caja') {
+                const totalEsperado = montoCajaInicial + ventasTotalesTurno;
+                
+                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-20">
+                    <h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Cierre de Caja</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Panel de Sistema -->
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-center">
+                            <h3 class="text-amber-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-calculator mr-2"></i> Balance del Sistema</h3>
+                            <div class="space-y-3 mb-6">
+                                <div class="flex justify-between items-center pb-2 border-b border-slate-800"><span class="text-slate-400">Fondo Inicial Base:</span><span class="font-bold text-white">₡${montoCajaInicial.toLocaleString()}</span></div>
+                                <div class="flex justify-between items-center pb-2 border-b border-slate-800"><span class="text-slate-400">Ventas Registradas:</span><span class="font-bold text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</span></div>
+                            </div>
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center shadow-inner">
+                                <span class="text-slate-300 font-bold">Total Esperado:</span>
+                                <span class="text-2xl font-black text-amber-400">₡${totalEsperado.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Panel Físico -->
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                            <h3 class="text-emerald-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-money-bill-wave mr-2"></i> Conteo Físico</h3>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ingresa el dinero en caja (₡)</label>
+                            
+                            <input type="number" id="input-dinero-fisico" onkeyup="window.calcularDiferenciaCaja(${totalEsperado})" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-4 text-2xl font-black text-emerald-400 focus:outline-none focus:border-amber-500 text-center shadow-inner mb-4 transition" placeholder="0">
+                            
+                            <div id="resultado-diferencia" class="p-4 rounded-xl text-center font-bold text-lg hidden transition"></div>
+                            
+                            <button onclick="window.cerrarTurnoDefinitivo()" class="w-full mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-lock"></i> Terminar y Cerrar Turno</button>
+                        </div>
+                    </div>
+                </div>`;
+            } 
+            
+            else if(adminSubVista === 'menu') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100 hidden md:block">Menú e Inventario</h2><button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto"><i class="fa-solid fa-plus"></i> Nuevo Producto</button></div><div class="space-y-4">`; 
-
                 const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
-
                 listaCats.forEach(catNombre => {
                     const prods = datosRestaurante.productos.filter(p => (p.categoria || '').toUpperCase() === catNombre);
                     if(prods.length === 0) return;
-
                     html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md"><h3 class="font-black text-amber-500 uppercase mb-3">${catNombre} (${prods.length})</h3><div class="divide-y divide-slate-800/50">`;
                     prods.forEach(p => {
                         const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 flex items-center justify-center text-slate-600 border border-slate-800"><i class="fa-solid fa-image"></i></div>`;
@@ -436,17 +500,106 @@
                 });
                 html += `</div></div>`;
                 cont.innerHTML = html;
-            } else if(adminSubVista === 'categorias') {
+            } 
+            
+            else if(adminSubVista === 'categorias') {
                 let catHtml = `<div class="max-w-4xl mx-auto w-full pb-10"><div class="flex flex-col sm:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100 hidden md:block">Categorías de Menú</h2><div class="flex gap-2 w-full sm:w-auto"><input type="text" id="add-cat-nombre" placeholder="Nueva categoría" class="w-full sm:w-auto bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500"><button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-3 rounded-xl font-bold shadow-md">Crear</button></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
                 const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
                 listaCats.forEach(cat => { catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center shadow-md"><span class="font-bold text-slate-200 uppercase">${cat}</span></div>`; });
                 catHtml += `</div></div>`;
                 cont.innerHTML = catHtml;
-            } else if(adminSubVista === 'espacios') {
-                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full"><h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Zonas y Espacios</h2><p class="text-slate-400">Espacios cargados dinámicamente desde Firebase.</p></div>`;
+            } 
+            
+            // REDISEÑO Y CONEXIÓN DE ZONAS Y ESPACIOS
+            else if(adminSubVista === 'espacios') {
+                let html = `<div class="max-w-5xl mx-auto w-full pb-20">
+                    <div class="flex flex-col sm:flex-row justify-between mb-6 gap-4">
+                        <h2 class="text-2xl font-black text-slate-100 hidden md:block">Zonas y Espacios</h2>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <select id="add-espacio-zona" class="bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500 font-bold">
+                                <option value="barra">Barra</option>
+                                <option value="mesas">Mesas</option>
+                                <option value="vip">VIP</option>
+                            </select>
+                            <input type="text" id="add-espacio-nombre" placeholder="Nombre (Ej. Mesa 1)" class="w-full sm:w-auto bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500">
+                            <button onclick="window.adminAgregarEspacio()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold shadow-md transition">Añadir Espacio</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
+
+                ['barra', 'mesas', 'vip'].forEach(zona => {
+                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md"><h3 class="font-black text-amber-500 uppercase mb-3">${zona}</h3><div class="space-y-2">`;
+                    const espacios = datosRestaurante[zona] || [];
+                    if(espacios.length === 0) html += `<p class="text-slate-500 text-sm text-center py-4 bg-slate-950 rounded-xl">Sin espacios registrados</p>`;
+                    espacios.forEach(e => {
+                        html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800"><span class="font-bold text-slate-200">${e.nombre}</span><button onclick="window.adminEliminarEspacio('${e.id}')" class="text-rose-500 hover:text-rose-400 p-2 bg-rose-500/10 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></div>`;
+                    });
+                    html += `</div></div>`;
+                });
+                html += `</div></div>`;
+                cont.innerHTML = html;
             }
         }
 
+        // FUNCIONES DE CAJA
+        window.calcularDiferenciaCaja = function(esperado) {
+            const val = document.getElementById('input-dinero-fisico').value;
+            const fisico = val === '' ? 0 : parseFloat(val);
+            const res = document.getElementById('resultado-diferencia');
+            const dif = fisico - esperado;
+            
+            res.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-400', 'bg-rose-500/20', 'text-rose-400', 'bg-amber-500/20', 'text-amber-400');
+            
+            if(dif > 0) {
+                res.classList.add('bg-emerald-500/20', 'text-emerald-400');
+                res.innerHTML = `Sobrante a favor: +₡${dif.toLocaleString()}`;
+            } else if (dif < 0) {
+                res.classList.add('bg-rose-500/20', 'text-rose-400');
+                res.innerHTML = `Faltante de caja: -₡${Math.abs(dif).toLocaleString()}`;
+            } else if (fisico > 0 && dif === 0) {
+                res.classList.add('bg-amber-500/20', 'text-amber-400');
+                res.innerHTML = `¡Caja cuadrada perfectamente!`;
+            } else {
+                res.classList.add('hidden');
+            }
+        };
+
+        window.cerrarTurnoDefinitivo = async function() {
+            if(confirm("¿Estás seguro de que deseas cerrar el turno actual? Las ventas en caja se pondrán en 0 y se cerrará la sesión.")) {
+                montoCajaInicial = 0;
+                ventasTotalesTurno = 0;
+                cajaAbierta = false;
+                localStorage.removeItem('alaska_caja_fondo');
+                localStorage.removeItem('alaska_caja_ventas');
+                localStorage.setItem('alaska_caja_estado', 'cerrada');
+                rolUsuario = '';
+                
+                window.customAlert("Turno cerrado exitosamente. Buen trabajo hoy.");
+                
+                document.getElementById('area-admin').classList.add('hidden');
+                document.getElementById('area-operacion').classList.add('hidden');
+                document.getElementById('tabs-operacion').classList.add('hidden');
+                document.getElementById('btn-volver-operacion').classList.add('hidden');
+                document.getElementById('btn-tab-admin').style.display = 'none';
+                
+                document.getElementById('modal-login').classList.remove('hidden');
+            }
+        };
+
+        // FUNCIONES DE ZONAS
+        window.adminAgregarEspacio = async function() {
+            const zona = document.getElementById('add-espacio-zona').value;
+            const nombre = document.getElementById('add-espacio-nombre').value.trim();
+            if(!nombre) return window.customAlert('Indique un nombre para el espacio.');
+            await addDoc(collection(db, "espacios"), { nombre: nombre, categoria: zona, estado: 'libre', cliente: '', total: 0, rondas: [] });
+            document.getElementById('add-espacio-nombre').value = '';
+        };
+
+        window.adminEliminarEspacio = async function(id) {
+            if(confirm('¿Seguro que desea eliminar este espacio?')) await deleteDoc(doc(db, "espacios", id));
+        };
+
+        // PRODUCTOS
         window.abrirModalProductoAdmin = function() {
             document.getElementById('add-prod-nombre').value = '';
             document.getElementById('add-prod-precio').value = '';
@@ -497,7 +650,7 @@
 
         window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto?')) await deleteDoc(doc(db, "productos", id)); };
 
-        // PEDIDOS Y SALÓN (REDISEÑO DE IMÁGENES DE PRODUCTOS)
+        // PEDIDOS
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             document.getElementById('modal-subtitulo-cliente').innerText = `Cliente: ${elementoSeleccionado.cliente}`;
@@ -542,11 +695,9 @@
 
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
-                // Estilos para la tarjeta del producto, haciéndola más limpia y responsiva
                 btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-3 rounded-2xl flex flex-col justify-between text-center transition shadow-lg h-auto relative overflow-hidden active:scale-95";
                 btn.onclick = () => window.agregarItemTemporal(prod);
                 
-                // Rediseño de la imagen: un contenedor amplio con fondo oscuro, paddings y object-contain para no cortar fotos como botellas
                 const imgTag = prod.imagen 
                     ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md"></div>` 
                     : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
