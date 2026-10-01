@@ -300,7 +300,8 @@
         let categoriasColapsadas = new Set();
 
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
-        let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
+        // AÑADIDO: Arreglo 'ventas' a datosRestaurante
+        let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [], ventas: [] };
 
         // ESCUCHAS DE FIREBASE
         onSnapshot(collection(db, "espacios"), (snapshot) => {
@@ -325,6 +326,13 @@
             datosRestaurante.categorias = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
+        });
+
+        // NUEVA ESCUCHA: Historial de Ventas (Para los gráficos)
+        onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
+            datosRestaurante.ventas = [];
+            snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.ventas.push(data); });
+            if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarModuloAdmin();
         });
 
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
@@ -485,7 +493,53 @@
                 const espaciosOcupados = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].filter(e => e.estado === 'ocupada').length;
                 const totalProductos = datosRestaurante.productos.length;
 
-                cont.innerHTML = `<div class="max-w-5xl mx-auto w-full">
+                // CÁLCULO DE VENTAS SEMANALES (Últimos 7 días)
+                let ventasPorDia = [0, 0, 0, 0, 0, 0, 0]; // Dom, Lun, Mar, Mie, Jue, Vie, Sab
+                const hoy = new Date();
+                const hace7Dias = new Date();
+                hace7Dias.setDate(hoy.getDate() - 7);
+
+                datosRestaurante.ventas.forEach(v => {
+                    if (v.fecha) {
+                        const fechaVenta = new Date(v.fecha);
+                        if(fechaVenta >= hace7Dias) {
+                            ventasPorDia[fechaVenta.getDay()] += v.total;
+                        }
+                    }
+                });
+
+                // Ordenar: L, M, W, J, V, S, D
+                const labelsOrdenados = ['L', 'M', 'W', 'J', 'V', 'S', 'D'];
+                const datosOrdenados = [
+                    ventasPorDia[1], ventasPorDia[2], ventasPorDia[3],
+                    ventasPorDia[4], ventasPorDia[5], ventasPorDia[6], ventasPorDia[0]
+                ];
+                
+                const maxVenta = Math.max(...datosOrdenados, 1); // Evitar división por cero
+
+                // CREACIÓN DEL GRÁFICO HTML
+                let graficasHtml = `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl mt-2 w-full">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase mb-6 flex items-center gap-2"><i class="fa-solid fa-chart-column text-amber-500"></i> Ventas de la semana (Últimos 7 días)</h3>
+                    <div class="flex items-end justify-between h-40 gap-2 sm:gap-4 px-2">`;
+                
+                datosOrdenados.forEach((val, idx) => {
+                    const heightPct = (val / maxVenta) * 100;
+                    const isZero = val === 0;
+                    const barClasses = isZero ? 'bg-slate-800' : 'bg-gradient-to-t from-emerald-600 to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.3)] hover:brightness-110';
+                    
+                    graficasHtml += `
+                    <div class="flex flex-col items-center justify-end w-full h-full group relative cursor-pointer">
+                        <div class="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-800 border border-slate-700 text-amber-400 text-xs font-bold px-2 py-1 rounded transition pointer-events-none whitespace-nowrap z-10 shadow-xl">
+                            ₡${val.toLocaleString()}
+                        </div>
+                        <div class="w-full ${barClasses} rounded-t-lg transition-all duration-700" style="height: ${isZero ? '4' : heightPct}%; min-height: 4px;"></div>
+                        <span class="text-slate-400 text-xs sm:text-sm font-bold mt-3">${labelsOrdenados[idx]}</span>
+                    </div>`;
+                });
+
+                graficasHtml += `</div></div>`;
+
+                cont.innerHTML = `<div class="max-w-5xl mx-auto w-full pb-20">
                     <h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Resumen del Turno</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
@@ -505,6 +559,7 @@
                             <div><p class="text-slate-400 text-xs font-bold uppercase">Productos</p><p class="text-2xl font-black text-white">${totalProductos}</p></div>
                         </div>
                     </div>
+                    ${graficasHtml}
                 </div>`;
             } 
             else if(adminSubVista === 'caja') {
@@ -970,6 +1025,8 @@
             await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: monto, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre });
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             window.cerrarPanel();
+            
+            // AVISO DE COBRO CORTO Y DIRECTO (Eliminado el texto del stock)
             window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago})`);
         };
     </script>
