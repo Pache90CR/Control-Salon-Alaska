@@ -75,10 +75,10 @@
             <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
             <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
             <div class="space-y-4">
-                <button id="btn-login-salonera" onclick="window.seleccionarRol('salonera')" disabled class="w-full bg-slate-800 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
-                <button id="btn-login-admin" onclick="window.seleccionarRol('admin')" disabled class="w-full bg-amber-600 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
+                <button id="btn-login-salonera" onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-slate-900/50"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
+                <button id="btn-login-admin" onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
-            <p id="firebase-status" class="mt-6 text-xs text-slate-500 animate-pulse">Sincronizando con la nube...</p>
+            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Sistema listo ✅</p>
         </div>
     </div>
 
@@ -159,7 +159,7 @@
                         <img id="add-prod-preview-img" src="" class="hidden w-full h-full object-contain pointer-events-none absolute inset-0 p-2">
                     </div>
                 </div>
-                <button id="btn-guardar-prod" onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg mt-2 text-lg">Guardar Producto</button>
+                <button onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg mt-2 text-lg">Guardar Producto</button>
             </div>
         </div>
     </div>
@@ -256,7 +256,7 @@
         </aside>
     </main>
 
-    <!-- SCRIPT FIREBASE Y LÓGICA -->
+    <!-- SCRIPT LOCAL ROBUSTO CON RESPALDO FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -274,47 +274,59 @@
         const db = getFirestore(app);
 
         let pinAdmin = "1234";
-
         let vistaActual = 'barra';
         let adminSubVista = 'dashboard';
         let elementoSeleccionado = null;
         let rolUsuario = '';
-        let montoCajaInicial = 0;
-        let ventasTotalesTurno = 0; 
-        let cajaAbierta = false; 
-        
+
+        // CAJA Y DATOS PERSISTENTES EN LOCALSTORAGE (Para evitar que se pierdan o colapsen)
+        let montoCajaInicial = parseFloat(localStorage.getItem('alaska_caja_fondo')) || 0;
+        let ventasTotalesTurno = parseFloat(localStorage.getItem('alaska_caja_ventas')) || 0;
+        let cajaAbierta = localStorage.getItem('alaska_caja_estado') === 'abierta';
+
         let busquedaMenu = '';
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
         let itemsRondaTemporal = [];
-        let ventasHistorialData = [];
+        let ventasHistorialData = JSON.parse(localStorage.getItem('alaska_ventas')) || [];
         let chartInstancia = null;
 
-        let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [] };
-        let estadoAcordeones = {}; 
+        // DATOS POR DEFECTO PARA QUE JAMÁS INICIE VACÍO
+        let datosRestaurante = {
+            barra: JSON.parse(localStorage.getItem('alaska_barra')) || [
+                { id: 'b1', categoria: 'barra', nombre: 'Asiento 1', estado: 'libre', cliente: '', total: 0, rondas: [] },
+                { id: 'b2', categoria: 'barra', nombre: 'Asiento 2', estado: 'libre', cliente: '', total: 0, rondas: [] },
+                { id: 'b3', categoria: 'barra', nombre: 'Asiento 3', estado: 'libre', cliente: '', total: 0, rondas: [] }
+            ],
+            mesas: JSON.parse(localStorage.getItem('alaska_mesas')) || [
+                { id: 'm1', categoria: 'mesas', nombre: 'Mesa 1', estado: 'libre', cliente: '', total: 0, rondas: [] },
+                { id: 'm2', categoria: 'mesas', nombre: 'Mesa 2', estado: 'libre', cliente: '', total: 0, rondas: [] }
+            ],
+            vip: JSON.parse(localStorage.getItem('alaska_vip')) || [
+                { id: 'v1', categoria: 'vip', nombre: 'VIP 1', estado: 'libre', cliente: '', total: 0, rondas: [] }
+            ],
+            productos: JSON.parse(localStorage.getItem('alaska_productos')) || [
+                { id: 'p1', categoria: 'refrescos', nombre: 'Gin', precio: 1300, stock: 10, ventas: 1, imagen: '' },
+                { id: 'p2', categoria: 'refrescos', nombre: 'J. Tomate 🌶️', precio: 1000, stock: 8, ventas: 0, imagen: '' }
+            ],
+            categorias: JSON.parse(localStorage.getItem('alaska_categorias')) || [
+                { id: 'refrescos', nombre: 'refrescos' },
+                { id: 'licores', nombre: 'licores' }
+            ]
+        };
 
-        // ESTADO DE CARGA PARA HABILITAR LOGIN (Sincronización inicial rápida)
-        let datosCargados = { espacios: false, productos: false, categorias: false, config: false };
-        function verificarCargaCompleta() {
-            if(datosCargados.espacios && datosCargados.productos && datosCargados.categorias && datosCargados.config) {
-                const btnSalonera = document.getElementById('btn-login-salonera');
-                const btnAdmin = document.getElementById('btn-login-admin');
-                const statusEl = document.getElementById('firebase-status');
-                
-                if(btnSalonera && btnSalonera.disabled) {
-                    btnSalonera.disabled = false;
-                    btnSalonera.className = "w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-slate-900/50";
-                    
-                    btnAdmin.disabled = false;
-                    btnAdmin.className = "w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20";
-                    
-                    if(statusEl) {
-                        statusEl.innerText = "Sincronizado y listo ✅";
-                        statusEl.classList.remove('animate-pulse');
-                        statusEl.classList.add('text-emerald-500');
-                    }
-                }
-            }
+        let estadoAcordeones = {};
+
+        function guardarLocal() {
+            localStorage.setItem('alaska_barra', JSON.stringify(datosRestaurante.barra));
+            localStorage.setItem('alaska_mesas', JSON.stringify(datosRestaurante.mesas));
+            localStorage.setItem('alaska_vip', JSON.stringify(datosRestaurante.vip));
+            localStorage.setItem('alaska_productos', JSON.stringify(datosRestaurante.productos));
+            localStorage.setItem('alaska_categorias', JSON.stringify(datosRestaurante.categorias));
+            localStorage.setItem('alaska_ventas', JSON.stringify(ventasHistorialData));
+            localStorage.setItem('alaska_caja_fondo', montoCajaInicial);
+            localStorage.setItem('alaska_caja_ventas', ventasTotalesTurno);
+            localStorage.setItem('alaska_caja_estado', cajaAbierta ? 'abierta' : 'cerrada');
         }
 
         // UTILIDADES Y MODALES
@@ -333,130 +345,52 @@
             return new Promise((resolve) => {
                 document.getElementById('prompt-msg').innerText = msg;
                 const input = document.getElementById('prompt-input'); 
-                
-                if(inputType === 'password') {
-                    input.type = 'tel'; input.style.webkitTextSecurity = 'disc';
-                } else if(inputType === 'number') {
-                    input.type = 'tel'; input.style.webkitTextSecurity = 'none';
-                } else {
-                    input.type = 'text'; input.style.webkitTextSecurity = 'none';
-                }
-                
+                if(inputType === 'password') { input.type = 'tel'; input.style.webkitTextSecurity = 'disc'; }
+                else if(inputType === 'number') { input.type = 'tel'; input.style.webkitTextSecurity = 'none'; }
+                else { input.type = 'text'; input.style.webkitTextSecurity = 'none'; }
                 input.value = defaultVal;
                 document.getElementById('modal-custom-prompt').classList.remove('hidden'); 
                 setTimeout(() => input.focus(), 100);
-                
                 window.aceptarPrompt = () => { document.getElementById('modal-custom-prompt').classList.add('hidden'); resolve(input.value.trim()); };
                 window.cancelarPrompt = () => { document.getElementById('modal-custom-prompt').classList.add('hidden'); resolve(null); };
             });
         };
 
-        // ESCUCHAS EN TIEMPO REAL
-        onSnapshot(collection(db, "espacios"), (snapshot) => {
-            datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
-            snapshot.forEach((doc) => {
-                const data = doc.data(); data.id = doc.id;
-                if(data.categoria === 'barra') datosRestaurante.barra.push(data);
-                else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
-                else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
-            });
-            datosCargados.espacios = true; verificarCargaCompleta();
-            if(rolUsuario && vistaActual !== 'admin') renderizarGridOperacion();
-            if(vistaActual === 'admin' && adminSubVista === 'espacios') renderizarModuloAdmin();
-        }, (error) => { console.error("Error en espacios:", error); });
-
-        onSnapshot(collection(db, "productos"), (snapshot) => {
-            datosRestaurante.productos = [];
-            snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.productos.push(data); });
-            datosCargados.productos = true; verificarCargaCompleta();
-            if(vistaActual === 'admin' && adminSubVista === 'menu') renderizarModuloAdmin();
-        }, (error) => { console.error("Error en productos:", error); });
-
-        onSnapshot(collection(db, "categorias"), (snapshot) => {
-            datosRestaurante.categorias = [];
-            snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.categorias.push(data); });
-            datosCargados.categorias = true; verificarCargaCompleta();
-            if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) {
-                renderizarModuloAdmin(); 
-            }
-            window.actualizarSelectCategoriasModal();
-        }, (error) => { console.error("Error en categorias:", error); });
-
-        onSnapshot(doc(db, "config", "cajaActual"), (docSnap) => {
-            if(docSnap.exists()) {
-                const data = docSnap.data(); 
-                montoCajaInicial = data.fondoInicial || 0; 
-                ventasTotalesTurno = data.ventasTurno || 0;
-                cajaAbierta = data.estado === 'abierta';
-                document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
-                if(vistaActual === 'admin' && adminSubVista === 'caja') renderizarModuloAdmin();
-            } else { cajaAbierta = false; }
-            datosCargados.config = true; verificarCargaCompleta();
-        }, (error) => { 
-            console.error("Error en cajaActual:", error);
-            const statusEl = document.getElementById('firebase-status');
-            if(statusEl) statusEl.innerText = "Error de conexión ❌";
-        });
-
-        onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
-            ventasHistorialData = [];
-            snapshot.forEach((doc) => ventasHistorialData.push(doc.data()));
-            if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarDashboard();
-        }, (error) => { console.error("Error en ventas:", error); });
-
         window.seleccionarRol = async function(rol) {
             if(rol === 'admin') {
                 const pin = await window.customPrompt("Ingrese PIN Administrador:", "", "password");
                 if(pin !== pinAdmin) { window.customAlert("PIN incorrecto"); return; }
-                
                 rolUsuario = rol; 
                 document.getElementById('modal-login').classList.add('hidden');
-                
-                const btnAdminTab = document.getElementById('btn-tab-admin');
-                if(btnAdminTab) btnAdminTab.style.display = 'block';
+                document.getElementById('btn-tab-admin').style.display = 'block';
                 document.getElementById('info-caja-header').classList.remove('hidden');
+                document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
 
-                if (cajaAbierta) { 
-                    window.cambiarVista('admin'); 
-                } else { 
-                    document.getElementById('modal-caja').classList.remove('hidden'); 
-                }
+                if (cajaAbierta) { window.cambiarVista('admin'); } 
+                else { document.getElementById('modal-caja').classList.remove('hidden'); }
             } else {
                 rolUsuario = rol; 
                 document.getElementById('modal-login').classList.add('hidden');
-                const btnAdminTab = document.getElementById('btn-tab-admin');
-                if(btnAdminTab) btnAdminTab.style.display = 'none';
+                document.getElementById('btn-tab-admin').style.display = 'none';
                 document.getElementById('info-caja-header').classList.add('hidden');
                 window.cambiarVista('barra'); 
             }
         };
 
-        // ACTUALIZACIÓN OPTIMISTA: Ejecución INMEDIATA sin hacer esperar a Firebase
         window.abrirCaja = function() {
             const val = document.getElementById('input-monto-caja').value; 
             if(!val) return;
-            
             montoCajaInicial = parseFloat(val);
             cajaAbierta = true;
-            
-            // 1. Reflejamos los cambios en la pantalla al instante (Sin bloqueos)
+            guardarLocal();
             document.getElementById('modal-caja').classList.add('hidden'); 
             document.getElementById('info-caja-header').innerText = `Caja: ₡${montoCajaInicial.toLocaleString()}`;
             window.cambiarVista('admin');
-
-            // 2. Enviamos la orden a Firebase en segundo plano silenciosamente
-            setDoc(doc(db, "config", "cajaActual"), { 
-                fondoInicial: montoCajaInicial, 
-                ventasTurno: 0, 
-                fechaApertura: new Date().toISOString(), 
-                estado: 'abierta' 
-            }).catch(e => console.error("Error de sincronización en segundo plano", e));
         };
 
         window.cambiarVista = function(tipo) {
             if(tipo === 'admin' && rolUsuario !== 'admin') return;
             vistaActual = tipo;
-            
             const tabsOperacion = document.getElementById('tabs-operacion');
             const btnVolver = document.getElementById('btn-volver-operacion');
             
@@ -533,21 +467,13 @@
         window.toggleAccordion = function(catId) {
             const content = document.getElementById(`acc-content-${catId}`);
             const icon = document.getElementById(`acc-icon-${catId}`);
-            if(content.classList.contains('open')) { 
-                content.classList.remove('open'); 
-                icon.classList.replace('fa-chevron-up', 'fa-chevron-down'); 
-                estadoAcordeones[catId] = false; 
-            } else { 
-                content.classList.add('open'); 
-                icon.classList.replace('fa-chevron-down', 'fa-chevron-up'); 
-                estadoAcordeones[catId] = true; 
-            }
+            if(content.classList.contains('open')) { content.classList.remove('open'); icon.classList.replace('fa-chevron-up', 'fa-chevron-down'); estadoAcordeones[catId] = false; } 
+            else { content.classList.add('open'); icon.classList.replace('fa-chevron-down', 'fa-chevron-up'); estadoAcordeones[catId] = true; }
         };
 
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
-            let scrollActual = 0;
-            if(cont) scrollActual = cont.scrollTop;
+            let scrollActual = cont ? cont.scrollTop : 0;
             
             if(adminSubVista === 'dashboard') {
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black text-slate-100 mb-6">Resumen del Día</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div class="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl shadow-lg"><p class="text-sm font-black text-slate-900 opacity-80 uppercase tracking-wider mb-1">Ventas Hoy</p><p id="dash-total-hoy" class="text-4xl font-black text-slate-900">₡0</p></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center"><p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Cuentas Cobradas</p><p id="dash-tickets" class="text-3xl font-black text-slate-200">0</p></div></div><div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg max-w-sm mx-auto"><h3 class="text-center font-bold text-slate-300 mb-4">Ingresos por Método de Pago</h3><canvas id="metodosChart"></canvas></div></div>`;
@@ -555,20 +481,10 @@
             }
             else if(adminSubVista === 'caja') {
                 const totalEsperado = montoCajaInicial + ventasTotalesTurno;
-                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full"><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p><p class="text-xl font-black text-slate-200">₡${montoCajaInicial.toLocaleString()}</p></div><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Ventas Turno</p><p class="text-xl font-black text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</p></div><div class="bg-slate-800 border-2 border-amber-500/50 p-5 rounded-2xl text-white"><p class="text-xs font-black uppercase text-amber-400 mb-1">Total Sistema (Esperado)</p><p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p></div></div><div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8 relative"><h3 class="text-lg font-bold text-slate-200 mb-4">Auditoría: Efectivo Físico</h3><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400 font-bold text-xl">₡</span><input type="number" id="input-efectivo-fisico" onkeyup="window.calcularCuadre()" class="w-full bg-slate-950 border-2 border-slate-600 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-2xl font-black text-white" placeholder="0"></div></div><button onclick="window.ejecutarCierreCaja()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center gap-2"><i class="fa-solid fa-lock mt-1"></i> Confirmar Cierre Definitivo</button></div>`;
+                cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-10"><h2 class="text-2xl font-black mb-6 text-slate-100">Cierre y Cuadre de Caja</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full"><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Fondo Base</p><p class="text-xl font-black text-slate-200">₡${montoCajaInicial.toLocaleString()}</p></div><div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Ventas Turno</p><p class="text-xl font-black text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</p></div><div class="bg-slate-800 border-2 border-amber-500/50 p-5 rounded-2xl text-white"><p class="text-xs font-black uppercase text-amber-400 mb-1">Total Sistema (Esperado)</p><p class="text-2xl font-black">₡${totalEsperado.toLocaleString()}</p></div></div><div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-xl mb-8 relative"><h3 class="text-lg font-bold text-slate-200 mb-4">Auditoría: Efectivo Físico</h3><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400 font-bold text-xl">₡</span><input type="number" id="input-efectivo-fisico" class="w-full bg-slate-950 border-2 border-slate-600 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-2xl font-black text-white" placeholder="0"></div></div><button onclick="window.ejecutarCierreCaja()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center gap-2"><i class="fa-solid fa-lock mt-1"></i> Confirmar Cierre Definitivo</button></div>`;
             } 
             else if(adminSubVista === 'menu') {
-                let html = `
-                <div class="max-w-5xl mx-auto w-full pb-20">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-black text-slate-100">Menú e Inventario</h2>
-                        <button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition transform active:scale-95"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Nuevo Producto</span></button>
-                    </div>
-                    <div class="relative mb-6">
-                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i>
-                        <input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto por nombre..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-amber-500 shadow-md">
-                    </div>
-                    <div class="space-y-4">`; 
+                let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black text-slate-100">Menú e Inventario</h2><button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition"><i class="fa-solid fa-plus"></i> Nuevo Producto</button></div><div class="relative mb-6"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i><input type="text" value="${busquedaMenu}" onkeyup="window.filtrarMenu(this.value)" placeholder="Buscar producto por nombre..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-amber-500 shadow-md"></div><div class="space-y-4">`; 
 
                 const prodsFiltrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaMenu.toLowerCase()));
                 const grupos = {};
@@ -585,90 +501,38 @@
                     cat.items.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
                     let isOpen = estadoAcordeones[catId] !== false; 
-                    const stateClass = isOpen ? 'open' : '';
-                    const iconClass = isOpen ? 'fa-chevron-up' : 'fa-chevron-down';
-
-                    html += `
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-                        <button onclick="window.toggleAccordion('${catId}')" class="w-full flex justify-between items-center p-4 bg-slate-800/60 hover:bg-slate-800 transition">
-                            <span class="font-black text-amber-500 uppercase tracking-wider text-sm">${cat.nombre} <span class="text-slate-400 font-semibold text-xs ml-2 bg-slate-900 px-2 py-0.5 rounded-md">${cat.items.length}</span></span>
-                            <i id="acc-icon-${catId}" class="fa-solid ${iconClass} text-slate-500"></i>
-                        </button>
-                        <div id="acc-content-${catId}" class="accordion-content ${stateClass}">
-                            <div class="divide-y divide-slate-800/50">`;
+                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm"><button onclick="window.toggleAccordion('${catId}')" class="w-full flex justify-between items-center p-4 bg-slate-800/60 hover:bg-slate-800 transition"><span class="font-black text-amber-500 uppercase tracking-wider text-sm">${cat.nombre} <span class="text-slate-400 font-semibold text-xs ml-2 bg-slate-900 px-2 py-0.5 rounded-md">${cat.items.length}</span></span><i id="acc-icon-${catId}" class="fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} text-slate-500"></i></button><div id="acc-content-${catId}" class="accordion-content ${isOpen ? 'open' : ''}"><div class="divide-y divide-slate-800/50">`;
 
                     cat.items.forEach(p => {
                         const imgPreview = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800">` : `<div class="w-12 h-12 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-700"><i class="fa-solid fa-image"></i></div>`;
-                        
-                        let controlStockHtml = '';
-                        if(p.stock !== null && p.stock !== undefined) {
-                            const stockActual = p.stock;
-                            const stockColor = stockActual <= 5 ? 'text-rose-500' : 'text-amber-500';
-                            controlStockHtml = `
-                            <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 shadow-inner shrink-0">
-                                <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'restar')" class="w-7 h-7 rounded-lg bg-slate-900 text-rose-400 hover:bg-rose-950 transition flex items-center justify-center" title="Mermar/Restar"><i class="fa-solid fa-minus text-xs"></i></button>
-                                <div class="flex flex-col items-center justify-center w-12 cursor-pointer group" onclick="window.adminSetStockFijo('${p.id}', '${p.nombre}', ${stockActual})" title="Tocar para editar exacto">
-                                    <span class="text-[9px] text-slate-500 group-hover:text-amber-400 transition font-bold uppercase leading-none">Stock</span>
-                                    <span class="font-black ${stockColor} text-sm leading-none mt-0.5">${stockActual}</span>
-                                </div>
-                                <button onclick="window.adminAjustarStock('${p.id}', '${p.nombre}', 'sumar')" class="w-7 h-7 rounded-lg bg-slate-900 text-emerald-400 hover:bg-emerald-950 transition flex items-center justify-center" title="Ingresar/Sumar"><i class="fa-solid fa-plus text-xs"></i></button>
-                            </div>`;
-                        } else {
-                            controlStockHtml = `
-                            <div class="flex items-center justify-center bg-slate-950/50 px-3 py-1 rounded-xl border border-slate-800/50 shadow-inner shrink-0 h-9 cursor-pointer hover:border-slate-600 transition" onclick="window.adminSetStockFijo('${p.id}', '${p.nombre}', null)" title="Tocar para asignarle control de stock">
-                                <span class="text-xs font-bold text-slate-500 uppercase">Sin Stock</span>
-                            </div>`;
-                        }
+                        let controlStockHtml = p.stock !== null && p.stock !== undefined ? `<div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 shrink-0"><button onclick="window.adminAjustarStock('${p.id}', 'restar')" class="w-7 h-7 rounded-lg bg-slate-900 text-rose-400"><i class="fa-solid fa-minus text-xs"></i></button><span class="font-black text-amber-500 text-sm w-8 text-center">${p.stock}</span><button onclick="window.adminAjustarStock('${p.id}', 'sumar')" class="w-7 h-7 rounded-lg bg-slate-900 text-emerald-400"><i class="fa-solid fa-plus text-xs"></i></button></div>` : `<span class="text-xs font-bold text-slate-500">Sin stock</span>`;
 
-                        html += `
-                            <div class="p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/30 transition gap-4">
-                                <div class="flex items-center gap-4">
-                                    ${imgPreview}
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-slate-200">${p.nombre}</span>
-                                        <span class="text-[11px] text-slate-500 font-medium"><i class="fa-solid fa-chart-line mr-1 text-slate-600"></i>Ventas: ${p.ventas || 0}</span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-                                    ${controlStockHtml}
-                                    <span class="font-black text-emerald-400 text-base w-20 text-right shrink-0">₡${p.precio.toLocaleString()}</span>
-                                    <div class="flex gap-2 shrink-0">
-                                        <button onclick="window.adminEditarPrecio('${p.id}', '${p.nombre}', ${p.precio})" class="w-9 h-9 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition" title="Editar Precio"><i class="fa-solid fa-pen text-sm"></i></button>
-                                        <button onclick="window.adminEliminarProducto('${p.id}')" class="w-9 h-9 rounded-lg bg-rose-950/40 border border-rose-900/40 text-rose-500 hover:bg-rose-900 hover:text-white flex items-center justify-center transition" title="Eliminar"><i class="fa-solid fa-trash text-sm"></i></button>
-                                    </div>
-                                </div>
-                            </div>`;
+                        html += `<div class="p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/30 transition gap-4"><div class="flex items-center gap-4">${imgPreview}<div class="flex flex-col"><span class="font-bold text-slate-200">${p.nombre}</span><span class="text-[11px] text-slate-500">Ventas: ${p.ventas || 0}</span></div></div><div class="flex items-center gap-3">${controlStockHtml}<span class="font-black text-emerald-400 text-base w-20 text-right">₡${p.precio.toLocaleString()}</span><button onclick="window.adminEliminarProducto('${p.id}')" class="w-9 h-9 rounded-lg bg-rose-950/40 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button></div></div>`;
                     });
                     html += `</div></div></div>`;
                 }
-                if(!hayResultados) html += `<div class="p-10 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800"><i class="fa-solid fa-magnifying-glass text-4xl mb-4 opacity-30"></i><p>No se encontraron productos.</p></div>`;
+                if(!hayResultados) html += `<div class="p-10 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800"><p>No se encontraron productos.</p></div>`;
                 html += `</div></div>`;
                 cont.innerHTML = html;
             }
             else if(adminSubVista === 'categorias') {
-                let catHtml = `<div class="max-w-4xl mx-auto w-full pb-10"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Categorías de Menú</h2><div class="flex gap-2"><input type="text" id="add-cat-nombre" placeholder="Nombre de categoría" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm focus:outline-none text-white"><button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold hover:bg-amber-400 transition">Crear</button></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
-                if(datosRestaurante.categorias.length === 0) { catHtml += `<p class="text-slate-500">No hay categorías creadas.</p>`; } 
-                else { datosRestaurante.categorias.forEach(cat => { catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center shadow-md hover:border-amber-500/50 transition"><span class="font-bold text-slate-200 uppercase tracking-wide">${cat.nombre}</span><div class="flex gap-2"><button onclick="window.adminEditarCategoria('${cat.id}', '${cat.nombre}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-xs transition"><i class="fa-solid fa-pen"></i></button><button onclick="window.adminEliminarCategoria('${cat.id}')" class="bg-rose-950/40 hover:bg-rose-900 text-rose-500 hover:text-white border border-rose-900/50 px-3 py-2 rounded-lg text-xs transition"><i class="fa-solid fa-trash"></i></button></div></div>`; }); }
+                let catHtml = `<div class="max-w-4xl mx-auto w-full pb-10"><div class="flex justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Categorías de Menú</h2><div class="flex gap-2"><input type="text" id="add-cat-nombre" placeholder="Nueva categoría" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm text-white"><button onclick="window.adminAgregarCategoria()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold">Crear</button></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">`;
+                datosRestaurante.categorias.forEach(cat => { catHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center"><span class="font-bold text-slate-200 uppercase">${cat.nombre}</span><button onclick="window.adminEliminarCategoria('${cat.id}')" class="text-rose-500 px-3 py-2 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button></div>`; });
                 catHtml += `</div></div>`;
                 cont.innerHTML = catHtml;
             }
             else if(adminSubVista === 'espacios') {
-                let html = `<div class="max-w-6xl mx-auto w-full"><div class="flex flex-col md:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Gestión de Zonas</h2><div class="flex gap-2"><select id="add-esp-tipo" class="bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none w-28 font-bold"><option value="barra">Barra</option><option value="mesas">Salón</option><option value="vip">VIP</option></select><input type="text" id="add-esp-nombre" placeholder="Nombre mesa/espacio" class="flex-1 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm focus:outline-none"><button onclick="window.adminAgregarEspacio()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold hover:bg-amber-400 transition"><i class="fa-solid fa-plus"></i></button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 pb-10">`;
-                const zonas = [{ key: 'barra', icon: 'fa-martini-glass-citrus', title: 'Barra', color: 'text-blue-400' }, { key: 'mesas', icon: 'fa-utensils', title: 'Salón Principal', color: 'text-amber-400' }, { key: 'vip', icon: 'fa-crown', title: 'Área VIP', color: 'text-fuchsia-400' }];
+                let html = `<div class="max-w-6xl mx-auto w-full"><div class="flex justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100">Gestión de Zonas</h2><div class="flex gap-2"><select id="add-esp-tipo" class="bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm font-bold text-white"><option value="barra">Barra</option><option value="mesas">Salón</option><option value="vip">VIP</option></select><input type="text" id="add-esp-nombre" placeholder="Nombre mesa/espacio" class="flex-1 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-sm text-white"><button onclick="window.adminAgregarEspacio()" class="bg-amber-500 text-slate-900 px-5 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus"></i></button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 pb-10">`;
+                const zonas = [{ key: 'barra', title: 'Barra' }, { key: 'mesas', title: 'Salón Principal' }, { key: 'vip', title: 'Área VIP' }];
                 zonas.forEach(z => {
-                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg"><h3 class="text-base font-black mb-4 flex items-center gap-2 border-b border-slate-800 pb-3 uppercase tracking-wider"><i class="fa-solid ${z.icon} ${z.color} text-lg"></i> ${z.title}</h3><div class="space-y-2">`;
-                    if(datosRestaurante[z.key].length === 0) html += `<p class="text-xs text-slate-500 text-center py-4">Sin espacios</p>`;
-                    datosRestaurante[z.key].forEach(esp => { html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800/60 hover:border-slate-600 transition"><span class="font-bold text-slate-300 text-sm truncate pr-2">${esp.nombre}</span><div class="flex gap-1 shrink-0"><button onclick="window.adminEditarEspacio('${esp.id}', '${esp.nombre}')" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="window.adminEliminarEspacio('${esp.id}', '${esp.estado}')" class="w-8 h-8 rounded-lg text-rose-500/70 hover:bg-rose-950 hover:text-rose-400 transition"><i class="fa-solid fa-trash text-xs"></i></button></div></div>`; });
+                    html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg"><h3 class="text-base font-black mb-4 uppercase text-amber-400">${z.title}</h3><div class="space-y-2">`;
+                    datosRestaurante[z.key].forEach(esp => { html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800"><span class="font-bold text-slate-300 text-sm">${esp.nombre}</span><button onclick="window.adminEliminarEspacio('${z.key}', '${esp.id}')" class="text-rose-500"><i class="fa-solid fa-trash text-xs"></i></button></div>`; });
                     html += `</div></div>`;
                 });
                 html += `</div></div>`;
                 cont.innerHTML = html;
             }
-
-            setTimeout(() => {
-                const updatedCont = document.getElementById('contenedor-admin');
-                if(updatedCont) updatedCont.scrollTop = scrollActual;
-            }, 0);
+            if(cont) cont.scrollTop = scrollActual;
         }
 
         window.abrirModalProductoAdmin = function() {
@@ -676,122 +540,113 @@
             document.getElementById('add-prod-precio').value = '';
             document.getElementById('add-prod-stock').value = '';
             document.getElementById('add-prod-file').value = '';
-            document.getElementById('add-prod-preview-img').src = ''; 
             document.getElementById('add-prod-preview-img').classList.add('hidden');
             document.getElementById('add-prod-preview-text').classList.remove('hidden');
-            window.actualizarSelectCategoriasModal();
+            const select = document.getElementById('add-prod-cat'); select.innerHTML = '';
+            datosRestaurante.categorias.forEach(c => select.innerHTML += `<option value="${c.id}">${c.nombre.toUpperCase()}</option>`);
             document.getElementById('modal-admin-producto').classList.remove('hidden');
         };
         
-        window.cerrarModalProductoAdmin = function() { 
-            document.getElementById('modal-admin-producto').classList.add('hidden'); 
-        };
-
-        window.actualizarSelectCategoriasModal = function() {
-            const select = document.getElementById('add-prod-cat'); if(!select) return; select.innerHTML = '';
-            if(datosRestaurante.categorias.length === 0) { select.innerHTML = `<option value="general">General</option>`; } 
-            else { datosRestaurante.categorias.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.nombre.toUpperCase()}</option>`; }); }
-        };
+        window.cerrarModalProductoAdmin = function() { document.getElementById('modal-admin-producto').classList.add('hidden'); };
 
         window.previsualizarImagen = function(input) {
             if (input.files && input.files[0]) {
-                const file = input.files[0];
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        let width = img.width;
-                        let height = img.height;
-                        const maxWidth = 300;
-                        const maxHeight = 300;
-
-                        if (width > height) {
-                            if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
-                        } else {
-                            if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                        document.getElementById('add-prod-preview-img').src = compressedDataUrl;
-                        document.getElementById('add-prod-preview-img').classList.remove('hidden');
-                        document.getElementById('add-prod-preview-text').classList.add('hidden');
-                    };
-                    img.src = e.target.result;
+                    document.getElementById('add-prod-preview-img').src = e.target.result;
+                    document.getElementById('add-prod-preview-img').classList.remove('hidden');
+                    document.getElementById('add-prod-preview-text').classList.add('hidden');
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(input.files[0]);
             }
         };
 
-        // ACTUALIZACIÓN OPTIMISTA: Guardar producto sin bloquear
         window.guardarProductoAdmin = function() {
-            const cat = document.getElementById('add-prod-cat').value; 
+            const cat = document.getElementById('add-prod-cat').value;
             const nom = document.getElementById('add-prod-nombre').value.trim();
-            const pre = parseFloat(document.getElementById('add-prod-precio').value); 
-            
-            const stkStr = document.getElementById('add-prod-stock').value;
-            const stk = stkStr.trim() === '' ? null : parseInt(stkStr);
+            const pre = parseFloat(document.getElementById('add-prod-precio').value);
+            const stk = document.getElementById('add-prod-stock').value.trim() === '' ? null : parseInt(document.getElementById('add-prod-stock').value);
+            const img = document.getElementById('add-prod-preview-img').classList.contains('hidden') ? '' : document.getElementById('add-prod-preview-img').src;
 
-            const previewImg = document.getElementById('add-prod-preview-img');
-            const imgBase64 = !previewImg.classList.contains('hidden') ? previewImg.src : "";
-
-            if(!nom || isNaN(pre)) return window.customAlert('El nombre y un precio válido son obligatorios.');
-
-            window.cerrarModalProductoAdmin(); 
-            window.customAlert('¡Producto guardado exitosamente!');
-
-            addDoc(collection(db, "productos"), { 
-                categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: imgBase64 
-            }).catch(e => console.error("Error al guardar producto", e));
+            if(!nom || isNaN(pre)) return window.customAlert('Nombre y precio obligatorios.');
+            datosRestaurante.productos.push({ id: 'p_' + Date.now(), categoria: cat, nombre: nom, precio: pre, ventas: 0, stock: stk, imagen: img });
+            guardarLocal();
+            window.cerrarModalProductoAdmin();
+            renderizarModuloAdmin();
+            window.customAlert('¡Producto creado con éxito!');
         };
 
-        // ACTUALIZACIONES OPTIMISTAS: Operaciones secundarias sin await
-        window.adminAjustarStock = async function(id, nombre, operacion) {
-            const titulo = operacion === 'sumar' ? `Sumar stock a ${nombre} (Ej. Ingreso):` : `Restar stock a ${nombre} (Ej. Merma/Daño):`;
-            const val = await window.customPrompt(titulo, "1", "number");
-            if(val && !isNaN(val) && parseInt(val) > 0) {
-                const ajuste = operacion === 'sumar' ? parseInt(val) : -parseInt(val);
-                updateDoc(doc(db, "productos", id), { stock: increment(ajuste) }).catch(e=>console.log(e));
+        window.adminAjustarStock = function(id, op) {
+            const prod = datosRestaurante.productos.find(p => p.id === id);
+            if(prod && prod.stock !== null) {
+                prod.stock = op === 'sumar' ? prod.stock + 1 : Math.max(0, prod.stock - 1);
+                guardarLocal();
+                renderizarModuloAdmin();
             }
         };
 
-        window.adminSetStockFijo = async function(id, nombre, stockActual) {
-            const val = await window.customPrompt(`Stock para ${nombre}\n(Deje vacío para quitar el control):`, stockActual !== null ? stockActual : "", "text");
-            if(val !== null) { 
-                const strLimpio = val.trim();
-                const nuevoStock = strLimpio === '' ? null : parseInt(strLimpio);
-                if(strLimpio === '' || !isNaN(nuevoStock)) { updateDoc(doc(db, "productos", id), { stock: nuevoStock }).catch(e=>console.log(e)); }
+        window.adminAgregarCategoria = function() {
+            const nom = document.getElementById('add-cat-nombre').value.trim();
+            if(!nom) return;
+            datosRestaurante.categorias.push({ id: nom.toLowerCase(), nombre: nom.toLowerCase() });
+            guardarLocal();
+            renderizarModuloAdmin();
+            document.getElementById('add-cat-nombre').value = '';
+        };
+
+        window.adminEliminarCategoria = function(id) {
+            datosRestaurante.categorias = datosRestaurante.categorias.filter(c => c.id !== id);
+            guardarLocal();
+            renderizarModuloAdmin();
+        };
+
+        window.adminAgregarEspacio = function() {
+            const tipo = document.getElementById('add-esp-tipo').value;
+            const nom = document.getElementById('add-esp-nombre').value.trim();
+            if(!nom) return;
+            datosRestaurante[tipo].push({ id: 'esp_' + Date.now(), categoria: tipo, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] });
+            guardarLocal();
+            renderizarModuloAdmin();
+            document.getElementById('add-esp-nombre').value = '';
+        };
+
+        window.adminEliminarEspacio = function(tipo, id) {
+            datosRestaurante[tipo] = datosRestaurante[tipo].filter(e => e.id !== id);
+            guardarLocal();
+            renderizarModuloAdmin();
+        };
+
+        window.ejecutarCierreCaja = function() {
+            const efect = document.getElementById('input-efectivo-fisico').value;
+            if(!efect) return window.customAlert('Ingrese el efectivo físico contado.');
+            if(confirm('¿Cerrar turno definitivo?')) {
+                montoCajaInicial = 0; ventasTotalesTurno = 0; cajaAbierta = false;
+                guardarLocal();
+                window.location.reload();
             }
         };
 
-        window.adminAgregarCategoria = function() { const nom = document.getElementById('add-cat-nombre').value.trim(); if(!nom) return; addDoc(collection(db, "categorias"), { nombre: nom.toLowerCase() }).catch(e=>console.log(e)); document.getElementById('add-cat-nombre').value = ''; };
-        window.adminEditarCategoria = async function(id, nombreActual) { const nv = await window.customPrompt("Nuevo nombre para la categoría:", nombreActual, "text"); if(nv && nv.trim() !== '') updateDoc(doc(db, "categorias", id), { nombre: nv.trim().toLowerCase() }).catch(e=>console.log(e)); };
-        window.adminEliminarCategoria = async function(id) { if(await window.customConfirm('¿Seguro que desea eliminar esta categoría?')) deleteDoc(doc(db, "categorias", id)).catch(e=>console.log(e)); };
-        window.ejecutarCierreCaja = async function() { const inputEfectivo = document.getElementById('input-efectivo-fisico').value; if(!inputEfectivo) return window.customAlert('Por favor, cuente el dinero e ingrese el efectivo físico.'); if(await window.customConfirm('¿Cerrar turno definitivo? La caja regresará a ₡0.')) { await setDoc(doc(db, "config", "cajaActual"), { fondoInicial: 0, ventasTurno: 0, fechaCierre: new Date().toISOString(), estado: 'cerrada' }); window.location.reload(); } };
         window.filtrarMenu = function(val) { busquedaMenu = val; renderizarModuloAdmin(); };
-        window.adminEliminarProducto = async function(id) { if(await window.customConfirm('¿Eliminar producto del menú permanentemente?')) deleteDoc(doc(db, "productos", id)).catch(e=>console.log(e)); };
-        window.adminEditarPrecio = async function(id, nombre, precioActual) { const nv = await window.customPrompt(`Nuevo precio para ${nombre}:`, precioActual, "number"); if(nv && !isNaN(nv)) updateDoc(doc(db, "productos", id), { precio: parseFloat(nv) }).catch(e=>console.log(e)); };
-        window.adminAgregarEspacio = function() { const cat = document.getElementById('add-esp-tipo').value; const nom = document.getElementById('add-esp-nombre').value; if(!nom) return; addDoc(collection(db, "espacios"), { categoria: cat, nombre: nom, estado: 'libre', cliente: '', total: 0, rondas: [] }).catch(e=>console.log(e)); document.getElementById('add-esp-nombre').value = ''; };
-        window.adminEliminarEspacio = async function(id, estado) { if(estado === 'ocupada') return window.customAlert('El espacio está ocupado. Ciérrelo primero.'); if(await window.customConfirm(`¿Eliminar este espacio?`)) deleteDoc(doc(db, "espacios", id)).catch(e=>console.log(e)); };
-        window.adminEditarEspacio = async function(id, nombreActual) { const nv = await window.customPrompt("Modificar nombre del espacio:", nombreActual, "text"); if(nv) updateDoc(doc(db, "espacios", id), { nombre: nv }).catch(e=>console.log(e)); };
+        window.adminEliminarProducto = function(id) { datosRestaurante.productos = datosRestaurante.productos.filter(p => p.id !== id); guardarLocal(); renderizarModuloAdmin(); };
 
-        // SALÓN Y OPTIMIZACIÓN DE VISTA
-        window.agregarClienteExtraBarra = async function() { const nom = await window.customPrompt("Apertura de cuenta rápida.\nNombre del cliente:", "", "text"); if(nom) addDoc(collection(db, "espacios"), { categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] }).catch(e=>console.log(e)); };
+        // SALÓN Y OPERACIONES
+        window.agregarClienteExtraBarra = async function() {
+            const nom = await window.customPrompt("Nombre del cliente (Barra Extra):", "", "text");
+            if(nom) {
+                datosRestaurante.barra.push({ id: 'extra_' + Date.now(), categoria: 'barra', nombre: 'Extra', estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
+                guardarLocal();
+                renderizarGridOperacion();
+            }
+        };
+
         window.seleccionarElemento = async function(id) {
             const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
             if (espacio.estado === 'libre') { 
                 const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nNombre del cliente:`, "", "text"); 
                 if (!nom) return; 
-                
-                // Actualizar localmente de inmediato
                 espacio.estado = 'ocupada'; 
                 espacio.cliente = nom; 
-                updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom }).catch(e=>console.log(e)); 
+                guardarLocal();
             }
             elementoSeleccionado = espacio;
             const panel = document.getElementById('panel-cuenta'); 
@@ -799,18 +654,24 @@
             document.getElementById('panel-cliente').innerText = espacio.cliente; 
             document.getElementById('panel-titulo').innerText = espacio.nombre;
             window.actualizarListaPanel();
-            renderizarGridOperacion(); 
+            renderizarGridOperacion();
         };
 
-        window.liberarMesa = async function() {
+        window.liberarMesa = function() {
             if (!elementoSeleccionado) return;
-            if (elementoSeleccionado.total > 0) return window.customAlert('No se puede liberar un espacio con saldo pendiente. Cobre la cuenta o elimine los productos.');
-            if (await window.customConfirm(`¿Desea limpiar y liberar el espacio: ${elementoSeleccionado.nombre}?`)) {
-                const idEspacio = elementoSeleccionado.id;
-                const nombreZona = elementoSeleccionado.nombre;
+            if (elementoSeleccionado.total > 0) return window.customAlert('No se puede liberar con saldo pendiente.');
+            if (confirm(`¿Liberar espacio ${elementoSeleccionado.nombre}?`)) {
+                if(elementoSeleccionado.nombre === 'Extra') {
+                    datosRestaurante.barra = datosRestaurante.barra.filter(e => e.id !== elementoSeleccionado.id);
+                } else {
+                    elementoSeleccionado.estado = 'libre';
+                    elementoSeleccionado.cliente = '';
+                    elementoSeleccionado.total = 0;
+                    elementoSeleccionado.rondas = [];
+                }
+                guardarLocal();
                 window.cerrarPanel();
-                if(nombreZona === 'Extra') { deleteDoc(doc(db, "espacios", idEspacio)).catch(e=>console.log(e)); } 
-                else { updateDoc(doc(db, "espacios", idEspacio), { estado: 'libre', cliente: '', total: 0, rondas: [] }).catch(e=>console.log(e)); }
+                renderizarGridOperacion();
             }
         };
 
@@ -818,106 +679,78 @@
             const cont = document.getElementById('lista-items-cuenta'); cont.innerHTML = '';
             if (!elementoSeleccionado.rondas || elementoSeleccionado.rondas.length === 0) { cont.innerHTML = `<p class="text-slate-500 text-sm text-center italic mt-10">Sin productos aún</p>`; document.getElementById('panel-total').innerText = `₡0`; return; } 
             elementoSeleccionado.rondas.forEach((ronda, rIndex) => {
-                let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0); let conteoLocal = {};
-                ronda.items.forEach(i => { if(!conteoLocal[i.nombre]) conteoLocal[i.nombre] = { nombre: i.nombre, cantidad: 0, precio: i.precio }; conteoLocal[i.nombre].cantidad++; });
-                let itemsHtml = ''; Object.values(conteoLocal).forEach(prod => { itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800/50 last:border-0"><span class="font-bold text-slate-200"><span class="text-amber-400 font-black mr-1.5">${prod.cantidad}x</span> ${prod.nombre}</span><span class="text-amber-400 font-semibold">₡${(prod.cantidad * prod.precio).toLocaleString()}</span></div>`; });
-                cont.innerHTML += `<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-sm mb-3 relative"><div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800"><span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ronda #${rIndex + 1}</span><button onclick="window.eliminarRondaCuenta(${rIndex})" class="text-rose-500 text-xs bg-rose-950/40 border border-rose-900/50 px-2 py-0.5 rounded-md"><i class="fa-solid fa-trash-can"></i> Eliminar</button></div><div class="space-y-1 mb-2">${itemsHtml}</div><div class="flex justify-between items-center pt-2 border-t border-slate-800 font-black text-emerald-400 text-sm"><span>Subtotal ronda:</span><span>₡${subtotalRonda.toLocaleString()}</span></div></div>`;
+                let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0); 
+                let itemsHtml = ''; 
+                ronda.items.forEach(i => { itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800"><span class="font-bold text-slate-200">${i.nombre}</span><span class="text-amber-400">₡${i.precio.toLocaleString()}</span></div>`; });
+                cont.innerHTML += `<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3"><div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800"><span class="text-xs font-bold text-slate-400">Ronda #${rIndex + 1}</span><button onclick="window.eliminarRondaCuenta(${rIndex})" class="text-rose-500 text-xs">Eliminar</button></div>${itemsHtml}<div class="flex justify-between items-center pt-2 font-black text-emerald-400 text-sm"><span>Subtotal:</span><span>₡${subtotalRonda.toLocaleString()}</span></div></div>`;
             });
             document.getElementById('panel-total').innerText = `₡${(elementoSeleccionado.total || 0).toLocaleString()}`;
         };
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
 
-        // ACTUALIZACIÓN OPTIMISTA: Eliminar rondas instantáneamente
         window.eliminarRondaCuenta = function(rIndex) {
             if (!elementoSeleccionado) return;
-            const rondas = [...(elementoSeleccionado.rondas || [])]; const rondaEliminada = rondas[rIndex];
-            let totalRonda = rondaEliminada.items.reduce((acc, i) => acc + i.precio, 0); rondas.splice(rIndex, 1);
-            const nuevoTotal = Math.max(0, (elementoSeleccionado.total || 0) - totalRonda);
-            
-            // Reflejar cambios visualmente
-            elementoSeleccionado.rondas = rondas; 
-            elementoSeleccionado.total = nuevoTotal; 
+            const eliminada = elementoSeleccionado.rondas.splice(rIndex, 1)[0];
+            const totalRonda = eliminada.items.reduce((acc, i) => acc + i.precio, 0);
+            elementoSeleccionado.total = Math.max(0, elementoSeleccionado.total - totalRonda);
+            guardarLocal();
             window.actualizarListaPanel();
             renderizarGridOperacion();
-            
-            // Sincronizar en segundo plano
-            updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondas, total: nuevoTotal }).catch(e=>console.log(e));
         };
 
         window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
         window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('hidden'); };
 
-        // ACTUALIZACIÓN OPTIMISTA: Cobrar y liberar mesa sin demoras
         window.procesarPagoConfirmado = function(metodoPago) {
             window.cerrarModalCobro(); 
-            const montoCobrado = elementoSeleccionado.total;
-            const cliente = elementoSeleccionado.cliente;
-            const zona = elementoSeleccionado.nombre;
-            const rondas = [...elementoSeleccionado.rondas];
-            const idEspacio = elementoSeleccionado.id;
-
-            // 1. Limpiamos la pantalla y avisamos éxito al instante
-            ventasTotalesTurno += montoCobrado; 
-            window.cerrarPanel(); 
-            window.customAlert(`✅ Pago procesado por ₡${montoCobrado.toLocaleString()} con ${metodoPago}`);
-
-            // 2. Operaciones a Firebase en segundo plano
-            addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: montoCobrado, cliente: cliente, zona: zona, rondas: rondas }).catch(e=>console.log(e));
-            updateDoc(doc(db, "config", "cajaActual"), { ventasTurno: ventasTotalesTurno }).catch(e=>console.log(e));
+            const monto = elementoSeleccionado.total;
+            ventasTotalesTurno += monto;
+            ventasHistorialData.push({ fecha: new Date().toISOString(), metodo: metodoPago, total: monto, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre });
             
-            let conteoProductos = {}; 
-            rondas.forEach(r => { r.items.forEach(item => { if(!conteoProductos[item.nombre]) conteoProductos[item.nombre] = 0; conteoProductos[item.nombre]++; }); });
-            
-            for (const [nombreProd, cantidad] of Object.entries(conteoProductos)) {
-                const prod = datosRestaurante.productos.find(p => p.nombre === nombreProd);
-                if (prod) {
-                    let updates = { ventas: increment(cantidad) };
-                    if(prod.stock !== null && prod.stock !== undefined) {
-                        updates.stock = increment(-cantidad);
-                    }
-                    updateDoc(doc(db, "productos", prod.id), updates).catch(e => console.log(e));
-                }
+            if(elementoSeleccionado.nombre === 'Extra') {
+                datosRestaurante.barra = datosRestaurante.barra.filter(e => e.id !== elementoSeleccionado.id);
+            } else {
+                elementoSeleccionado.estado = 'libre';
+                elementoSeleccionado.cliente = '';
+                elementoSeleccionado.total = 0;
+                elementoSeleccionado.rondas = [];
             }
-            if(zona === 'Extra') { deleteDoc(doc(db, "espacios", idEspacio)).catch(e=>console.log(e)); } 
-            else { updateDoc(doc(db, "espacios", idEspacio), { estado: 'libre', cliente: '', total: 0, rondas: [] }).catch(e=>console.log(e)); }
+            guardarLocal();
+            window.cerrarPanel();
+            renderizarGridOperacion();
+            window.customAlert(`✅ Pago procesado por ₡${monto.toLocaleString()} con ${metodoPago}`);
         };
 
         window.abrirModalAgregar = function() { if (!elementoSeleccionado) return; document.getElementById('modal-subtitulo-cliente').innerText = `Agregando a: ${elementoSeleccionado.cliente}`; document.getElementById('input-buscar-modal').value = ''; busquedaModal = ''; itemsRondaTemporal = []; window.actualizarContadorModal(); window.renderizarPestanasModal(); document.getElementById('modal-agregar-producto').classList.remove('hidden'); };
         window.cerrarModalProductos = function() { document.getElementById('modal-agregar-producto').classList.add('hidden'); };
         window.renderizarPestanasModal = function() { const cont = document.getElementById('modal-categorias-container'); cont.innerHTML = `<button onclick="window.cambiarCategoriaModal('todas')" id="cat-todas" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Todas</button>`; datosRestaurante.categorias.forEach(c => { cont.innerHTML += `<button onclick="window.cambiarCategoriaModal('${c.id}')" id="cat-${c.id}" class="px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase">${c.nombre}</button>`; }); window.cambiarCategoriaModal('todas'); };
-        window.cambiarCategoriaModal = function(catId) { categoriaActivaModal = catId; const botones = document.getElementById('modal-categorias-container').querySelectorAll('button'); botones.forEach(btn => { if(btn.id === `cat-${catId}`) btn.className = "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm whitespace-nowrap uppercase"; else btn.className = "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm whitespace-nowrap uppercase"; }); window.renderizarProductosModal(); };
+        window.cambiarCategoriaModal = function(catId) { categoriaActivaModal = catId; const botones = document.getElementById('modal-categorias-container').querySelectorAll('button'); botones.forEach(btn => { btn.className = btn.id === `cat-${catId}` ? "px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-900 text-sm uppercase" : "px-4 py-2 rounded-lg font-bold bg-slate-800 text-slate-400 text-sm uppercase"; }); window.renderizarProductosModal(); };
         window.filtrarProductosModal = function(val) { busquedaModal = val; window.renderizarProductosModal(); };
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos'); grid.innerHTML = '';
-            const filtrados = datosRestaurante.productos.filter(p => { const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase()); const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal); return matchTexto && matchCat; }).sort((a, b) => (b.ventas || 0) - (a.ventas || 0));
+            const filtrados = datosRestaurante.productos.filter(p => p.nombre.toLowerCase().includes(busquedaModal.toLowerCase()) && (categoriaActivaModal === 'todas' || p.categoria === categoriaActivaModal));
             if(filtrados.length === 0) return grid.innerHTML = `<p class="col-span-full text-slate-500 text-center py-10">No hay productos</p>`;
             filtrados.forEach(prod => {
-                const btn = document.createElement('button'); btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-2.5 rounded-2xl flex items-center justify-between text-left active:scale-95 transition shadow-md relative"; btn.onclick = () => window.agregarItemTemporal(prod);
-                const imgHtml = prod.imagen ? `<img src="${prod.imagen}" class="h-14 w-14 object-contain shrink-0 mx-2 drop-shadow-md">` : '';
-                btn.innerHTML = `<div class="flex flex-col justify-center flex-1 min-w-0 pr-1"><span class="font-bold text-slate-200 text-sm leading-tight truncate mb-1">${prod.nombre}</span><span class="font-black text-emerald-400 text-sm">₡${prod.precio.toLocaleString()}</span></div>${imgHtml}`; grid.appendChild(btn);
+                const btn = document.createElement('button'); btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-2.5 rounded-2xl flex items-center justify-between text-left transition shadow-md"; btn.onclick = () => window.agregarItemTemporal(prod);
+                btn.innerHTML = `<div class="flex flex-col justify-center flex-1 min-w-0 pr-1"><span class="font-bold text-slate-200 text-sm truncate mb-1">${prod.nombre}</span><span class="font-black text-emerald-400 text-sm">₡${prod.precio.toLocaleString()}</span></div>`;
+                grid.appendChild(btn);
             });
         };
         window.agregarItemTemporal = function(prod) { itemsRondaTemporal.push({ nombre: prod.nombre, precio: prod.precio }); window.actualizarContadorModal(); };
-        window.actualizarContadorModal = function() { const subtotalRonda = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} seleccionados (Subtotal: ₡${subtotalRonda.toLocaleString()})`; };
+        window.actualizarContadorModal = function() { const sub = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} seleccionados (Subtotal: ₡${sub.toLocaleString()})`; };
         
-        // ACTUALIZACIÓN OPTIMISTA: Agregar rondas inmediatamente
         window.guardarRondaActual = function() { 
             if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione al menos un producto.'); 
-            const rondasActuales = [...(elementoSeleccionado.rondas || [])]; 
-            rondasActuales.push({ items: itemsRondaTemporal }); 
-            let sumaTotal = 0; 
-            rondasActuales.forEach(r => r.items.forEach(i => sumaTotal += i.precio)); 
-            
-            // Cambios instantáneos en pantalla
-            elementoSeleccionado.rondas = rondasActuales; 
-            elementoSeleccionado.total = sumaTotal; 
+            if(!elementoSeleccionado.rondas) elementoSeleccionado.rondas = [];
+            elementoSeleccionado.rondas.push({ items: itemsRondaTemporal }); 
+            let suma = 0; 
+            elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio)); 
+            elementoSeleccionado.total = suma; 
+            guardarLocal();
             window.actualizarListaPanel(); 
             window.cerrarModalProductos(); 
             renderizarGridOperacion();
-
-            // Guardar en la base de datos sin esperas
-            updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: rondasActuales, total: sumaTotal }).catch(e=>console.log(e)); 
         }; 
     </script>
 </body>
