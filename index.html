@@ -371,7 +371,6 @@
                     }
                 });
             }
-            // Forzar actualización visual inmediata de la tarjeta de ventas de hoy
             const lblVentasHoy = document.getElementById('txt-ventas-hoy');
             if(lblVentasHoy) lblVentasHoy.innerText = `₡${ventasTotalesTurno.toLocaleString()}`;
             
@@ -667,10 +666,16 @@
                             </div>`;
                         }
 
+                        // Indicador visual de ventas en panel admin (opcional)
+                        const ventasDisplay = p.ventasTotales ? `<div class="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-md mt-1"><i class="fa-solid fa-fire text-amber-500 mr-1"></i>${p.ventasTotales} vendidos</div>` : '';
+
                         html += `<div class="py-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                             <div class="flex items-center gap-4 overflow-hidden w-full sm:w-auto">
                                 ${img}
-                                <span class="font-bold text-slate-200 truncate">${p.nombre}</span>
+                                <div>
+                                    <span class="font-bold text-slate-200 truncate block">${p.nombre}</span>
+                                    ${ventasDisplay}
+                                </div>
                             </div>
                             <div class="flex items-center justify-end gap-3 shrink-0 w-full sm:w-auto">
                                 ${stockDisplay}
@@ -871,6 +876,7 @@
                     precio: isVariantes ? null : precio, 
                     variantes: isVariantes ? variantes : null,
                     stock: isVariantes ? null : stock, 
+                    ventasTotales: 0, // Inicia contador
                     imagen: img 
                 });
                 window.customAlert('¡Producto creado exitosamente!');
@@ -915,12 +921,19 @@
 
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos'); grid.innerHTML = '';
-            const filtrados = datosRestaurante.productos.filter(p => {
+            
+            // Filtrar productos
+            let filtrados = datosRestaurante.productos.filter(p => {
                 const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase());
                 const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
                 return matchTexto && matchCat;
             });
+
+            // NUEVO: Ordenar por más vendidos (de mayor a menor)
+            filtrados.sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0));
+
             if(filtrados.length === 0) return grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p>No hay productos disponibles.</p></div>`;
+            
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
                 btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-3 rounded-2xl flex flex-col justify-between text-center transition shadow-lg h-auto relative overflow-hidden active:scale-95";
@@ -938,7 +951,13 @@
                     ? `<span class="font-bold text-amber-400 text-xs w-full bg-slate-800 rounded-md py-1 mt-1"><i class="fa-solid fa-layer-group mr-1"></i> Varios tamaños</span>` 
                     : `<span class="font-black text-emerald-400 text-base w-full">₡${prod.precio.toLocaleString()}</span>`;
 
-                btn.innerHTML = `${imgTag}<span class="font-bold text-slate-200 text-sm truncate w-full mb-1">${prod.nombre}</span>${precioTag}`;
+                // Insignia de popularidad si tiene muchas ventas
+                let popularBadge = '';
+                if (categoriaActivaModal === 'todas' && (prod.ventasTotales || 0) > 0) {
+                    popularBadge = `<div class="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg"><i class="fa-solid fa-fire mr-1"></i>${prod.ventasTotales}</div>`;
+                }
+
+                btn.innerHTML = `${popularBadge}${imgTag}<span class="font-bold text-slate-200 text-sm truncate w-full mb-1">${prod.nombre}</span>${precioTag}`;
                 grid.appendChild(btn);
             });
         };
@@ -1042,31 +1061,48 @@
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
         window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
-        window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('end'); document.getElementById('modal-cobro').classList.add('hidden'); };
+        window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('hidden'); };
 
         window.procesarPagoConfirmado = async function(metodoPago) {
             window.cerrarModalCobro();
             const monto = elementoSeleccionado.total;
             
             let cantidadesVendidas = {};
+            let itemsVendidosParaHistorial = [];
+            
             if (elementoSeleccionado.rondas) {
                 elementoSeleccionado.rondas.forEach(ronda => {
                     ronda.items.forEach(item => {
                         cantidadesVendidas[item.nombre] = (cantidadesVendidas[item.nombre] || 0) + 1;
+                        itemsVendidosParaHistorial.push(item);
                     });
                 });
             }
 
+            // NUEVO: Guardar items en el historial de ventas
+            await addDoc(collection(db, "ventas_historial"), { 
+                fecha: new Date().toISOString(), 
+                metodo: metodoPago, 
+                total: monto, 
+                cliente: elementoSeleccionado.cliente, 
+                zona: elementoSeleccionado.nombre,
+                items: itemsVendidosParaHistorial
+            });
+
+            // NUEVO: Sumar al ránking de productos más vendidos y descontar stock
             for (const [nombre, cant] of Object.entries(cantidadesVendidas)) {
-                const prod = datosRestaurante.productos.find(p => p.nombre === nombre);
-                if (prod && prod.stock !== null && prod.stock !== undefined) {
-                    let nuevoStock = prod.stock - cant;
-                    if (nuevoStock < 0) nuevoStock = 0;
-                    await updateDoc(doc(db, "productos", prod.id), { stock: nuevoStock });
+                const prod = datosRestaurante.productos.find(p => nombre.startsWith(p.nombre));
+                if (prod) {
+                    let updates = {};
+                    if (prod.stock !== null && prod.stock !== undefined) {
+                        let nuevoStock = prod.stock - cant;
+                        updates.stock = nuevoStock < 0 ? 0 : nuevoStock;
+                    }
+                    updates.ventasTotales = (prod.ventasTotales || 0) + cant;
+                    await updateDoc(doc(db, "productos", prod.id), updates);
                 }
             }
 
-            await addDoc(collection(db, "ventas_historial"), { fecha: new Date().toISOString(), metodo: metodoPago, total: monto, cliente: elementoSeleccionado.cliente, zona: elementoSeleccionado.nombre });
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             window.cerrarPanel();
             
