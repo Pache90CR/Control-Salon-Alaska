@@ -298,7 +298,7 @@
         let adminSubVista = 'dashboard';
         let elementoSeleccionado = null;
         let rolUsuario = '';
-        let esCobroRapido = false; // NUEVO: Bandera para saber si es venta express
+        let esCobroRapido = false; 
 
         let montoCajaInicial = 0;
         let ventasTotalesTurno = 0;
@@ -904,7 +904,7 @@
 
         window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto de la base de datos?')) await deleteDoc(doc(db, "productos", id)); };
 
-        // NUEVO: Función para abrir el modal en modo VENTA RÁPIDA
+        // Función para abrir el modal en modo VENTA RÁPIDA
         window.abrirCobroRapido = function() {
             esCobroRapido = true;
             itemsRondaTemporal = [];
@@ -1039,17 +1039,17 @@
         window.guardarRondaActual = async function() {
             if (itemsRondaTemporal.length === 0) return window.customAlert('Seleccione productos.');
             
-            // LÓGICA VENTA RÁPIDA
             if (esCobroRapido) {
                 let suma = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0);
                 window.cerrarModalProductos();
                 
+                // Creamos un objeto falso en memoria solo para pasarlo al cajero
                 elementoSeleccionado = {
                     id: 'flash',
                     cliente: 'Venta Rápida',
                     nombre: 'Mostrador',
                     total: suma,
-                    rondas: [{ items: itemsRondaTemporal }]
+                    rondas: [{ items: [...itemsRondaTemporal] }] // Hacemos una copia de los items
                 };
                 
                 document.getElementById('txt-total-cobro').innerText = `₡${suma.toLocaleString()}`; 
@@ -1057,12 +1057,13 @@
                 return;
             }
 
-            // LÓGICA MESA NORMAL
             if (!elementoSeleccionado) return;
             if(!elementoSeleccionado.rondas) elementoSeleccionado.rondas = [];
-            elementoSeleccionado.rondas.push({ items: itemsRondaTemporal });
+            
+            elementoSeleccionado.rondas.push({ items: [...itemsRondaTemporal] });
             let suma = 0; elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
             elementoSeleccionado.total = suma;
+            
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: elementoSeleccionado.rondas, total: suma });
             window.actualizarListaPanel(); window.cerrarModalProductos();
         };
@@ -1125,6 +1126,7 @@
         
         window.cerrarModalCobro = function() { 
             document.getElementById('modal-cobro').classList.add('hidden'); 
+            // Si el usuario cancela un pago rápido, reseteamos la variable para no dejarla sucia
             if (elementoSeleccionado && elementoSeleccionado.id === 'flash') {
                 elementoSeleccionado = null;
                 esCobroRapido = false;
@@ -1132,14 +1134,19 @@
         };
 
         window.procesarPagoConfirmado = async function(metodoPago) {
-            window.cerrarModalCobro();
-            const monto = elementoSeleccionado.total;
-            
+            // Guardamos la información antes de cerrar la ventana visualmente
+            const espacioCobro = elementoSeleccionado;
+            if (!espacioCobro) return;
+
+            // Ocultamos la ventana directo sin invocar a cerrarModalCobro (así no se borra la info)
+            document.getElementById('modal-cobro').classList.add('hidden');
+
+            const monto = espacioCobro.total;
             let cantidadesVendidas = {};
             let itemsVendidosParaHistorial = [];
             
-            if (elementoSeleccionado.rondas) {
-                elementoSeleccionado.rondas.forEach(ronda => {
+            if (espacioCobro.rondas) {
+                espacioCobro.rondas.forEach(ronda => {
                     ronda.items.forEach(item => {
                         cantidadesVendidas[item.nombre] = (cantidadesVendidas[item.nombre] || 0) + 1;
                         itemsVendidosParaHistorial.push(item);
@@ -1152,12 +1159,12 @@
                 fecha: new Date().toISOString(), 
                 metodo: metodoPago, 
                 total: monto, 
-                cliente: elementoSeleccionado.cliente, 
-                zona: elementoSeleccionado.nombre,
+                cliente: espacioCobro.cliente, 
+                zona: espacioCobro.nombre,
                 items: itemsVendidosParaHistorial
             });
 
-            // Sumar al ránking y descontar stock
+            // Sumar al ránking y descontar stock de Firebase
             for (const [nombre, cant] of Object.entries(cantidadesVendidas)) {
                 const prod = datosRestaurante.productos.find(p => nombre.startsWith(p.nombre));
                 if (prod) {
@@ -1171,12 +1178,12 @@
                 }
             }
 
-            // Resetear la mesa o limpiar si era cobro rápido
-            if (elementoSeleccionado.id === 'flash') {
+            // Limpiamos los datos temporales del pago rápido o liberamos la mesa física
+            if (espacioCobro.id === 'flash') {
                 elementoSeleccionado = null;
                 esCobroRapido = false;
             } else {
-                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
+                await updateDoc(doc(db, "espacios", espacioCobro.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
                 window.cerrarPanel();
             }
             
