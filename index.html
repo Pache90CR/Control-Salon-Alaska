@@ -131,7 +131,7 @@
             </div>
             <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center shrink-0">
                 <span id="txt-items-seleccionados" class="text-xs sm:text-sm text-slate-400 font-bold">0 seleccionados</span>
-                <button onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 sm:px-6 py-3 rounded-xl transition shadow-lg text-sm sm:text-base"><i class="fa-solid fa-check mr-2"></i> Confirmar Ronda</button>
+                <button id="btn-confirmar-ronda" onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 sm:px-6 py-3 rounded-xl transition shadow-lg text-sm sm:text-base"><i class="fa-solid fa-check mr-2"></i> Confirmar Ronda</button>
             </div>
         </div>
     </div>
@@ -216,7 +216,11 @@
         <section class="flex-1 p-4 md:p-6 overflow-y-auto pro-scroll w-full" id="area-operacion">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
                 <h2 id="titulo-vista" class="text-2xl font-black text-slate-100">Control de Barra</h2>
-                <button id="btn-agregar-barra" onclick="window.agregarClienteExtraBarra()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center gap-2"><i class="fa-solid fa-user-plus"></i> Cliente Extra</button>
+                <!-- BOTONES DE ACCIÓN: VENTA RÁPIDA Y CLIENTE EXTRA -->
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="window.abrirCobroRapido()" class="flex-1 sm:flex-none bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-900 font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition"><i class="fa-solid fa-bolt"></i> Venta Rápida</button>
+                    <button id="btn-agregar-barra" onclick="window.agregarClienteExtraBarra()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition"><i class="fa-solid fa-user-plus"></i> Cliente Extra</button>
+                </div>
             </div>
             <div id="grid-elementos" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 w-full"></div>
         </section>
@@ -294,6 +298,7 @@
         let adminSubVista = 'dashboard';
         let elementoSeleccionado = null;
         let rolUsuario = '';
+        let esCobroRapido = false; // NUEVO: Bandera para saber si es venta express
 
         let montoCajaInicial = 0;
         let ventasTotalesTurno = 0;
@@ -666,7 +671,6 @@
                             </div>`;
                         }
 
-                        // Indicador visual de ventas en panel admin (opcional)
                         const ventasDisplay = p.ventasTotales ? `<div class="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-md mt-1"><i class="fa-solid fa-fire text-amber-500 mr-1"></i>${p.ventasTotales} vendidos</div>` : '';
 
                         html += `<div class="py-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
@@ -755,6 +759,12 @@
                 document.getElementById('btn-tab-admin').style.display = 'none';
                 document.getElementById('modal-login').classList.remove('hidden');
             }
+        };
+
+        window.agregarClienteExtraBarra = async function() {
+            const nom = await window.customPrompt("Nombre del nuevo cliente:");
+            if(!nom) return;
+            await addDoc(collection(db, "espacios"), { nombre: 'Mesa Extra', categoria: vistaActual, estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
         };
 
         window.adminAgregarEspacio = async function() {
@@ -876,7 +886,7 @@
                     precio: isVariantes ? null : precio, 
                     variantes: isVariantes ? variantes : null,
                     stock: isVariantes ? null : stock, 
-                    ventasTotales: 0, // Inicia contador
+                    ventasTotales: 0,
                     imagen: img 
                 });
                 window.customAlert('¡Producto creado exitosamente!');
@@ -894,13 +904,46 @@
 
         window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto de la base de datos?')) await deleteDoc(doc(db, "productos", id)); };
 
-        window.abrirModalAgregar = function() {
-            if (!elementoSeleccionado) return;
-            document.getElementById('modal-subtitulo-cliente').innerText = `Cliente: ${elementoSeleccionado.cliente}`;
-            itemsRondaTemporal = []; window.renderizarPestanasModal(); document.getElementById('modal-agregar-producto').classList.remove('hidden');
+        // NUEVO: Función para abrir el modal en modo VENTA RÁPIDA
+        window.abrirCobroRapido = function() {
+            esCobroRapido = true;
+            itemsRondaTemporal = [];
+            
+            document.getElementById('modal-subtitulo-cliente').innerText = `Venta Rápida (Sin Mesa)`;
+            const btnConfirmar = document.getElementById('btn-confirmar-ronda');
+            btnConfirmar.innerHTML = `<i class="fa-solid fa-bolt mr-2"></i> Cobrar Ahora`;
+            btnConfirmar.classList.replace('bg-emerald-600', 'bg-amber-500');
+            btnConfirmar.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-400');
+            btnConfirmar.classList.add('text-slate-900');
+            btnConfirmar.classList.remove('text-white');
+            
+            window.renderizarPestanasModal(); 
+            window.actualizarContadorModal();
+            document.getElementById('modal-agregar-producto').classList.remove('hidden');
         };
 
-        window.cerrarModalProductos = function() { document.getElementById('modal-agregar-producto').classList.add('hidden'); };
+        window.abrirModalAgregar = function() {
+            if (!elementoSeleccionado) return;
+            esCobroRapido = false;
+            
+            document.getElementById('modal-subtitulo-cliente').innerText = `Cliente: ${elementoSeleccionado.cliente}`;
+            const btnConfirmar = document.getElementById('btn-confirmar-ronda');
+            btnConfirmar.innerHTML = `<i class="fa-solid fa-check mr-2"></i> Confirmar Ronda`;
+            btnConfirmar.classList.replace('bg-amber-500', 'bg-emerald-600');
+            btnConfirmar.classList.replace('hover:bg-amber-400', 'hover:bg-emerald-500');
+            btnConfirmar.classList.add('text-white');
+            btnConfirmar.classList.remove('text-slate-900');
+
+            itemsRondaTemporal = []; 
+            window.renderizarPestanasModal(); 
+            window.actualizarContadorModal();
+            document.getElementById('modal-agregar-producto').classList.remove('hidden');
+        };
+
+        window.cerrarModalProductos = function() { 
+            document.getElementById('modal-agregar-producto').classList.add('hidden'); 
+            esCobroRapido = false;
+        };
 
         window.renderizarPestanasModal = function() {
             const cont = document.getElementById('modal-categorias-container');
@@ -922,14 +965,12 @@
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos'); grid.innerHTML = '';
             
-            // Filtrar productos
             let filtrados = datosRestaurante.productos.filter(p => {
                 const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase());
                 const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
                 return matchTexto && matchCat;
             });
 
-            // NUEVO: Ordenar por más vendidos (de mayor a menor)
             filtrados.sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0));
 
             if(filtrados.length === 0) return grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p>No hay productos disponibles.</p></div>`;
@@ -951,7 +992,6 @@
                     ? `<span class="font-bold text-amber-400 text-xs w-full bg-slate-800 rounded-md py-1 mt-1"><i class="fa-solid fa-layer-group mr-1"></i> Varios tamaños</span>` 
                     : `<span class="font-black text-emerald-400 text-base w-full">₡${prod.precio.toLocaleString()}</span>`;
 
-                // Insignia de popularidad si tiene muchas ventas
                 let popularBadge = '';
                 if (categoriaActivaModal === 'todas' && (prod.ventasTotales || 0) > 0) {
                     popularBadge = `<div class="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg"><i class="fa-solid fa-fire mr-1"></i>${prod.ventasTotales}</div>`;
@@ -997,7 +1037,28 @@
         window.actualizarContadorModal = function() { const sub = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} (₡${sub.toLocaleString()})`; };
 
         window.guardarRondaActual = async function() {
-            if (!elementoSeleccionado || itemsRondaTemporal.length === 0) return window.customAlert('Seleccione productos.');
+            if (itemsRondaTemporal.length === 0) return window.customAlert('Seleccione productos.');
+            
+            // LÓGICA VENTA RÁPIDA
+            if (esCobroRapido) {
+                let suma = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0);
+                window.cerrarModalProductos();
+                
+                elementoSeleccionado = {
+                    id: 'flash',
+                    cliente: 'Venta Rápida',
+                    nombre: 'Mostrador',
+                    total: suma,
+                    rondas: [{ items: itemsRondaTemporal }]
+                };
+                
+                document.getElementById('txt-total-cobro').innerText = `₡${suma.toLocaleString()}`; 
+                document.getElementById('modal-cobro').classList.remove('hidden');
+                return;
+            }
+
+            // LÓGICA MESA NORMAL
+            if (!elementoSeleccionado) return;
             if(!elementoSeleccionado.rondas) elementoSeleccionado.rondas = [];
             elementoSeleccionado.rondas.push({ items: itemsRondaTemporal });
             let suma = 0; elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
@@ -1061,7 +1122,14 @@
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
         window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
-        window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('hidden'); };
+        
+        window.cerrarModalCobro = function() { 
+            document.getElementById('modal-cobro').classList.add('hidden'); 
+            if (elementoSeleccionado && elementoSeleccionado.id === 'flash') {
+                elementoSeleccionado = null;
+                esCobroRapido = false;
+            }
+        };
 
         window.procesarPagoConfirmado = async function(metodoPago) {
             window.cerrarModalCobro();
@@ -1079,7 +1147,7 @@
                 });
             }
 
-            // NUEVO: Guardar items en el historial de ventas
+            // Guardar items en el historial de ventas
             await addDoc(collection(db, "ventas_historial"), { 
                 fecha: new Date().toISOString(), 
                 metodo: metodoPago, 
@@ -1089,7 +1157,7 @@
                 items: itemsVendidosParaHistorial
             });
 
-            // NUEVO: Sumar al ránking de productos más vendidos y descontar stock
+            // Sumar al ránking y descontar stock
             for (const [nombre, cant] of Object.entries(cantidadesVendidas)) {
                 const prod = datosRestaurante.productos.find(p => nombre.startsWith(p.nombre));
                 if (prod) {
@@ -1103,8 +1171,14 @@
                 }
             }
 
-            await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
-            window.cerrarPanel();
+            // Resetear la mesa o limpiar si era cobro rápido
+            if (elementoSeleccionado.id === 'flash') {
+                elementoSeleccionado = null;
+                esCobroRapido = false;
+            } else {
+                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
+                window.cerrarPanel();
+            }
             
             window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago})`);
         };
