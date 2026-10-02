@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bar Restaurante Alaska - Control Total</title>
+    
+    <!-- ETIQUETAS PWA PARA INSTALACIÓN -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="179967.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -300,7 +306,6 @@
         let categoriasColapsadas = new Set();
 
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
-        // AÑADIDO: Arreglo 'ventas' a datosRestaurante
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [], ventas: [] };
 
         // ESCUCHAS DE FIREBASE
@@ -328,7 +333,7 @@
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
-        // NUEVA ESCUCHA: Historial de Ventas (Para los gráficos)
+        // ESCUCHA: Historial de Ventas (Para los gráficos)
         onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
             datosRestaurante.ventas = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.ventas.push(data); });
@@ -515,7 +520,7 @@
                     ventasPorDia[4], ventasPorDia[5], ventasPorDia[6], ventasPorDia[0]
                 ];
                 
-                const maxVenta = Math.max(...datosOrdenados, 1); // Evitar división por cero
+                const maxVenta = Math.max(...datosOrdenados, 1); 
 
                 // CREACIÓN DEL GRÁFICO HTML
                 let graficasHtml = `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl mt-2 w-full">
@@ -888,7 +893,7 @@
                 const imgTag = prod.imagen ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md"></div>` : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
                 
                 const precioTag = isVar 
-                    ? `<span class="font-bold text-amber-400 text-xs w-full bg-slate-800 rounded-md py-1 mt-1"><i class="fa-solid fa-layer-group mr-1"></i> Variantes</span>` 
+                    ? `<span class="font-bold text-amber-400 text-xs w-full bg-slate-800 rounded-md py-1 mt-1"><i class="fa-solid fa-layer-group mr-1"></i> Varios tamaños</span>` 
                     : `<span class="font-black text-emerald-400 text-base w-full">₡${prod.precio.toLocaleString()}</span>`;
 
                 btn.innerHTML = `${imgTag}<span class="font-bold text-slate-200 text-sm truncate w-full mb-1">${prod.nombre}</span>${precioTag}`;
@@ -1026,9 +1031,17 @@
             await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
             window.cerrarPanel();
             
-            // AVISO DE COBRO CORTO Y DIRECTO (Eliminado el texto del stock)
             window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago})`);
         };
+    </script>
+
+    <!-- REGISTRO DEL SERVICE WORKER (Necesario para instalación) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+            .then(() => console.log('Service Worker registrado correctamente'))
+            .catch(err => console.log('Error al registrar el Service Worker', err));
+        }
     </script>
 </body>
 </html>
