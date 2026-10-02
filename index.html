@@ -81,20 +81,20 @@
                 <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
                 <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
             </div>
-            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Conectado y listo 🟢</p>
+            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Conectado y sincronizado 🟢</p>
         </div>
     </div>
 
     <!-- MODAL DE APERTURA DE CAJA -->
     <div id="modal-caja" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-md shadow-2xl">
-            <h3 class="text-2xl font-black text-amber-400 mb-2"><i class="fa-solid fa-cash-register mr-2"></i> Apertura de Caja</h3>
-            <p class="text-sm text-slate-400 mb-6">Fondo inicial:</p>
+            <h3 class="text-2xl font-black text-amber-400 mb-2"><i class="fa-solid fa-cash-register mr-2"></i> Apertura de Turno</h3>
+            <p class="text-sm text-slate-400 mb-6">Fondo base en caja:</p>
             <div class="relative mb-6">
                 <span class="absolute left-4 top-3 text-slate-400 font-bold text-lg">₡</span>
                 <input type="number" id="input-monto-caja" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xl font-bold text-emerald-400 focus:outline-none focus:border-amber-500" value="25000">
             </div>
-            <button onclick="window.abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg">Abrir Turno</button>
+            <button onclick="window.abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg">Abrir Turno General</button>
         </div>
     </div>
 
@@ -275,7 +275,7 @@
     <!-- SCRIPT PRINCIPAL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -295,9 +295,11 @@
         let elementoSeleccionado = null;
         let rolUsuario = '';
 
-        let montoCajaInicial = parseFloat(localStorage.getItem('alaska_caja_fondo')) || 0;
-        let ventasTotalesTurno = parseFloat(localStorage.getItem('alaska_caja_ventas')) || 0;
-        let cajaAbierta = localStorage.getItem('alaska_caja_estado') === 'abierta';
+        // VARIABLES DE CAJA (Ahora se leen de Firebase, no del dispositivo)
+        let montoCajaInicial = 0;
+        let ventasTotalesTurno = 0;
+        let cajaAbierta = false;
+        let fechaAperturaCaja = null;
 
         let busquedaModal = '';
         let categoriaActivaModal = 'todas';
@@ -333,12 +335,49 @@
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
-        // ESCUCHA: Historial de Ventas (Para los gráficos)
+        // NUEVO SISTEMA DE CAJA SINCRONIZADA
+        onSnapshot(doc(db, "sistema", "caja"), (documento) => {
+            if (documento.exists()) {
+                const data = documento.data();
+                cajaAbierta = data.estado === 'abierta';
+                montoCajaInicial = data.fondoInicial || 0;
+                fechaAperturaCaja = data.fechaApertura;
+                window.calcularVentasTurno();
+            } else {
+                cajaAbierta = false;
+            }
+            
+            if (cajaAbierta) {
+                document.getElementById('modal-caja').classList.add('hidden');
+                document.getElementById('info-caja-header').classList.remove('hidden');
+                if (rolUsuario === 'admin' && vistaActual === 'barra') window.cambiarVista('admin');
+            } else {
+                document.getElementById('info-caja-header').classList.add('hidden');
+            }
+        });
+
+        // ESCUCHA HISTORIAL DE VENTAS (Gráficas y Suma de Turno)
         onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
             datosRestaurante.ventas = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.ventas.push(data); });
+            window.calcularVentasTurno();
             if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarModuloAdmin();
         });
+
+        // FUNCIÓN QUE CALCULA EL TOTAL AUTOMÁTICAMENTE
+        window.calcularVentasTurno = function() {
+            ventasTotalesTurno = 0;
+            if(cajaAbierta && fechaAperturaCaja) {
+                const fechaApertura = new Date(fechaAperturaCaja);
+                datosRestaurante.ventas.forEach(v => {
+                    // Sumar solo las ventas cobradas DESPUÉS de abrir el turno actual
+                    if(v.fecha && new Date(v.fecha) >= fechaApertura) {
+                        ventasTotalesTurno += v.total;
+                    }
+                });
+            }
+            if(vistaActual === 'admin' && (adminSubVista === 'dashboard' || adminSubVista === 'caja')) renderizarModuloAdmin();
+        };
 
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
@@ -383,13 +422,17 @@
             }
         };
 
-        window.abrirCaja = function() {
+        window.abrirCaja = async function() {
             const val = document.getElementById('input-monto-caja').value; 
             if(!val) return;
-            montoCajaInicial = parseFloat(val);
-            cajaAbierta = true;
-            localStorage.setItem('alaska_caja_fondo', montoCajaInicial);
-            localStorage.setItem('alaska_caja_estado', 'abierta');
+            
+            // Abrir caja y sincronizar con todos los dispositivos
+            await setDoc(doc(db, "sistema", "caja"), {
+                estado: 'abierta',
+                fondoInicial: parseFloat(val),
+                fechaApertura: new Date().toISOString()
+            });
+            
             document.getElementById('modal-caja').classList.add('hidden'); 
             window.cambiarVista('admin');
         };
@@ -498,8 +541,8 @@
                 const espaciosOcupados = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].filter(e => e.estado === 'ocupada').length;
                 const totalProductos = datosRestaurante.productos.length;
 
-                // CÁLCULO DE VENTAS SEMANALES (Últimos 7 días)
-                let ventasPorDia = [0, 0, 0, 0, 0, 0, 0]; // Dom, Lun, Mar, Mie, Jue, Vie, Sab
+                // CÁLCULO DE VENTAS SEMANALES (Últimos 7 días para el gráfico)
+                let ventasPorDia = [0, 0, 0, 0, 0, 0, 0];
                 const hoy = new Date();
                 const hace7Dias = new Date();
                 hace7Dias.setDate(hoy.getDate() - 7);
@@ -513,7 +556,6 @@
                     }
                 });
 
-                // Ordenar: L, M, W, J, V, S, D
                 const labelsOrdenados = ['L', 'M', 'W', 'J', 'V', 'S', 'D'];
                 const datosOrdenados = [
                     ventasPorDia[1], ventasPorDia[2], ventasPorDia[3],
@@ -522,7 +564,6 @@
                 
                 const maxVenta = Math.max(...datosOrdenados, 1); 
 
-                // CREACIÓN DEL GRÁFICO HTML
                 let graficasHtml = `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl mt-2 w-full">
                     <h3 class="text-slate-400 text-xs font-bold uppercase mb-6 flex items-center gap-2"><i class="fa-solid fa-chart-column text-amber-500"></i> Ventas de la semana (Últimos 7 días)</h3>
                     <div class="flex items-end justify-between h-40 gap-2 sm:gap-4 px-2">`;
@@ -699,8 +740,14 @@
 
         window.cerrarTurnoDefinitivo = async function() {
             if(confirm("¿Estás seguro de que deseas cerrar el turno actual? Las ventas en caja se pondrán en 0 y se cerrará la sesión.")) {
-                montoCajaInicial = 0; ventasTotalesTurno = 0; cajaAbierta = false;
-                localStorage.removeItem('alaska_caja_fondo'); localStorage.removeItem('alaska_caja_ventas'); localStorage.setItem('alaska_caja_estado', 'cerrada');
+                
+                // Cierra la caja en la base de datos para todos los dispositivos
+                await setDoc(doc(db, "sistema", "caja"), {
+                    estado: 'cerrada',
+                    fondoInicial: 0,
+                    fechaApertura: null
+                });
+                
                 rolUsuario = '';
                 window.customAlert("Turno cerrado exitosamente. Buen trabajo hoy.");
                 document.getElementById('area-admin').classList.add('hidden'); document.getElementById('area-operacion').classList.add('hidden');
@@ -1005,8 +1052,6 @@
         window.procesarPagoConfirmado = async function(metodoPago) {
             window.cerrarModalCobro();
             const monto = elementoSeleccionado.total;
-            ventasTotalesTurno += monto;
-            localStorage.setItem('alaska_caja_ventas', ventasTotalesTurno);
             
             // DESCUENTO DE STOCK AUTOMÁTICO
             let cantidadesVendidas = {};
@@ -1035,7 +1080,7 @@
         };
     </script>
 
-    <!-- REGISTRO DEL SERVICE WORKER (Necesario para instalación) -->
+    <!-- REGISTRO DEL SERVICE WORKER -->
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
