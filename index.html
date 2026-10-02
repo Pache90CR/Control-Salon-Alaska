@@ -295,7 +295,6 @@
         let elementoSeleccionado = null;
         let rolUsuario = '';
 
-        // VARIABLES DE CAJA (Ahora se leen de Firebase, no del dispositivo)
         let montoCajaInicial = 0;
         let ventasTotalesTurno = 0;
         let cajaAbierta = false;
@@ -335,7 +334,6 @@
             if(vistaActual === 'admin' && (adminSubVista === 'menu' || adminSubVista === 'categorias')) renderizarModuloAdmin();
         });
 
-        // NUEVO SISTEMA DE CAJA SINCRONIZADA
         onSnapshot(doc(db, "sistema", "caja"), (documento) => {
             if (documento.exists()) {
                 const data = documento.data();
@@ -356,7 +354,6 @@
             }
         });
 
-        // ESCUCHA HISTORIAL DE VENTAS (Gráficas y Suma de Turno)
         onSnapshot(collection(db, "ventas_historial"), (snapshot) => {
             datosRestaurante.ventas = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.ventas.push(data); });
@@ -364,18 +361,20 @@
             if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarModuloAdmin();
         });
 
-        // FUNCIÓN QUE CALCULA EL TOTAL AUTOMÁTICAMENTE
         window.calcularVentasTurno = function() {
             ventasTotalesTurno = 0;
             if(cajaAbierta && fechaAperturaCaja) {
                 const fechaApertura = new Date(fechaAperturaCaja);
                 datosRestaurante.ventas.forEach(v => {
-                    // Sumar solo las ventas cobradas DESPUÉS de abrir el turno actual
                     if(v.fecha && new Date(v.fecha) >= fechaApertura) {
                         ventasTotalesTurno += v.total;
                     }
                 });
             }
+            // Forzar actualización visual inmediata de la tarjeta de ventas de hoy
+            const lblVentasHoy = document.getElementById('txt-ventas-hoy');
+            if(lblVentasHoy) lblVentasHoy.innerText = `₡${ventasTotalesTurno.toLocaleString()}`;
+            
             if(vistaActual === 'admin' && (adminSubVista === 'dashboard' || adminSubVista === 'caja')) renderizarModuloAdmin();
         };
 
@@ -426,7 +425,6 @@
             const val = document.getElementById('input-monto-caja').value; 
             if(!val) return;
             
-            // Abrir caja y sincronizar con todos los dispositivos
             await setDoc(doc(db, "sistema", "caja"), {
                 estado: 'abierta',
                 fondoInicial: parseFloat(val),
@@ -541,7 +539,6 @@
                 const espaciosOcupados = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].filter(e => e.estado === 'ocupada').length;
                 const totalProductos = datosRestaurante.productos.length;
 
-                // CÁLCULO DE VENTAS SEMANALES (Últimos 7 días para el gráfico)
                 let ventasPorDia = [0, 0, 0, 0, 0, 0, 0];
                 const hoy = new Date();
                 const hace7Dias = new Date();
@@ -590,7 +587,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl"><i class="fa-solid fa-money-bill-trend-up"></i></div>
-                            <div><p class="text-slate-400 text-xs font-bold uppercase">Ventas Hoy</p><p class="text-2xl font-black text-white">₡${ventasTotalesTurno.toLocaleString()}</p></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase">Ventas Hoy</p><p id="txt-ventas-hoy" class="text-2xl font-black text-white">₡${ventasTotalesTurno.toLocaleString()}</p></div>
                         </div>
                         <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl"><i class="fa-solid fa-cash-register"></i></div>
@@ -740,8 +737,6 @@
 
         window.cerrarTurnoDefinitivo = async function() {
             if(confirm("¿Estás seguro de que deseas cerrar el turno actual? Las ventas en caja se pondrán en 0 y se cerrará la sesión.")) {
-                
-                // Cierra la caja en la base de datos para todos los dispositivos
                 await setDoc(doc(db, "sistema", "caja"), {
                     estado: 'cerrada',
                     fondoInicial: 0,
@@ -1047,13 +1042,12 @@
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
         window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
-        window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('hidden'); };
+        window.cerrarModalCobro = function() { document.getElementById('modal-cobro').classList.add('end'); document.getElementById('modal-cobro').classList.add('hidden'); };
 
         window.procesarPagoConfirmado = async function(metodoPago) {
             window.cerrarModalCobro();
             const monto = elementoSeleccionado.total;
             
-            // DESCUENTO DE STOCK AUTOMÁTICO
             let cantidadesVendidas = {};
             if (elementoSeleccionado.rondas) {
                 elementoSeleccionado.rondas.forEach(ronda => {
