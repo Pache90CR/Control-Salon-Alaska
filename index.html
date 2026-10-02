@@ -94,7 +94,8 @@
                 <span class="absolute left-4 top-3 text-slate-400 font-bold text-lg">₡</span>
                 <input type="number" id="input-monto-caja" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xl font-bold text-emerald-400 focus:outline-none focus:border-amber-500" value="25000">
             </div>
-            <button onclick="window.abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg">Abrir Turno General</button>
+            <button onclick="window.abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg mb-3">Abrir Turno General</button>
+            <button onclick="window.entrarSinCaja()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-3 rounded-xl transition text-sm">Solo entrar a panel (Sin abrir caja)</button>
         </div>
     </div>
 
@@ -202,11 +203,14 @@
                 <p id="info-caja-header" class="text-xs text-emerald-500 font-bold hidden bg-emerald-500/10 inline-block px-2 py-0.5 rounded-full mt-1 border border-emerald-500/20">Caja abierta</p>
             </div>
         </div>
-        <div id="tabs-operacion" class="flex overflow-x-auto bg-slate-950 p-1 rounded-xl border border-slate-800 hide-scrollbar shrink-0 w-full sm:w-auto">
+        <!-- PESTAÑAS Y BOTÓN CERRAR SESIÓN -->
+        <div id="tabs-operacion" class="flex overflow-x-auto bg-slate-950 p-1 rounded-xl border border-slate-800 hide-scrollbar shrink-0 w-full sm:w-auto gap-1">
             <button onclick="window.cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
             <button onclick="window.cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
             <button onclick="window.cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
             <button onclick="window.cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
+            <div class="w-px bg-slate-800 mx-1"></div>
+            <button onclick="window.cerrarSesion()" class="px-4 py-2 rounded-lg font-semibold transition text-rose-500 hover:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-sm whitespace-nowrap ml-auto" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
         <button onclick="window.cambiarVista('barra')" id="btn-volver-operacion" class="hidden px-5 py-2 rounded-xl font-bold bg-slate-800 border border-slate-700 text-slate-300 text-sm whitespace-nowrap w-max"><i class="fa-solid fa-arrow-left mr-2"></i> Volver a Salón</button>
     </header>
@@ -353,7 +357,6 @@
             if (cajaAbierta) {
                 document.getElementById('modal-caja').classList.add('hidden');
                 document.getElementById('info-caja-header').classList.remove('hidden');
-                if (rolUsuario === 'admin' && vistaActual === 'barra') window.cambiarVista('admin');
             } else {
                 document.getElementById('info-caja-header').classList.add('hidden');
             }
@@ -371,6 +374,7 @@
             if(cajaAbierta && fechaAperturaCaja) {
                 const fechaApertura = new Date(fechaAperturaCaja);
                 datosRestaurante.ventas.forEach(v => {
+                    // Validamos que la venta pertenezca al turno actual comprobando que su fecha sea posterior a la apertura
                     if(v.fecha && new Date(v.fecha) >= fechaApertura) {
                         ventasTotalesTurno += v.total;
                     }
@@ -409,6 +413,18 @@
             });
         };
 
+        // NUEVO: Función de cierre de sesión
+        window.cerrarSesion = function() {
+            rolUsuario = '';
+            document.getElementById('area-admin').classList.add('hidden');
+            document.getElementById('area-operacion').classList.add('hidden');
+            document.getElementById('tabs-operacion').classList.add('hidden');
+            document.getElementById('btn-volver-operacion').classList.add('hidden');
+            document.getElementById('btn-tab-admin').style.display = 'none';
+            document.getElementById('modal-login').classList.remove('hidden');
+            window.cerrarPanel();
+        };
+
         window.seleccionarRol = async function(rol) {
             if(rol === 'admin') {
                 const pin = await window.customPromptPin("Ingrese PIN Administrador:");
@@ -436,6 +452,12 @@
             });
             
             document.getElementById('modal-caja').classList.add('hidden'); 
+            window.cambiarVista('admin');
+        };
+
+        // NUEVO: Función para saltarse abrir caja y solo revisar datos
+        window.entrarSinCaja = function() {
+            document.getElementById('modal-caja').classList.add('hidden');
             window.cambiarVista('admin');
         };
 
@@ -550,9 +572,10 @@
 
                 datosRestaurante.ventas.forEach(v => {
                     if (v.fecha) {
-                        const fechaVenta = new Date(v.fecha);
-                        if(fechaVenta >= hace7Dias) {
-                            ventasPorDia[fechaVenta.getDay()] += v.total;
+                        // NUEVO: Lee el día del "Turno" en vez del día calendario literal
+                        const fechaReferencia = new Date(v.fechaTurno || v.fecha);
+                        if(fechaReferencia >= hace7Dias) {
+                            ventasPorDia[fechaReferencia.getDay()] += v.total;
                         }
                     }
                 });
@@ -566,7 +589,7 @@
                 const maxVenta = Math.max(...datosOrdenados, 1); 
 
                 let graficasHtml = `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl mt-2 w-full">
-                    <h3 class="text-slate-400 text-xs font-bold uppercase mb-6 flex items-center gap-2"><i class="fa-solid fa-chart-column text-amber-500"></i> Ventas de la semana (Últimos 7 días)</h3>
+                    <h3 class="text-slate-400 text-xs font-bold uppercase mb-6 flex items-center gap-2"><i class="fa-solid fa-chart-column text-amber-500"></i> Ventas por Turno (Últimos 7 días)</h3>
                     <div class="flex items-end justify-between h-40 gap-2 sm:gap-4 px-2">`;
                 
                 datosOrdenados.forEach((val, idx) => {
@@ -595,7 +618,7 @@
                         </div>
                         <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl"><i class="fa-solid fa-cash-register"></i></div>
-                            <div><p class="text-slate-400 text-xs font-bold uppercase">Fondo Base</p><p class="text-2xl font-black text-white">₡${montoCajaInicial.toLocaleString()}</p></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase">Fondo Base</p><p class="text-2xl font-black text-white">₡${cajaAbierta ? montoCajaInicial.toLocaleString() : 'Caja Cerrada'}</p></div>
                         </div>
                         <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl shadow-xl flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
@@ -613,6 +636,7 @@
                 const totalEsperado = montoCajaInicial + ventasTotalesTurno;
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-20">
                     <h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Cierre de Caja</h2>
+                    ${!cajaAbierta ? `<div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-amber-400 font-bold mb-6 flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation"></i> La caja está actualmente cerrada. Ábrela al iniciar un turno para registrar ventas y cierres.</div>` : ''}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-center">
                             <h3 class="text-amber-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-calculator mr-2"></i> Balance del Sistema</h3>
@@ -625,7 +649,7 @@
                                 <span class="text-2xl font-black text-amber-400">₡${totalEsperado.toLocaleString()}</span>
                             </div>
                         </div>
-                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl ${!cajaAbierta ? 'opacity-50 pointer-events-none' : ''}">
                             <h3 class="text-emerald-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-money-bill-wave mr-2"></i> Conteo Físico</h3>
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ingresa el dinero en caja (₡)</label>
                             <input type="number" id="input-dinero-fisico" onkeyup="window.calcularDiferenciaCaja(${totalEsperado})" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-4 text-2xl font-black text-emerald-400 focus:outline-none focus:border-amber-500 text-center shadow-inner mb-4 transition" placeholder="0">
@@ -752,12 +776,8 @@
                     fechaApertura: null
                 });
                 
-                rolUsuario = '';
                 window.customAlert("Turno cerrado exitosamente. Buen trabajo hoy.");
-                document.getElementById('area-admin').classList.add('hidden'); document.getElementById('area-operacion').classList.add('hidden');
-                document.getElementById('tabs-operacion').classList.add('hidden'); document.getElementById('btn-volver-operacion').classList.add('hidden');
-                document.getElementById('btn-tab-admin').style.display = 'none';
-                document.getElementById('modal-login').classList.remove('hidden');
+                window.cerrarSesion();
             }
         };
 
@@ -1126,7 +1146,6 @@
         
         window.cerrarModalCobro = function() { 
             document.getElementById('modal-cobro').classList.add('hidden'); 
-            // Si el usuario cancela un pago rápido, reseteamos la variable para no dejarla sucia
             if (elementoSeleccionado && elementoSeleccionado.id === 'flash') {
                 elementoSeleccionado = null;
                 esCobroRapido = false;
@@ -1134,11 +1153,9 @@
         };
 
         window.procesarPagoConfirmado = async function(metodoPago) {
-            // Guardamos la información antes de cerrar la ventana visualmente
             const espacioCobro = elementoSeleccionado;
             if (!espacioCobro) return;
 
-            // Ocultamos la ventana directo sin invocar a cerrarModalCobro (así no se borra la info)
             document.getElementById('modal-cobro').classList.add('hidden');
 
             const monto = espacioCobro.total;
@@ -1154,9 +1171,10 @@
                 });
             }
 
-            // Guardar items en el historial de ventas
+            // NUEVO: Guardar la fechaTurno ligada a la apertura de la caja
             await addDoc(collection(db, "ventas_historial"), { 
                 fecha: new Date().toISOString(), 
+                fechaTurno: fechaAperturaCaja || new Date().toISOString(),
                 metodo: metodoPago, 
                 total: monto, 
                 cliente: espacioCobro.cliente, 
@@ -1164,7 +1182,6 @@
                 items: itemsVendidosParaHistorial
             });
 
-            // Sumar al ránking y descontar stock de Firebase
             for (const [nombre, cant] of Object.entries(cantidadesVendidas)) {
                 const prod = datosRestaurante.productos.find(p => nombre.startsWith(p.nombre));
                 if (prod) {
@@ -1178,7 +1195,6 @@
                 }
             }
 
-            // Limpiamos los datos temporales del pago rápido o liberamos la mesa física
             if (espacioCobro.id === 'flash') {
                 elementoSeleccionado = null;
                 esCobroRapido = false;
