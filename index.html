@@ -632,10 +632,11 @@
             }
         };
 
+        // CORRECCIÓN DEL FILTRO: Removido el llamado con 'window.' que bloqueaba la recarga
         window.actualizarFiltrosHistorial = function() {
             filtroDesde = document.getElementById('filtro-desde').value;
             filtroHasta = document.getElementById('filtro-hasta').value;
-            window.renderizarModuloAdmin();
+            renderizarModuloAdmin(); 
         };
 
         window.cambiarSubVistaAdmin = function(vista) {
@@ -770,7 +771,7 @@
                     </div>
                 </div>`;
             }
-            // Pestaña Historial de Ventas CON CORRECCIÓN DEL SELECTOR DE FECHAS MÓVIL
+            // CORRECCIÓN: Parseo seguro de fechas locales y llamadas corregidas
             else if(adminSubVista === 'historial') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
@@ -783,8 +784,12 @@
                         </div>
                     </div>`;
 
-                const fDesde = new Date(filtroDesde + 'T00:00:00');
-                const fHasta = new Date(filtroHasta + 'T23:59:59');
+                // Método de conversión manual para evitar diferencias de horas GMT
+                const [y1, m1, d1] = filtroDesde.split('-');
+                const fDesde = new Date(y1, m1 - 1, d1, 0, 0, 0);
+                
+                const [y2, m2, d2] = filtroHasta.split('-');
+                const fHasta = new Date(y2, m2 - 1, d2, 23, 59, 59);
 
                 const ventasFiltradas = datosRestaurante.ventas.filter(v => {
                     const f = new Date(v.fecha);
