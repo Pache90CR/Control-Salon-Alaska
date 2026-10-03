@@ -306,6 +306,12 @@
 
         let montoCajaInicial = 0;
         let ventasTotalesTurno = 0;
+        
+        // Variables añadidas para desglose por método de pago
+        let ventasEfectivoTurno = 0;
+        let ventasTarjetaTurno = 0;
+        let ventasSinpeTurno = 0;
+        
         let cajaAbierta = false;
         let fechaAperturaCaja = null;
 
@@ -328,7 +334,7 @@
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
             });
 
-            // NUEVO: Función para ordenar alfabéticamente y numéricamente
+            // Función para ordenar alfabéticamente y numéricamente
             const ordenarAlfanumerico = (a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' });
             datosRestaurante.barra.sort(ordenarAlfanumerico);
             datosRestaurante.mesas.sort(ordenarAlfanumerico);
@@ -376,14 +382,24 @@
             if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarModuloAdmin();
         });
 
+        // Función actualizada para calcular totales y desglose por método de pago
         window.calcularVentasTurno = function() {
             ventasTotalesTurno = 0;
+            ventasEfectivoTurno = 0;
+            ventasTarjetaTurno = 0;
+            ventasSinpeTurno = 0;
+
             if(cajaAbierta && fechaAperturaCaja) {
                 const fechaApertura = new Date(fechaAperturaCaja);
                 datosRestaurante.ventas.forEach(v => {
                     // Validamos que la venta pertenezca al turno actual comprobando que su fecha sea posterior a la apertura
                     if(v.fecha && new Date(v.fecha) >= fechaApertura) {
                         ventasTotalesTurno += v.total;
+                        
+                        // Clasificamos por método de pago
+                        if(v.metodo === 'Efectivo') ventasEfectivoTurno += v.total;
+                        else if(v.metodo === 'Tarjeta') ventasTarjetaTurno += v.total;
+                        else if(v.metodo === 'SINPE') ventasSinpeTurno += v.total;
                     }
                 });
             }
@@ -637,22 +653,38 @@
                 </div>`;
             } 
             else if(adminSubVista === 'caja') {
-                const totalEsperado = montoCajaInicial + ventasTotalesTurno;
+                // El total esperado en la caja física ES SOLO Fondo Inicial + Efectivo
+                const totalEsperado = montoCajaInicial + ventasEfectivoTurno;
+                
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-20">
                     <h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Cierre de Caja</h2>
                     ${!cajaAbierta ? `<div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-amber-400 font-bold mb-6 flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation"></i> La caja está actualmente cerrada. Ábrela al iniciar un turno para registrar ventas y cierres.</div>` : ''}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-center">
                             <h3 class="text-amber-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-calculator mr-2"></i> Balance del Sistema</h3>
-                            <div class="space-y-3 mb-6">
+                            
+                            <div class="space-y-3 mb-4">
                                 <div class="flex justify-between items-center pb-2 border-b border-slate-800"><span class="text-slate-400">Fondo Inicial Base:</span><span class="font-bold text-white">₡${montoCajaInicial.toLocaleString()}</span></div>
-                                <div class="flex justify-between items-center pb-2 border-b border-slate-800"><span class="text-slate-400">Ventas Registradas:</span><span class="font-bold text-emerald-400">+ ₡${ventasTotalesTurno.toLocaleString()}</span></div>
+                                <div class="flex justify-between items-center pb-2"><span class="text-slate-400">Ventas Totales (Todos los métodos):</span><span class="font-bold text-white">₡${ventasTotalesTurno.toLocaleString()}</span></div>
                             </div>
+
+                            <!-- Panel de Desglose -->
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 mb-6">
+                                <p class="text-xs text-slate-500 font-bold uppercase mb-1">Desglose de Ventas</p>
+                                <div class="flex justify-between items-center"><span class="text-slate-400 text-sm"><i class="fa-solid fa-mobile-screen text-rose-500 mr-2"></i>SINPE:</span><span class="font-bold text-slate-300 text-sm">₡${ventasSinpeTurno.toLocaleString()}</span></div>
+                                <div class="flex justify-between items-center"><span class="text-slate-400 text-sm"><i class="fa-regular fa-credit-card text-blue-400 mr-2"></i>Tarjeta:</span><span class="font-bold text-slate-300 text-sm">₡${ventasTarjetaTurno.toLocaleString()}</span></div>
+                                <div class="flex justify-between items-center border-t border-slate-800 pt-2 mt-2"><span class="text-slate-300 font-bold text-sm"><i class="fa-solid fa-money-bill-wave text-emerald-500 mr-2"></i>Efectivo:</span><span class="font-bold text-emerald-400 text-sm">+ ₡${ventasEfectivoTurno.toLocaleString()}</span></div>
+                            </div>
+
                             <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center shadow-inner">
-                                <span class="text-slate-300 font-bold">Total Esperado:</span>
+                                <div class="flex flex-col">
+                                    <span class="text-slate-300 font-bold">Efectivo en Caja:</span>
+                                    <span class="text-[10px] text-slate-500">(Fondo + Ventas en Efectivo)</span>
+                                </div>
                                 <span class="text-2xl font-black text-amber-400">₡${totalEsperado.toLocaleString()}</span>
                             </div>
                         </div>
+                        
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl ${!cajaAbierta ? 'opacity-50 pointer-events-none' : ''}">
                             <h3 class="text-emerald-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-money-bill-wave mr-2"></i> Conteo Físico</h3>
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ingresa el dinero en caja (₡)</label>
@@ -683,7 +715,6 @@
                         <div class="divide-y divide-slate-800/50 px-4 ${isCollapsed ? 'hidden' : ''}">`;
                     
                     prods.forEach(p => {
-                        // NUEVO: Clase mix-blend-screen en el admin
                         const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800 mix-blend-screen">` : `<div class="w-12 h-12 rounded bg-slate-950 flex items-center justify-center text-slate-600 border border-slate-800 shrink-0"><i class="fa-solid fa-image"></i></div>`;
                         
                         const isVar = p.variantes && p.variantes.length > 0;
@@ -1011,7 +1042,7 @@
                     else window.agregarItemTemporal(prod.nombre, prod.precio);
                 };
                 
-                // NUEVO: Clase mix-blend-screen agregada a la imagen para eliminar fondo negro
+                // Clase mix-blend-screen agregada a la imagen para eliminar fondo negro
                 const imgTag = prod.imagen 
                     ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md mix-blend-screen"></div>` 
                     : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
@@ -1179,7 +1210,7 @@
                 });
             }
 
-            // NUEVO: Guardar la fechaTurno ligada a la apertura de la caja
+            // Guardar la fechaTurno ligada a la apertura de la caja
             await addDoc(collection(db, "ventas_historial"), { 
                 fecha: new Date().toISOString(), 
                 fechaTurno: fechaAperturaCaja || new Date().toISOString(),
