@@ -18,267 +18,301 @@
         .pro-scroll::-webkit-scrollbar { width: 6px; }
         .pro-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
         .pro-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+        
+        /* ESTILOS ESPECÍFICOS PARA LA IMPRESORA TÉRMICA */
+        @media print {
+            body { background-color: white !important; color: black !important; margin: 0; padding: 0; }
+            /* Ocultar toda la app web durante la impresión */
+            #app-container, .no-print { display: none !important; }
+            /* Mostrar únicamente el contenedor del ticket */
+            #ticket-container { display: block !important; width: 100%; max-width: 80mm; margin: 0 auto; padding: 0; font-family: 'Courier New', Courier, monospace; color: black; }
+            @page { margin: 0; }
+        }
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans antialiased h-screen flex flex-col overflow-hidden w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
+<body class="bg-slate-900 text-white font-sans antialiased h-screen w-full max-w-[100vw] selection:bg-amber-500 selection:text-slate-900">
 
-    <!-- DIÁLOGOS PERSONALIZADOS -->
-    <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
-            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-bell"></i></div>
-            <p id="alert-msg" class="text-slate-200 text-lg mb-6"></p>
-            <button onclick="window.cerrarAlert()" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-xl">Aceptar</button>
-        </div>
-    </div>
+    <!-- CONTENEDOR EXCLUSIVO PARA IMPRESIÓN (Oculto en pantalla normal) -->
+    <div id="ticket-container" class="hidden"></div>
 
-    <!-- PROMPT PARA TEXTO (NOMBRES DE CLIENTES) -->
-    <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-            <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <input type="text" id="prompt-input" autocomplete="off" spellcheck="false" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
-            <div class="flex gap-3">
-                <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
-                <button onclick="window.aceptarPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
+    <!-- CONTENEDOR PRINCIPAL DE LA APP -->
+    <div id="app-container" class="flex flex-col h-screen overflow-hidden w-full relative">
+
+        <!-- DIÁLOGOS PERSONALIZADOS -->
+        <div id="modal-custom-alert" class="fixed inset-0 bg-slate-950/90 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+                <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-bell"></i></div>
+                <p id="alert-msg" class="text-slate-200 text-lg mb-6"></p>
+                <button onclick="window.cerrarAlert()" class="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-xl">Aceptar</button>
             </div>
         </div>
-    </div>
 
-    <!-- PROMPT EXCLUSIVO PARA PIN DE ADMIN -->
-    <div id="modal-pin-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-            <p id="pin-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
-            <input type="text" id="pin-input" style="-webkit-text-security: disc;" inputmode="numeric" autocomplete="off" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
-            <div class="flex gap-3">
-                <button onclick="window.cancelarPinPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
-                <button onclick="window.aceptarPinPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE COBRO -->
-    <div id="modal-cobro" class="fixed inset-0 bg-slate-950/90 z-[55] flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
-            <div class="text-center mb-6 border-b border-slate-800 pb-4">
-                <h3 class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-1">Total a Cobrar</h3>
-                <p id="txt-total-cobro" class="text-4xl font-black text-emerald-400">₡0</p>
-            </div>
-            <p class="text-center text-slate-300 font-bold mb-4">Método de pago</p>
-            <div class="space-y-3">
-                <button onclick="window.procesarPagoConfirmado('Efectivo')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Efectivo</button>
-                <button onclick="window.procesarPagoConfirmado('Tarjeta')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-regular fa-credit-card text-blue-400"></i> Tarjeta</button>
-                <button onclick="window.procesarPagoConfirmado('SINPE')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-solid fa-mobile-screen text-rose-500"></i> SINPE Móvil</button>
-            </div>
-            <button onclick="window.cerrarModalCobro()" class="w-full mt-4 text-slate-500 font-bold py-2 hover:text-white transition">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- MODAL DE INGRESO -->
-    <div id="modal-login" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
-            <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
-            <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
-            <div class="space-y-4">
-                <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
-                <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
-            </div>
-            <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Conectado y sincronizado 🟢</p>
-        </div>
-    </div>
-
-    <!-- MODAL DE APERTURA DE CAJA -->
-    <div id="modal-caja" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-md shadow-2xl">
-            <h3 class="text-2xl font-black text-amber-400 mb-2"><i class="fa-solid fa-cash-register mr-2"></i> Apertura de Turno</h3>
-            <p class="text-sm text-slate-400 mb-6">Fondo base en caja:</p>
-            <div class="relative mb-6">
-                <span class="absolute left-4 top-3 text-slate-400 font-bold text-lg">₡</span>
-                <input type="number" id="input-monto-caja" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xl font-bold text-emerald-400 focus:outline-none focus:border-amber-500" value="25000">
-            </div>
-            <button onclick="window.abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg mb-3">Abrir Turno General</button>
-            <button onclick="window.entrarSinCaja()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-3 rounded-xl transition text-sm">Solo entrar a panel (Sin abrir caja)</button>
-        </div>
-    </div>
-
-    <!-- MODAL SELECCIÓN DE VARIANTES EN EL SALÓN -->
-    <div id="modal-seleccion-variantes" class="fixed inset-0 bg-slate-950/90 z-[45] flex items-end sm:items-center justify-center p-4 hidden backdrop-blur-sm transition-all">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden pb-6 sm:pb-0">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-                <h3 id="txt-variantes-titulo" class="text-lg font-black text-amber-400">Seleccionar Tamaño</h3>
-                <button onclick="window.cerrarModalSelVariantes()" class="text-slate-400 hover:text-white text-xl px-2"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-4 bg-slate-900 space-y-3" id="lista-opciones-variantes"></div>
-        </div>
-    </div>
-
-    <!-- MODAL SELECCIÓN DE PRODUCTOS -->
-    <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
-                <div>
-                    <h3 class="text-lg font-black text-amber-400">Menú - Seleccionar Ronda</h3>
-                    <p id="modal-subtitulo-cliente" class="text-xs text-slate-400">Agregando a --</p>
+        <!-- MODAL ÉXITO Y TICKET -->
+        <div id="modal-exito-cobro" class="fixed inset-0 bg-slate-950/90 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-emerald-500/30 p-6 rounded-3xl w-full max-w-sm shadow-2xl text-center">
+                <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl mx-auto mb-4 shadow-[0_0_15px_rgba(52,211,153,0.3)]"><i class="fa-solid fa-check"></i></div>
+                <h3 class="text-2xl font-black text-white mb-1">¡Cobro Exitoso!</h3>
+                <p id="txt-exito-metodo" class="text-slate-400 text-sm font-bold mb-4"></p>
+                <div class="bg-slate-950 rounded-xl py-4 mb-6 border border-slate-800">
+                    <p id="txt-exito-monto" class="text-4xl font-black text-emerald-400"></p>
                 </div>
-                <button onclick="window.cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div id="modal-categorias-container" class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0"></div>
-            <div class="p-3 bg-slate-950 shrink-0">
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-500 text-sm"></i>
-                    <input type="text" id="input-buscar-modal" onkeyup="window.filtrarProductosModal(this.value)" placeholder="Buscar producto..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 text-slate-200">
+                <div class="space-y-3">
+                    <button onclick="window.imprimirTicketReciente()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-lg"><i class="fa-solid fa-print"></i> Imprimir Ticket</button>
+                    <button onclick="window.cerrarModalExito()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition border border-slate-700">Continuar al Salón</button>
                 </div>
             </div>
-            <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-950">
-                <div id="grid-modal-productos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
-            </div>
-            <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center shrink-0">
-                <span id="txt-items-seleccionados" class="text-xs sm:text-sm text-slate-400 font-bold">0 seleccionados</span>
-                <button id="btn-confirmar-ronda" onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 sm:px-6 py-3 rounded-xl transition shadow-lg text-sm sm:text-base"><i class="fa-solid fa-check mr-2"></i> Confirmar Ronda</button>
+        </div>
+
+        <!-- PROMPT PARA TEXTO (NOMBRES DE CLIENTES) -->
+        <div id="modal-custom-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+                <p id="prompt-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
+                <input type="text" id="prompt-input" autocomplete="off" spellcheck="false" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
+                <div class="flex gap-3">
+                    <button onclick="window.cancelarPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
+                    <button onclick="window.aceptarPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- MODAL CREAR PRODUCTO (ADMIN) -->
-    <div id="modal-admin-producto" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl my-4">
-            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900 rounded-t-3xl">
-                <h3 class="text-xl font-black text-emerald-400"><i class="fa-solid fa-burger mr-2"></i> Nuevo Producto</h3>
-                <button onclick="window.cerrarModalProductoAdmin()" class="text-slate-400 hover:text-white transition text-xl"><i class="fa-solid fa-xmark"></i></button>
+        <!-- PROMPT EXCLUSIVO PARA PIN DE ADMIN -->
+        <div id="modal-pin-prompt" class="fixed inset-0 bg-slate-950/90 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+                <p id="pin-msg" class="text-slate-200 text-lg font-bold mb-4 text-center"></p>
+                <input type="text" id="pin-input" style="-webkit-text-security: disc;" inputmode="numeric" autocomplete="off" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 mb-6 text-center text-lg tracking-widest">
+                <div class="flex gap-3">
+                    <button onclick="window.cancelarPinPrompt()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
+                    <button onclick="window.aceptarPinPrompt()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
+                </div>
             </div>
-            <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Categoría</label>
-                    <select id="add-prod-cat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 font-bold uppercase"></select>
+        </div>
+
+        <!-- MODAL DE COBRO -->
+        <div id="modal-cobro" class="fixed inset-0 bg-slate-950/90 z-[55] flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+                <div class="text-center mb-6 border-b border-slate-800 pb-4">
+                    <h3 class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-1">Total a Cobrar</h3>
+                    <p id="txt-total-cobro" class="text-4xl font-black text-emerald-400">₡0</p>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre (General)</label>
-                    <input type="text" id="add-prod-nombre" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Ej. Centenario, Ceviche...">
+                <p class="text-center text-slate-300 font-bold mb-4">Método de pago</p>
+                <div class="space-y-3">
+                    <button onclick="window.procesarPagoConfirmado('Efectivo')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Efectivo</button>
+                    <button onclick="window.procesarPagoConfirmado('Tarjeta')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-regular fa-credit-card text-blue-400"></i> Tarjeta</button>
+                    <button onclick="window.procesarPagoConfirmado('SINPE')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 text-lg"><i class="fa-solid fa-mobile-screen text-rose-500"></i> SINPE Móvil</button>
                 </div>
-                
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-700">
-                    <label class="flex items-center gap-2 text-sm font-bold text-slate-300 cursor-pointer mb-3">
-                        <input type="checkbox" id="check-variantes" onchange="window.toggleVariantesAdmin()" class="w-4 h-4 accent-amber-500">
-                        Tiene varios tamaños/precios (Ej. Trago, Botella)
-                    </label>
+                <button onclick="window.cerrarModalCobro()" class="w-full mt-4 text-slate-500 font-bold py-2 hover:text-white transition">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- MODAL DE INGRESO -->
+        <div id="modal-login" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4 no-print">
+            <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
+                <img src="179967.png" alt="Logo Alaska" class="w-32 h-32 mx-auto mb-6 rounded-full shadow-lg border-4 border-slate-800 object-cover" onerror="this.src='https://via.placeholder.com/150/1e293b/fbbf24?text=Alaska'">
+                <h2 class="text-2xl font-black mb-8 text-slate-100 tracking-tight">Restaurante Alaska</h2>
+                <div class="space-y-4">
+                    <button onclick="window.seleccionarRol('salonera')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-bell-concierge"></i> Ingreso Salonera</button>
+                    <button onclick="window.seleccionarRol('admin')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-900 font-bold py-4 rounded-xl transition flex items-center justify-center gap-3"><i class="fa-solid fa-lock"></i> Ingreso Administrador</button>
+                </div>
+                <p id="firebase-status" class="mt-6 text-xs text-emerald-500 font-bold">Conectado y sincronizado 🟢</p>
+            </div>
+        </div>
+
+        <!-- MODAL DE APERTURA DE CAJA -->
+        <div id="modal-caja" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-md shadow-2xl">
+                <h3 class="text-2xl font-black text-amber-400 mb-2"><i class="fa-solid fa-cash-register mr-2"></i> Apertura de Turno</h3>
+                <p class="text-sm text-slate-400 mb-6">Fondo base en caja:</p>
+                <div class="relative mb-6">
+                    <span class="absolute left-4 top-3 text-slate-400 font-bold text-lg">₡</span>
+                    <input type="number" id="input-monto-caja" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xl font-bold text-emerald-400 focus:outline-none focus:border-amber-500" value="25000">
+                </div>
+                <button onclick="window.abrirCaja()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-xl transition text-lg mb-3">Abrir Turno General</button>
+                <button onclick="window.entrarSinCaja()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-3 rounded-xl transition text-sm">Solo entrar a panel (Sin abrir caja)</button>
+            </div>
+        </div>
+
+        <!-- MODAL SELECCIÓN DE VARIANTES EN EL SALÓN -->
+        <div id="modal-seleccion-variantes" class="fixed inset-0 bg-slate-950/90 z-[45] flex items-end sm:items-center justify-center p-4 hidden backdrop-blur-sm transition-all no-print">
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden pb-6 sm:pb-0">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+                    <h3 id="txt-variantes-titulo" class="text-lg font-black text-amber-400">Seleccionar Tamaño</h3>
+                    <button onclick="window.cerrarModalSelVariantes()" class="text-slate-400 hover:text-white text-xl px-2"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="p-4 bg-slate-900 space-y-3" id="lista-opciones-variantes"></div>
+            </div>
+        </div>
+
+        <!-- MODAL SELECCIÓN DE PRODUCTOS -->
+        <div id="modal-agregar-producto" class="fixed inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                    <div>
+                        <h3 class="text-lg font-black text-amber-400">Menú - Seleccionar Ronda</h3>
+                        <p id="modal-subtitulo-cliente" class="text-xs text-slate-400">Agregando a --</p>
+                    </div>
+                    <button onclick="window.cerrarModalProductos()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full w-10 h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="modal-categorias-container" class="flex overflow-x-auto bg-slate-950 border-b border-slate-800 p-2 gap-2 hide-scrollbar shrink-0"></div>
+                <div class="p-3 bg-slate-950 shrink-0">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-500 text-sm"></i>
+                        <input type="text" id="input-buscar-modal" onkeyup="window.filtrarProductosModal(this.value)" placeholder="Buscar producto..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 text-slate-200">
+                    </div>
+                </div>
+                <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-950">
+                    <div id="grid-modal-productos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+                </div>
+                <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-between items-center shrink-0">
+                    <span id="txt-items-seleccionados" class="text-xs sm:text-sm text-slate-400 font-bold">0 seleccionados</span>
+                    <button id="btn-confirmar-ronda" onclick="window.guardarRondaActual()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 sm:px-6 py-3 rounded-xl transition shadow-lg text-sm sm:text-base"><i class="fa-solid fa-check mr-2"></i> Confirmar Ronda</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL CREAR PRODUCTO (ADMIN) -->
+        <div id="modal-admin-producto" class="fixed inset-0 bg-slate-950/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-sm overflow-y-auto no-print">
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl my-4">
+                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900 rounded-t-3xl">
+                    <h3 class="text-xl font-black text-emerald-400"><i class="fa-solid fa-burger mr-2"></i> Nuevo Producto</h3>
+                    <button onclick="window.cerrarModalProductoAdmin()" class="text-slate-400 hover:text-white transition text-xl"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Categoría</label>
+                        <select id="add-prod-cat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 font-bold uppercase"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre (General)</label>
+                        <input type="text" id="add-prod-nombre" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Ej. Centenario, Ceviche...">
+                    </div>
                     
-                    <div id="div-precio-unico" class="flex gap-4">
-                        <div class="w-1/2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Precio Único (₡)</label>
-                            <input type="number" id="add-prod-precio" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-700">
+                        <label class="flex items-center gap-2 text-sm font-bold text-slate-300 cursor-pointer mb-3">
+                            <input type="checkbox" id="check-variantes" onchange="window.toggleVariantesAdmin()" class="w-4 h-4 accent-amber-500">
+                            Tiene varios tamaños/precios (Ej. Trago, Botella)
+                        </label>
+                        
+                        <div id="div-precio-unico" class="flex gap-4">
+                            <div class="w-1/2">
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Precio Único (₡)</label>
+                                <input type="number" id="add-prod-precio" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="0">
+                            </div>
+                            <div class="w-1/2">
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Stock Inicial</label>
+                                <input type="number" id="add-prod-stock" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Opcional">
+                            </div>
                         </div>
-                        <div class="w-1/2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Stock Inicial</label>
-                            <input type="number" id="add-prod-stock" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500" placeholder="Opcional">
+
+                        <div id="div-variantes" class="hidden space-y-3">
+                            <p class="text-xs text-slate-400 mb-1">Define los tamaños (El stock no aplica en modo variante)</p>
+                            <div id="lista-variantes-admin" class="space-y-2"></div>
+                            <button onclick="window.agregarFilaVarianteAdmin()" class="text-emerald-400 font-bold text-sm flex items-center gap-1 hover:text-emerald-300 mt-2 bg-slate-900 px-3 py-2 rounded-lg border border-slate-700 w-full justify-center"><i class="fa-solid fa-plus"></i> Añadir un Tamaño Más</button>
                         </div>
                     </div>
 
-                    <div id="div-variantes" class="hidden space-y-3">
-                        <p class="text-xs text-slate-400 mb-1">Define los tamaños (El stock no aplica en modo variante)</p>
-                        <div id="lista-variantes-admin" class="space-y-2"></div>
-                        <button onclick="window.agregarFilaVarianteAdmin()" class="text-emerald-400 font-bold text-sm flex items-center gap-1 hover:text-emerald-300 mt-2 bg-slate-900 px-3 py-2 rounded-lg border border-slate-700 w-full justify-center"><i class="fa-solid fa-plus"></i> Añadir un Tamaño Más</button>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Imagen (Opcional)</label>
+                        <div class="relative border-2 border-dashed border-slate-700 rounded-xl p-4 text-center hover:border-amber-500 transition cursor-pointer bg-slate-950 h-32 flex flex-col items-center justify-center overflow-hidden">
+                            <input type="file" id="add-prod-file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.previsualizarImagen(this)">
+                            <div id="add-prod-preview-text" class="pointer-events-none">
+                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+                                <p class="text-sm font-bold text-slate-400">Seleccionar foto</p>
+                            </div>
+                            <img id="add-prod-preview-img" src="" class="hidden w-full h-full object-contain pointer-events-none absolute inset-0 p-2">
+                        </div>
                     </div>
+                    <button onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg">Guardar Producto</button>
                 </div>
+            </div>
+        </div>
 
+        <!-- HEADER PRINCIPAL -->
+        <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-col sm:flex-row justify-between sm:items-center shadow-lg gap-3 relative z-10 w-full no-print">
+            <div class="flex items-center space-x-3">
+                <img src="179967.png" alt="Logo Alaska" class="w-12 h-12 rounded-full border border-slate-700 object-cover" onerror="this.src='https://via.placeholder.com/48/1e293b/fbbf24?text=A'">
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Imagen (Opcional)</label>
-                    <div class="relative border-2 border-dashed border-slate-700 rounded-xl p-4 text-center hover:border-amber-500 transition cursor-pointer bg-slate-950 h-32 flex flex-col items-center justify-center overflow-hidden">
-                        <input type="file" id="add-prod-file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.previsualizarImagen(this)">
-                        <div id="add-prod-preview-text" class="pointer-events-none">
-                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
-                            <p class="text-sm font-bold text-slate-400">Seleccionar foto</p>
-                        </div>
-                        <img id="add-prod-preview-img" src="" class="hidden w-full h-full object-contain pointer-events-none absolute inset-0 p-2">
+                    <h1 class="text-base font-bold tracking-wide text-slate-100">Bar Restaurante Alaska</h1>
+                    <p id="info-caja-header" class="text-xs text-emerald-500 font-bold hidden bg-emerald-500/10 inline-block px-2 py-0.5 rounded-full mt-1 border border-emerald-500/20">Caja abierta</p>
+                </div>
+            </div>
+            <!-- PESTAÑAS Y BOTÓN CERRAR SESIÓN -->
+            <div id="tabs-operacion" class="flex overflow-x-auto bg-slate-950 p-1 rounded-xl border border-slate-800 hide-scrollbar shrink-0 w-full sm:w-auto gap-1">
+                <button onclick="window.cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
+                <button onclick="window.cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
+                <button onclick="window.cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
+                <button onclick="window.cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
+                <div class="w-px bg-slate-800 mx-1"></div>
+                <button onclick="window.cerrarSesion()" class="px-4 py-2 rounded-lg font-semibold transition text-rose-500 hover:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-sm whitespace-nowrap ml-auto" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+            <button onclick="window.cambiarVista('barra')" id="btn-volver-operacion" class="hidden px-5 py-2 rounded-xl font-bold bg-slate-800 border border-slate-700 text-slate-300 text-sm whitespace-nowrap w-max"><i class="fa-solid fa-arrow-left mr-2"></i> Volver a Salón</button>
+        </header>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="flex-1 flex overflow-hidden relative bg-slate-950 w-full no-print">
+            <section class="flex-1 p-4 md:p-6 overflow-y-auto pro-scroll w-full" id="area-operacion">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
+                    <h2 id="titulo-vista" class="text-2xl font-black text-slate-100">Control de Barra</h2>
+                    <!-- BOTONES DE ACCIÓN: VENTA RÁPIDA Y CLIENTE EXTRA -->
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="window.abrirCobroRapido()" class="flex-1 sm:flex-none bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-900 font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition"><i class="fa-solid fa-bolt"></i> Venta Rápida</button>
+                        <button id="btn-agregar-barra" onclick="window.agregarClienteExtraBarra()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition"><i class="fa-solid fa-user-plus"></i> Cliente Extra</button>
                     </div>
                 </div>
-                <button onclick="window.guardarProductoAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg">Guardar Producto</button>
-            </div>
-        </div>
-    </div>
+                <div id="grid-elementos" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 w-full"></div>
+            </section>
 
-    <!-- HEADER PRINCIPAL -->
-    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-col sm:flex-row justify-between sm:items-center shadow-lg gap-3 relative z-10 w-full">
-        <div class="flex items-center space-x-3">
-            <img src="179967.png" alt="Logo Alaska" class="w-12 h-12 rounded-full border border-slate-700 object-cover" onerror="this.src='https://via.placeholder.com/48/1e293b/fbbf24?text=A'">
-            <div>
-                <h1 class="text-base font-bold tracking-wide text-slate-100">Bar Restaurante Alaska</h1>
-                <p id="info-caja-header" class="text-xs text-emerald-500 font-bold hidden bg-emerald-500/10 inline-block px-2 py-0.5 rounded-full mt-1 border border-emerald-500/20">Caja abierta</p>
-            </div>
-        </div>
-        <!-- PESTAÑAS Y BOTÓN CERRAR SESIÓN -->
-        <div id="tabs-operacion" class="flex overflow-x-auto bg-slate-950 p-1 rounded-xl border border-slate-800 hide-scrollbar shrink-0 w-full sm:w-auto gap-1">
-            <button onclick="window.cambiarVista('barra')" id="btn-tab-barra" class="px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap">Barra</button>
-            <button onclick="window.cambiarVista('mesas')" id="btn-tab-mesas" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">Mesas</button>
-            <button onclick="window.cambiarVista('vip')" id="btn-tab-vip" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap">VIP</button>
-            <button onclick="window.cambiarVista('admin')" id="btn-tab-admin" style="display: none;" class="px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-amber-400 text-sm whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Admin</button>
-            <div class="w-px bg-slate-800 mx-1"></div>
-            <button onclick="window.cerrarSesion()" class="px-4 py-2 rounded-lg font-semibold transition text-rose-500 hover:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-sm whitespace-nowrap ml-auto" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
-        </div>
-        <button onclick="window.cambiarVista('barra')" id="btn-volver-operacion" class="hidden px-5 py-2 rounded-xl font-bold bg-slate-800 border border-slate-700 text-slate-300 text-sm whitespace-nowrap w-max"><i class="fa-solid fa-arrow-left mr-2"></i> Volver a Salón</button>
-    </header>
-
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 flex overflow-hidden relative bg-slate-950 w-full">
-        <section class="flex-1 p-4 md:p-6 overflow-y-auto pro-scroll w-full" id="area-operacion">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
-                <h2 id="titulo-vista" class="text-2xl font-black text-slate-100">Control de Barra</h2>
-                <!-- BOTONES DE ACCIÓN: VENTA RÁPIDA Y CLIENTE EXTRA -->
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <button onclick="window.abrirCobroRapido()" class="flex-1 sm:flex-none bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-900 font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition"><i class="fa-solid fa-bolt"></i> Venta Rápida</button>
-                    <button id="btn-agregar-barra" onclick="window.agregarClienteExtraBarra()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2 transition"><i class="fa-solid fa-user-plus"></i> Cliente Extra</button>
+            <!-- SECCIÓN ADMIN -->
+            <section class="flex-1 hidden w-full bg-slate-950 relative flex-col md:flex-row overflow-hidden" id="area-admin">
+                <div class="md:hidden bg-slate-900 border-b border-slate-800 p-3 flex items-center gap-3 shadow-md z-20 w-full shrink-0">
+                    <button onclick="window.toggleAdminSidebar(true)" class="text-slate-300 hover:text-white px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl transition"><i class="fa-solid fa-bars text-lg"></i></button>
+                    <span class="font-black text-amber-500 tracking-wide" id="admin-mobile-title">Dashboard</span>
                 </div>
-            </div>
-            <div id="grid-elementos" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 w-full"></div>
-        </section>
+                <aside id="admin-sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl">
+                    <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+                        <h3 class="font-black text-amber-500 uppercase text-sm"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Panel Admin</h3>
+                        <button onclick="window.toggleAdminSidebar(false)" class="text-slate-400 hover:text-white md:hidden text-2xl px-2"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto py-2 space-y-1">
+                        <button onclick="window.cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</button>
+                        <button onclick="window.cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-cash-register w-5"></i> Cierres de Caja</button>
+                        <button onclick="window.cambiarSubVistaAdmin('historial')" id="btn-admin-historial" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-file-invoice-dollar w-5"></i> Historial de Ventas</button>
+                        <button onclick="window.cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-burger w-5"></i> Menú e Inventario</button>
+                        <button onclick="window.cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-tags w-5"></i> Categorías</button>
+                        <button onclick="window.cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
+                    </div>
+                </aside>
+                <div id="admin-sidebar-overlay" onclick="window.toggleAdminSidebar(false)" class="absolute inset-0 bg-slate-950/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
+                <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
+            </section>
 
-        <!-- SECCIÓN ADMIN -->
-        <section class="flex-1 hidden w-full bg-slate-950 relative flex-col md:flex-row overflow-hidden" id="area-admin">
-            <div class="md:hidden bg-slate-900 border-b border-slate-800 p-3 flex items-center gap-3 shadow-md z-20 w-full shrink-0">
-                <button onclick="window.toggleAdminSidebar(true)" class="text-slate-300 hover:text-white px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl transition"><i class="fa-solid fa-bars text-lg"></i></button>
-                <span class="font-black text-amber-500 tracking-wide" id="admin-mobile-title">Dashboard</span>
-            </div>
-            <aside id="admin-sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl">
-                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-                    <h3 class="font-black text-amber-500 uppercase text-sm"><i class="fa-solid fa-screwdriver-wrench mr-2"></i> Panel Admin</h3>
-                    <button onclick="window.toggleAdminSidebar(false)" class="text-slate-400 hover:text-white md:hidden text-2xl px-2"><i class="fa-solid fa-xmark"></i></button>
+            <!-- PANEL LATERAL DE CUENTA CON ESCOBITA -->
+            <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-30 hidden transition-all">
+                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                    <div class="w-full overflow-hidden pr-4">
+                        <h3 id="panel-cliente" class="text-xl font-black text-amber-400 truncate">Nombre Cliente</h3>
+                        <p id="panel-titulo" class="text-xs text-slate-400 font-medium bg-slate-800 inline-block px-2 py-1 rounded-md mt-1">Ubicación</p>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="window.liberarEspacio()" class="text-rose-500 hover:text-rose-400 p-2 text-xl transition" title="Liberar espacio sin cobrar"><i class="fa-solid fa-broom"></i></button>
+                        <button onclick="window.cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl transition"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
                 </div>
-                <div class="flex-1 overflow-y-auto py-2 space-y-1">
-                    <button onclick="window.cambiarSubVistaAdmin('dashboard')" id="btn-admin-dashboard" class="w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</button>
-                    <button onclick="window.cambiarSubVistaAdmin('caja')" id="btn-admin-caja" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-cash-register w-5"></i> Cierres de Caja</button>
-                    <button onclick="window.cambiarSubVistaAdmin('menu')" id="btn-admin-menu" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-burger w-5"></i> Menú e Inventario</button>
-                    <button onclick="window.cambiarSubVistaAdmin('categorias')" id="btn-admin-categorias" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-tags w-5"></i> Categorías</button>
-                    <button onclick="window.cambiarSubVistaAdmin('espacios')" id="btn-admin-espacios" class="w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50"><i class="fa-solid fa-chair w-5"></i> Zonas y Espacios</button>
+                <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-900/50">
+                    <div id="lista-items-cuenta" class="space-y-2"></div>
+                </div>
+                <div class="p-5 border-t border-slate-800 bg-slate-900">
+                    <div class="flex justify-between items-center mb-4 text-xl font-black">
+                        <span class="text-slate-300">Total:</span>
+                        <span id="panel-total" class="text-emerald-400">₡0</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="window.abrirModalAgregar()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cart-plus"></i> Menú</button>
+                        <button onclick="window.iniciarCobro()" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg"><i class="fa-solid fa-cash-register"></i> Cobrar</button>
+                    </div>
                 </div>
             </aside>
-            <div id="admin-sidebar-overlay" onclick="window.toggleAdminSidebar(false)" class="absolute inset-0 bg-slate-950/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
-            <div id="contenedor-admin" class="flex-1 p-4 md:p-8 overflow-y-auto pro-scroll w-full bg-slate-950"></div>
-        </section>
-
-        <!-- PANEL LATERAL DE CUENTA CON ESCOBITA -->
-        <aside id="panel-cuenta" class="fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 flex-col justify-between shadow-2xl z-30 hidden transition-all">
-            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
-                <div class="w-full overflow-hidden pr-4">
-                    <h3 id="panel-cliente" class="text-xl font-black text-amber-400 truncate">Nombre Cliente</h3>
-                    <p id="panel-titulo" class="text-xs text-slate-400 font-medium bg-slate-800 inline-block px-2 py-1 rounded-md mt-1">Ubicación</p>
-                </div>
-                <div class="flex items-center gap-1">
-                    <button onclick="window.liberarEspacio()" class="text-rose-500 hover:text-rose-400 p-2 text-xl transition" title="Liberar espacio sin cobrar"><i class="fa-solid fa-broom"></i></button>
-                    <button onclick="window.cerrarPanel()" class="text-slate-400 hover:text-white p-2 text-2xl transition"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-            </div>
-            <div class="flex-1 p-4 overflow-y-auto pro-scroll bg-slate-900/50">
-                <div id="lista-items-cuenta" class="space-y-2"></div>
-            </div>
-            <div class="p-5 border-t border-slate-800 bg-slate-900">
-                <div class="flex justify-between items-center mb-4 text-xl font-black">
-                    <span class="text-slate-300">Total:</span>
-                    <span id="panel-total" class="text-emerald-400">₡0</span>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="window.abrirModalAgregar()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cart-plus"></i> Menú</button>
-                    <button onclick="window.iniciarCobro()" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg"><i class="fa-solid fa-cash-register"></i> Cobrar</button>
-                </div>
-            </div>
-        </aside>
-    </main>
+        </main>
+    </div>
 
     <!-- SCRIPT PRINCIPAL -->
     <script type="module">
@@ -303,11 +337,15 @@
         let elementoSeleccionado = null;
         let rolUsuario = '';
         let esCobroRapido = false; 
+        
+        let ventaReciente = null; // Para imprimir inmediatamente después de cobrar
+
+        // Fechas por defecto para el filtro del historial
+        let filtroDesde = new Date().toISOString().split('T')[0];
+        let filtroHasta = new Date().toISOString().split('T')[0];
 
         let montoCajaInicial = 0;
         let ventasTotalesTurno = 0;
-        
-        // Variables añadidas para desglose por método de pago
         let ventasEfectivoTurno = 0;
         let ventasTarjetaTurno = 0;
         let ventasSinpeTurno = 0;
@@ -333,8 +371,6 @@
                 else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
             });
-
-            // Función para ordenar alfabéticamente y numéricamente
             const ordenarAlfanumerico = (a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' });
             datosRestaurante.barra.sort(ordenarAlfanumerico);
             datosRestaurante.mesas.sort(ordenarAlfanumerico);
@@ -366,7 +402,6 @@
             } else {
                 cajaAbierta = false;
             }
-            
             if (cajaAbierta) {
                 document.getElementById('modal-caja').classList.add('hidden');
                 document.getElementById('info-caja-header').classList.remove('hidden');
@@ -379,24 +414,16 @@
             datosRestaurante.ventas = [];
             snapshot.forEach((doc) => { const data = doc.data(); data.id = doc.id; datosRestaurante.ventas.push(data); });
             window.calcularVentasTurno();
-            if(vistaActual === 'admin' && adminSubVista === 'dashboard') renderizarModuloAdmin();
+            if(vistaActual === 'admin' && (adminSubVista === 'dashboard' || adminSubVista === 'historial')) renderizarModuloAdmin();
         });
 
-        // Función actualizada para calcular totales y desglose por método de pago
         window.calcularVentasTurno = function() {
-            ventasTotalesTurno = 0;
-            ventasEfectivoTurno = 0;
-            ventasTarjetaTurno = 0;
-            ventasSinpeTurno = 0;
-
+            ventasTotalesTurno = 0; ventasEfectivoTurno = 0; ventasTarjetaTurno = 0; ventasSinpeTurno = 0;
             if(cajaAbierta && fechaAperturaCaja) {
                 const fechaApertura = new Date(fechaAperturaCaja);
                 datosRestaurante.ventas.forEach(v => {
-                    // Validamos que la venta pertenezca al turno actual comprobando que su fecha sea posterior a la apertura
                     if(v.fecha && new Date(v.fecha) >= fechaApertura) {
                         ventasTotalesTurno += v.total;
-                        
-                        // Clasificamos por método de pago
                         if(v.metodo === 'Efectivo') ventasEfectivoTurno += v.total;
                         else if(v.metodo === 'Tarjeta') ventasTarjetaTurno += v.total;
                         else if(v.metodo === 'SINPE') ventasSinpeTurno += v.total;
@@ -405,7 +432,6 @@
             }
             const lblVentasHoy = document.getElementById('txt-ventas-hoy');
             if(lblVentasHoy) lblVentasHoy.innerText = `₡${ventasTotalesTurno.toLocaleString()}`;
-            
             if(vistaActual === 'admin' && (adminSubVista === 'dashboard' || adminSubVista === 'caja')) renderizarModuloAdmin();
         };
 
@@ -466,13 +492,7 @@
         window.abrirCaja = async function() {
             const val = document.getElementById('input-monto-caja').value; 
             if(!val) return;
-            
-            await setDoc(doc(db, "sistema", "caja"), {
-                estado: 'abierta',
-                fondoInicial: parseFloat(val),
-                fechaApertura: new Date().toISOString()
-            });
-            
+            await setDoc(doc(db, "sistema", "caja"), { estado: 'abierta', fondoInicial: parseFloat(val), fechaApertura: new Date().toISOString() });
             document.getElementById('modal-caja').classList.add('hidden'); 
             window.cambiarVista('admin');
         };
@@ -492,11 +512,9 @@
             vistas.forEach(v => {
                 const btn = document.getElementById(`btn-tab-${v}`);
                 if (!btn) return;
-                if (v === tipo) {
-                    btn.className = "px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap";
-                } else {
-                    btn.className = "px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap";
-                }
+                btn.className = (v === tipo) 
+                    ? "px-5 py-2 rounded-lg font-semibold transition bg-amber-500 text-slate-900 text-sm whitespace-nowrap"
+                    : "px-5 py-2 rounded-lg font-semibold transition text-slate-400 hover:text-white text-sm whitespace-nowrap";
             });
 
             if(tipo === 'admin') {
@@ -540,19 +558,97 @@
             else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
         };
 
+        // NUEVO: Función para formatear el ticket HTML listo para imprimir
+        window.generarHTMLTicket = function(venta) {
+            const fechaF = new Date(venta.fecha).toLocaleString('es-CR');
+            let itemsHtml = '';
+            let conteo = {};
+            if(venta.items) {
+                venta.items.forEach(i => {
+                    if(!conteo[i.nombre]) conteo[i.nombre] = { cant: 0, precio: i.precio };
+                    conteo[i.nombre].cant += 1;
+                });
+            }
+            
+            for (let nom in conteo) {
+                const sub = conteo[nom].cant * conteo[nom].precio;
+                itemsHtml += `
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 4px; border-bottom: 1px dotted #ccc; padding-bottom: 2px;">
+                        <span style="flex: 1; padding-right: 5px;">${conteo[nom].cant}x ${nom}</span>
+                        <span style="font-weight: bold;">₡${sub.toLocaleString()}</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div style="text-align:center; margin-bottom:10px;">
+                    <img src="179967.png" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; filter: grayscale(100%); margin: 0 auto 5px auto;" onerror="this.style.display='none'">
+                    <h2 style="margin: 0 0 2px 0; font-size: 16px; text-transform: uppercase;">Bar Restaurante<br>Alaska</h2>
+                </div>
+                <div style="border-bottom: 1px dashed #000; margin-bottom: 10px;"></div>
+                <div style="margin-bottom: 10px; font-size: 12px; text-align: left;">
+                    <p style="margin: 2px 0;"><strong>Fecha:</strong> ${fechaF}</p>
+                    <p style="margin: 2px 0;"><strong>Cliente:</strong> ${venta.cliente || 'General'}</p>
+                    <p style="margin: 2px 0;"><strong>Zona:</strong> ${venta.zona || 'Barra'}</p>
+                    <p style="margin: 2px 0;"><strong>Pago:</strong> ${venta.metodo}</p>
+                </div>
+                <div style="border-bottom: 1px dashed #000; margin-bottom: 10px;"></div>
+                <div style="margin-bottom: 10px; font-size: 12px; text-align: left;">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 5px;">
+                        <span>Descripción</span>
+                        <span>Monto</span>
+                    </div>
+                    ${itemsHtml}
+                </div>
+                <div style="border-bottom: 1px dashed #000; margin-bottom: 10px;"></div>
+                <div style="display:flex; justify-content:space-between; font-size: 16px; font-weight: bold; margin-bottom: 20px;">
+                    <span>TOTAL:</span>
+                    <span>₡${venta.total.toLocaleString()}</span>
+                </div>
+                <div style="text-align:center; font-size: 12px; margin-bottom: 30px;">
+                    <p style="margin: 0;">¡Gracias por su visita!</p>
+                </div>
+            `;
+        };
+
+        window.cerrarModalExito = function() {
+            document.getElementById('modal-exito-cobro').classList.add('hidden');
+            ventaReciente = null;
+        };
+        
+        window.imprimirTicketReciente = function() {
+            if(!ventaReciente) return;
+            const html = window.generarHTMLTicket(ventaReciente);
+            document.getElementById('ticket-container').innerHTML = html;
+            window.print();
+        };
+        
+        window.imprimirTicketDesdeHistorial = function(id) {
+            const v = datosRestaurante.ventas.find(x => x.id === id);
+            if(v) {
+                const html = window.generarHTMLTicket(v);
+                document.getElementById('ticket-container').innerHTML = html;
+                window.print();
+            }
+        };
+
+        window.actualizarFiltrosHistorial = function() {
+            filtroDesde = document.getElementById('filtro-desde').value;
+            filtroHasta = document.getElementById('filtro-hasta').value;
+            window.renderizarModuloAdmin();
+        };
+
         window.cambiarSubVistaAdmin = function(vista) {
             adminSubVista = vista;
-            const subs = ['dashboard', 'caja', 'menu', 'categorias', 'espacios'];
-            const nombresTitulos = { dashboard: 'Dashboard', caja: 'Cierres de Caja', menu: 'Menú e Inventario', categorias: 'Categorías', espacios: 'Zonas y Espacios' };
+            const subs = ['dashboard', 'caja', 'historial', 'menu', 'categorias', 'espacios']; // Añadido historial
+            const nombresTitulos = { dashboard: 'Dashboard', caja: 'Cierres de Caja', historial: 'Historial de Ventas', menu: 'Menú e Inventario', categorias: 'Categorías', espacios: 'Zonas y Espacios' };
             
             subs.forEach(s => {
                 const btn = document.getElementById(`btn-admin-${s}`);
                 if(btn) {
-                    if(s === vista) {
-                        btn.className = "w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3";
-                    } else {
-                        btn.className = "w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50";
-                    }
+                    btn.className = (s === vista)
+                        ? "w-full text-left px-6 py-4 text-amber-500 bg-slate-800/80 border-r-4 border-amber-500 font-bold transition flex items-center gap-3"
+                        : "w-full text-left px-6 py-4 text-slate-400 hover:text-slate-200 font-bold transition flex items-center gap-3 hover:bg-slate-800/50";
                 }
             });
             
@@ -562,11 +658,8 @@
         };
 
         window.toggleCategoriaAdmin = function(catNombre) {
-            if(categoriasColapsadas.has(catNombre)) {
-                categoriasColapsadas.delete(catNombre);
-            } else {
-                categoriasColapsadas.add(catNombre);
-            }
+            if(categoriasColapsadas.has(catNombre)) categoriasColapsadas.delete(catNombre);
+            else categoriasColapsadas.add(catNombre);
             renderizarModuloAdmin();
         };
 
@@ -585,7 +678,6 @@
                 const totalEspacios = datosRestaurante.barra.length + datosRestaurante.mesas.length + datosRestaurante.vip.length;
                 const espaciosOcupados = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].filter(e => e.estado === 'ocupada').length;
                 const totalProductos = datosRestaurante.productos.length;
-
                 let ventasPorDia = [0, 0, 0, 0, 0, 0, 0];
                 const hoy = new Date();
                 const hace7Dias = new Date();
@@ -594,18 +686,12 @@
                 datosRestaurante.ventas.forEach(v => {
                     if (v.fecha) {
                         const fechaReferencia = new Date(v.fechaTurno || v.fecha);
-                        if(fechaReferencia >= hace7Dias) {
-                            ventasPorDia[fechaReferencia.getDay()] += v.total;
-                        }
+                        if(fechaReferencia >= hace7Dias) ventasPorDia[fechaReferencia.getDay()] += v.total;
                     }
                 });
 
                 const labelsOrdenados = ['L', 'M', 'W', 'J', 'V', 'S', 'D'];
-                const datosOrdenados = [
-                    ventasPorDia[1], ventasPorDia[2], ventasPorDia[3],
-                    ventasPorDia[4], ventasPorDia[5], ventasPorDia[6], ventasPorDia[0]
-                ];
-                
+                const datosOrdenados = [ventasPorDia[1], ventasPorDia[2], ventasPorDia[3], ventasPorDia[4], ventasPorDia[5], ventasPorDia[6], ventasPorDia[0]];
                 const maxVenta = Math.max(...datosOrdenados, 1); 
 
                 let graficasHtml = `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl mt-2 w-full">
@@ -626,7 +712,6 @@
                         <span class="text-slate-400 text-xs sm:text-sm font-bold mt-3">${labelsOrdenados[idx]}</span>
                     </div>`;
                 });
-
                 graficasHtml += `</div></div>`;
 
                 cont.innerHTML = `<div class="max-w-5xl mx-auto w-full pb-20">
@@ -653,38 +738,28 @@
                 </div>`;
             } 
             else if(adminSubVista === 'caja') {
-                // El total esperado en la caja física ES SOLO Fondo Inicial + Efectivo
                 const totalEsperado = montoCajaInicial + ventasEfectivoTurno;
-                
                 cont.innerHTML = `<div class="max-w-4xl mx-auto w-full pb-20">
                     <h2 class="text-2xl font-black text-slate-100 mb-6 hidden md:block">Cierre de Caja</h2>
                     ${!cajaAbierta ? `<div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-amber-400 font-bold mb-6 flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation"></i> La caja está actualmente cerrada. Ábrela al iniciar un turno para registrar ventas y cierres.</div>` : ''}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-center">
                             <h3 class="text-amber-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-calculator mr-2"></i> Balance del Sistema</h3>
-                            
                             <div class="space-y-3 mb-4">
                                 <div class="flex justify-between items-center pb-2 border-b border-slate-800"><span class="text-slate-400">Fondo Inicial Base:</span><span class="font-bold text-white">₡${montoCajaInicial.toLocaleString()}</span></div>
                                 <div class="flex justify-between items-center pb-2"><span class="text-slate-400">Ventas Totales (Todos los métodos):</span><span class="font-bold text-white">₡${ventasTotalesTurno.toLocaleString()}</span></div>
                             </div>
-
-                            <!-- Panel de Desglose -->
                             <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 mb-6">
                                 <p class="text-xs text-slate-500 font-bold uppercase mb-1">Desglose de Ventas</p>
                                 <div class="flex justify-between items-center"><span class="text-slate-400 text-sm"><i class="fa-solid fa-mobile-screen text-rose-500 mr-2"></i>SINPE:</span><span class="font-bold text-slate-300 text-sm">₡${ventasSinpeTurno.toLocaleString()}</span></div>
                                 <div class="flex justify-between items-center"><span class="text-slate-400 text-sm"><i class="fa-regular fa-credit-card text-blue-400 mr-2"></i>Tarjeta:</span><span class="font-bold text-slate-300 text-sm">₡${ventasTarjetaTurno.toLocaleString()}</span></div>
                                 <div class="flex justify-between items-center border-t border-slate-800 pt-2 mt-2"><span class="text-slate-300 font-bold text-sm"><i class="fa-solid fa-money-bill-wave text-emerald-500 mr-2"></i>Efectivo:</span><span class="font-bold text-emerald-400 text-sm">+ ₡${ventasEfectivoTurno.toLocaleString()}</span></div>
                             </div>
-
                             <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center shadow-inner">
-                                <div class="flex flex-col">
-                                    <span class="text-slate-300 font-bold">Efectivo en Caja:</span>
-                                    <span class="text-[10px] text-slate-500">(Fondo + Ventas en Efectivo)</span>
-                                </div>
+                                <div class="flex flex-col"><span class="text-slate-300 font-bold">Efectivo en Caja:</span><span class="text-[10px] text-slate-500">(Fondo + Ventas en Efectivo)</span></div>
                                 <span class="text-2xl font-black text-amber-400">₡${totalEsperado.toLocaleString()}</span>
                             </div>
                         </div>
-                        
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl ${!cajaAbierta ? 'opacity-50 pointer-events-none' : ''}">
                             <h3 class="text-emerald-500 font-black uppercase text-sm mb-4"><i class="fa-solid fa-money-bill-wave mr-2"></i> Conteo Físico</h3>
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ingresa el dinero en caja (₡)</label>
@@ -694,16 +769,80 @@
                         </div>
                     </div>
                 </div>`;
+            }
+            // NUEVO: Pestaña Historial de Ventas
+            else if(adminSubVista === 'historial') {
+                let html = `<div class="max-w-5xl mx-auto w-full pb-20">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                        <h2 class="text-2xl font-black text-slate-100 hidden md:block">Historial de Ventas</h2>
+                        <div class="flex gap-2 w-full md:w-auto bg-slate-900 p-2 rounded-xl border border-slate-700">
+                            <input type="date" id="filtro-desde" value="${filtroDesde}" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm text-white focus:border-amber-500 w-full">
+                            <span class="text-slate-500 self-center">-</span>
+                            <input type="date" id="filtro-hasta" value="${filtroHasta}" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-sm text-white focus:border-amber-500 w-full">
+                            <button onclick="window.actualizarFiltrosHistorial()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg font-bold shadow-md transition"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                    </div>`;
+
+                const fDesde = new Date(filtroDesde + 'T00:00:00');
+                const fHasta = new Date(filtroHasta + 'T23:59:59');
+
+                const ventasFiltradas = datosRestaurante.ventas.filter(v => {
+                    const f = new Date(v.fecha);
+                    return f >= fDesde && f <= fHasta;
+                }).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+
+                let tFiltro = 0, eFiltro = 0, tFiltroTarj = 0, sFiltro = 0;
+
+                if(ventasFiltradas.length === 0) {
+                    html += `<div class="text-center py-12 bg-slate-900 rounded-2xl border border-slate-800 shadow-md"><i class="fa-solid fa-receipt text-5xl text-slate-700 mb-4"></i><p class="text-slate-400 font-bold">No hay ventas registradas en este rango de fechas.</p></div>`;
+                } else {
+                    let listHtml = `<div class="space-y-3">`;
+                    ventasFiltradas.forEach((v) => {
+                        tFiltro += v.total;
+                        if(v.metodo === 'Efectivo') eFiltro += v.total;
+                        else if(v.metodo === 'Tarjeta') tFiltroTarj += v.total;
+                        else if(v.metodo === 'SINPE') sFiltro += v.total;
+
+                        const fechaFormateada = new Date(v.fecha).toLocaleString('es-CR', { dateStyle: 'short', timeStyle: 'short' });
+                        let icon = 'fa-money-bill-wave text-emerald-500';
+                        if(v.metodo === 'Tarjeta') icon = 'fa-credit-card text-blue-400';
+                        else if(v.metodo === 'SINPE') icon = 'fa-mobile-screen text-rose-500';
+
+                        listHtml += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-md hover:border-slate-600 transition">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs text-slate-400 bg-slate-950 px-2 py-1 rounded-md font-bold">${fechaFormateada}</span>
+                                    <span class="text-xs font-bold text-slate-300 uppercase"><i class="fa-solid ${icon} mr-1"></i>${v.metodo}</span>
+                                </div>
+                                <p class="font-bold text-slate-100">${v.cliente || 'General'} <span class="text-slate-500 font-normal text-sm ml-1">(${v.zona || 'Barra'})</span></p>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-0 border-slate-800 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                                <span class="text-xl font-black text-emerald-400">₡${v.total.toLocaleString()}</span>
+                                <button onclick="window.imprimirTicketDesdeHistorial('${v.id}')" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-4 py-3 sm:p-3 rounded-xl transition border border-slate-700 w-full sm:w-auto shadow-md" title="Imprimir Comprobante"><i class="fa-solid fa-print"></i></button>
+                            </div>
+                        </div>`;
+                    });
+                    listHtml += `</div>`;
+
+                    html += `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Total del Filtro</p><p class="text-xl font-black text-emerald-400">₡${tFiltro.toLocaleString()}</p></div>
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Efectivo</p><p class="text-xl font-black text-white">₡${eFiltro.toLocaleString()}</p></div>
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md"><p class="text-xs text-slate-400 font-bold uppercase mb-1">Tarjeta</p><p class="text-xl font-black text-white">₡${tFiltroTarj.toLocaleString()}</p></div>
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md"><p class="text-xs text-slate-400 font-bold uppercase mb-1">SINPE</p><p class="text-xl font-black text-white">₡${sFiltro.toLocaleString()}</p></div>
+                    </div>`;
+
+                    html += listHtml;
+                }
+                html += `</div>`;
+                cont.innerHTML = html;
             } 
             else if(adminSubVista === 'menu') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100 hidden md:block">Menú e Inventario</h2><button onclick="window.abrirModalProductoAdmin()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto"><i class="fa-solid fa-plus"></i> Nuevo Producto</button></div><div class="space-y-4">`; 
-                
                 const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
                 
                 listaCats.forEach(catNombre => {
                     const prods = datosRestaurante.productos.filter(p => (p.categoria || '').toUpperCase() === catNombre);
                     if(prods.length === 0) return;
-                    
                     const isCollapsed = categoriasColapsadas.has(catNombre);
                     const iconDir = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
                     
@@ -716,36 +855,19 @@
                     
                     prods.forEach(p => {
                         const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800 mix-blend-screen">` : `<div class="w-12 h-12 rounded bg-slate-950 flex items-center justify-center text-slate-600 border border-slate-800 shrink-0"><i class="fa-solid fa-image"></i></div>`;
-                        
                         const isVar = p.variantes && p.variantes.length > 0;
                         const precioDisplay = isVar 
                             ? `<div class="text-right flex flex-col items-end gap-1">` + p.variantes.map(v => `<span class="text-[11px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">${v.nombre}: <span class="text-emerald-400">₡${v.precio.toLocaleString()}</span></span>`).join('') + `</div>`
                             : `<span class="font-black text-emerald-400 text-lg whitespace-nowrap">₡${p.precio.toLocaleString()}</span>`;
-
                         let stockDisplay = '';
                         if (!isVar && p.stock !== null && p.stock !== undefined) {
-                            stockDisplay = `<div class="flex items-center gap-1 bg-slate-950 rounded-lg p-1 border border-slate-700 shrink-0">
-                                <button onclick="window.adminActualizarStock('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-minus text-xs"></i></button>
-                                <span class="font-black text-amber-500 w-8 text-center text-sm">${p.stock}</span>
-                                <button onclick="window.adminActualizarStock('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-plus text-xs"></i></button>
-                            </div>`;
+                            stockDisplay = `<div class="flex items-center gap-1 bg-slate-950 rounded-lg p-1 border border-slate-700 shrink-0"><button onclick="window.adminActualizarStock('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-minus text-xs"></i></button><span class="font-black text-amber-500 w-8 text-center text-sm">${p.stock}</span><button onclick="window.adminActualizarStock('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-plus text-xs"></i></button></div>`;
                         }
-
                         const ventasDisplay = p.ventasTotales ? `<div class="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-md mt-1"><i class="fa-solid fa-fire text-amber-500 mr-1"></i>${p.ventasTotales} vendidos</div>` : '';
 
                         html += `<div class="py-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                            <div class="flex items-center gap-4 overflow-hidden w-full sm:w-auto">
-                                ${img}
-                                <div>
-                                    <span class="font-bold text-slate-200 truncate block">${p.nombre}</span>
-                                    ${ventasDisplay}
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-end gap-3 shrink-0 w-full sm:w-auto">
-                                ${stockDisplay}
-                                ${precioDisplay}
-                                <button onclick="window.adminEliminarProducto('${p.id}')" class="text-rose-500 hover:text-rose-400 p-2 bg-rose-500/10 rounded-lg shrink-0 transition ml-2"><i class="fa-solid fa-trash"></i></button>
-                            </div>
+                            <div class="flex items-center gap-4 overflow-hidden w-full sm:w-auto">${img}<div><span class="font-bold text-slate-200 truncate block">${p.nombre}</span>${ventasDisplay}</div></div>
+                            <div class="flex items-center justify-end gap-3 shrink-0 w-full sm:w-auto">${stockDisplay}${precioDisplay}<button onclick="window.adminEliminarProducto('${p.id}')" class="text-rose-500 hover:text-rose-400 p-2 bg-rose-500/10 rounded-lg shrink-0 transition ml-2"><i class="fa-solid fa-trash"></i></button></div>
                         </div>`;
                     });
                     html += `</div></div>`;
@@ -761,28 +883,12 @@
                 cont.innerHTML = catHtml;
             } 
             else if(adminSubVista === 'espacios') {
-                let html = `<div class="max-w-5xl mx-auto w-full pb-20">
-                    <div class="flex flex-col sm:flex-row justify-between mb-6 gap-4">
-                        <h2 class="text-2xl font-black text-slate-100 hidden md:block">Zonas y Espacios</h2>
-                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                            <select id="add-espacio-zona" class="bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500 font-bold">
-                                <option value="barra">Barra</option>
-                                <option value="mesas">Mesas</option>
-                                <option value="vip">VIP</option>
-                            </select>
-                            <input type="text" id="add-espacio-nombre" placeholder="Nombre (Ej. Mesa 1)" class="w-full sm:w-auto bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500">
-                            <button onclick="window.adminAgregarEspacio()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold shadow-md transition">Añadir Espacio</button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
-
+                let html = `<div class="max-w-5xl mx-auto w-full pb-20"><div class="flex flex-col sm:flex-row justify-between mb-6 gap-4"><h2 class="text-2xl font-black text-slate-100 hidden md:block">Zonas y Espacios</h2><div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto"><select id="add-espacio-zona" class="bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500 font-bold"><option value="barra">Barra</option><option value="mesas">Mesas</option><option value="vip">VIP</option></select><input type="text" id="add-espacio-nombre" placeholder="Nombre (Ej. Mesa 1)" class="w-full sm:w-auto bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl text-sm text-white focus:border-amber-500"><button onclick="window.adminAgregarEspacio()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold shadow-md transition">Añadir Espacio</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
                 ['barra', 'mesas', 'vip'].forEach(zona => {
                     html += `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md"><h3 class="font-black text-amber-500 uppercase mb-3">${zona}</h3><div class="space-y-2">`;
                     const espacios = datosRestaurante[zona] || [];
                     if(espacios.length === 0) html += `<p class="text-slate-500 text-sm text-center py-4 bg-slate-950 rounded-xl">Sin espacios registrados</p>`;
-                    espacios.forEach(e => {
-                        html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800"><span class="font-bold text-slate-200">${e.nombre}</span><button onclick="window.adminEliminarEspacio('${e.id}')" class="text-rose-500 hover:text-rose-400 p-2 bg-rose-500/10 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></div>`;
-                    });
+                    espacios.forEach(e => { html += `<div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800"><span class="font-bold text-slate-200">${e.nombre}</span><button onclick="window.adminEliminarEspacio('${e.id}')" class="text-rose-500 hover:text-rose-400 p-2 bg-rose-500/10 rounded-lg transition"><i class="fa-solid fa-trash"></i></button></div>`; });
                     html += `</div></div>`;
                 });
                 html += `</div></div>`;
@@ -795,9 +901,7 @@
             const fisico = val === '' ? 0 : parseFloat(val);
             const res = document.getElementById('resultado-diferencia');
             const dif = fisico - esperado;
-            
             res.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-400', 'bg-rose-500/20', 'text-rose-400', 'bg-amber-500/20', 'text-amber-400');
-            
             if(dif > 0) { res.classList.add('bg-emerald-500/20', 'text-emerald-400'); res.innerHTML = `Sobrante a favor: +₡${dif.toLocaleString()}`; } 
             else if (dif < 0) { res.classList.add('bg-rose-500/20', 'text-rose-400'); res.innerHTML = `Faltante de caja: -₡${Math.abs(dif).toLocaleString()}`; } 
             else if (fisico > 0 && dif === 0) { res.classList.add('bg-amber-500/20', 'text-amber-400'); res.innerHTML = `¡Caja cuadrada perfectamente!`; } 
@@ -806,12 +910,7 @@
 
         window.cerrarTurnoDefinitivo = async function() {
             if(confirm("¿Estás seguro de que deseas cerrar el turno actual? Las ventas en caja se pondrán en 0 y se cerrará la sesión.")) {
-                await setDoc(doc(db, "sistema", "caja"), {
-                    estado: 'cerrada',
-                    fondoInicial: 0,
-                    fechaApertura: null
-                });
-                
+                await setDoc(doc(db, "sistema", "caja"), { estado: 'cerrada', fondoInicial: 0, fechaApertura: null });
                 window.customAlert("Turno cerrado exitosamente. Buen trabajo hoy.");
                 window.cerrarSesion();
             }
@@ -867,7 +966,6 @@
             const select = document.getElementById('add-prod-cat'); select.innerHTML = '';
             const listaCats = [...new Set([...categoriasPredeterminadas, ...datosRestaurante.categorias.map(c => c.nombre.toUpperCase())])];
             listaCats.forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
-            
             document.getElementById('modal-admin-producto').classList.remove('hidden');
         };
         
@@ -880,26 +978,14 @@
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
+                        let width = img.width, height = img.height;
                         const MAX_SIZE = 400;
-
-                        if (width > height && width > MAX_SIZE) {
-                            height *= MAX_SIZE / width;
-                            width = MAX_SIZE;
-                        } else if (height > MAX_SIZE) {
-                            width *= MAX_SIZE / height;
-                            height = MAX_SIZE;
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
+                        if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
+                        else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                        canvas.width = width; canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        
-                        document.getElementById('add-prod-preview-img').src = dataUrl; 
+                        document.getElementById('add-prod-preview-img').src = canvas.toDataURL('image/jpeg', 0.8); 
                         document.getElementById('add-prod-preview-img').classList.remove('hidden'); 
                         document.getElementById('add-prod-preview-text').classList.add('hidden'); 
                     };
@@ -932,23 +1018,13 @@
             }
 
             if(!nom) return window.customAlert('Indique el nombre del producto.');
-
             window.cerrarModalProductoAdmin();
             
             try {
-                await addDoc(collection(db, "productos"), { 
-                    categoria: cat.toUpperCase(), 
-                    nombre: nom, 
-                    precio: isVariantes ? null : precio, 
-                    variantes: isVariantes ? variantes : null,
-                    stock: isVariantes ? null : stock, 
-                    ventasTotales: 0,
-                    imagen: img 
-                });
+                await addDoc(collection(db, "productos"), { categoria: cat.toUpperCase(), nombre: nom, precio: isVariantes ? null : precio, variantes: isVariantes ? variantes : null, stock: isVariantes ? null : stock, ventasTotales: 0, imagen: img });
                 window.customAlert('¡Producto creado exitosamente!');
             } catch (error) {
-                console.error("Error en Firebase:", error);
-                window.customAlert('Ocurrió un error al guardar. Verifica tu conexión.');
+                console.error(error); window.customAlert('Ocurrió un error al guardar. Verifica tu conexión.');
             }
         };
 
@@ -960,46 +1036,32 @@
 
         window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto de la base de datos?')) await deleteDoc(doc(db, "productos", id)); };
 
-        // Función para abrir el modal en modo VENTA RÁPIDA
         window.abrirCobroRapido = function() {
-            esCobroRapido = true;
-            itemsRondaTemporal = [];
-            
+            esCobroRapido = true; itemsRondaTemporal = [];
             document.getElementById('modal-subtitulo-cliente').innerText = `Venta Rápida (Sin Mesa)`;
             const btnConfirmar = document.getElementById('btn-confirmar-ronda');
             btnConfirmar.innerHTML = `<i class="fa-solid fa-bolt mr-2"></i> Cobrar Ahora`;
             btnConfirmar.classList.replace('bg-emerald-600', 'bg-amber-500');
             btnConfirmar.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-400');
-            btnConfirmar.classList.add('text-slate-900');
-            btnConfirmar.classList.remove('text-white');
-            
-            window.renderizarPestanasModal(); 
-            window.actualizarContadorModal();
+            btnConfirmar.classList.add('text-slate-900'); btnConfirmar.classList.remove('text-white');
+            window.renderizarPestanasModal(); window.actualizarContadorModal();
             document.getElementById('modal-agregar-producto').classList.remove('hidden');
         };
 
         window.abrirModalAgregar = function() {
             if (!elementoSeleccionado) return;
             esCobroRapido = false;
-            
             document.getElementById('modal-subtitulo-cliente').innerText = `Cliente: ${elementoSeleccionado.cliente}`;
             const btnConfirmar = document.getElementById('btn-confirmar-ronda');
             btnConfirmar.innerHTML = `<i class="fa-solid fa-check mr-2"></i> Confirmar Ronda`;
             btnConfirmar.classList.replace('bg-amber-500', 'bg-emerald-600');
             btnConfirmar.classList.replace('hover:bg-amber-400', 'hover:bg-emerald-500');
-            btnConfirmar.classList.add('text-white');
-            btnConfirmar.classList.remove('text-slate-900');
-
-            itemsRondaTemporal = []; 
-            window.renderizarPestanasModal(); 
-            window.actualizarContadorModal();
+            btnConfirmar.classList.add('text-white'); btnConfirmar.classList.remove('text-slate-900');
+            itemsRondaTemporal = []; window.renderizarPestanasModal(); window.actualizarContadorModal();
             document.getElementById('modal-agregar-producto').classList.remove('hidden');
         };
 
-        window.cerrarModalProductos = function() { 
-            document.getElementById('modal-agregar-producto').classList.add('hidden'); 
-            esCobroRapido = false;
-        };
+        window.cerrarModalProductos = function() { document.getElementById('modal-agregar-producto').classList.add('hidden'); esCobroRapido = false; };
 
         window.renderizarPestanasModal = function() {
             const cont = document.getElementById('modal-categorias-container');
@@ -1020,13 +1082,11 @@
 
         window.renderizarProductosModal = function() {
             const grid = document.getElementById('grid-modal-productos'); grid.innerHTML = '';
-            
             let filtrados = datosRestaurante.productos.filter(p => {
                 const matchTexto = p.nombre.toLowerCase().includes(busquedaModal.toLowerCase());
                 const matchCat = (categoriaActivaModal === 'todas') || (p.categoria === categoriaActivaModal);
                 return matchTexto && matchCat;
             });
-
             filtrados.sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0));
 
             if(filtrados.length === 0) return grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p>No hay productos disponibles.</p></div>`;
@@ -1034,28 +1094,12 @@
             filtrados.forEach(prod => {
                 const btn = document.createElement('button');
                 btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-3 rounded-2xl flex flex-col justify-between text-center transition shadow-lg h-auto relative overflow-hidden active:scale-95";
-                
                 const isVar = prod.variantes && prod.variantes.length > 0;
-                
-                btn.onclick = () => {
-                    if(isVar) window.abrirModalSelVariantes(prod.id);
-                    else window.agregarItemTemporal(prod.nombre, prod.precio);
-                };
-                
-                // Clase mix-blend-screen agregada a la imagen para eliminar fondo negro
-                const imgTag = prod.imagen 
-                    ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md mix-blend-screen"></div>` 
-                    : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
-                
-                const precioTag = isVar 
-                    ? `<span class="font-bold text-amber-400 text-xs w-full bg-slate-800 rounded-md py-1 mt-1"><i class="fa-solid fa-layer-group mr-1"></i> Varios tamaños</span>` 
-                    : `<span class="font-black text-emerald-400 text-base w-full">₡${prod.precio.toLocaleString()}</span>`;
-
+                btn.onclick = () => { if(isVar) window.abrirModalSelVariantes(prod.id); else window.agregarItemTemporal(prod.nombre, prod.precio); };
+                const imgTag = prod.imagen ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md mix-blend-screen"></div>` : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
+                const precioTag = isVar ? `<span class="font-bold text-amber-400 text-xs w-full bg-slate-800 rounded-md py-1 mt-1"><i class="fa-solid fa-layer-group mr-1"></i> Varios tamaños</span>` : `<span class="font-black text-emerald-400 text-base w-full">₡${prod.precio.toLocaleString()}</span>`;
                 let popularBadge = '';
-                if (categoriaActivaModal === 'todas' && (prod.ventasTotales || 0) > 0) {
-                    popularBadge = `<div class="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg"><i class="fa-solid fa-fire mr-1"></i>${prod.ventasTotales}</div>`;
-                }
-
+                if (categoriaActivaModal === 'todas' && (prod.ventasTotales || 0) > 0) popularBadge = `<div class="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg"><i class="fa-solid fa-fire mr-1"></i>${prod.ventasTotales}</div>`;
                 btn.innerHTML = `${popularBadge}${imgTag}<span class="font-bold text-slate-200 text-sm truncate w-full mb-1">${prod.nombre}</span>${precioTag}`;
                 grid.appendChild(btn);
             });
@@ -1064,61 +1108,36 @@
         window.abrirModalSelVariantes = function(prodId) {
             const prod = datosRestaurante.productos.find(p => p.id === prodId);
             if(!prod || !prod.variantes) return;
-            
             productoVarianteActual = prod;
             document.getElementById('txt-variantes-titulo').innerText = `Tamaño: ${prod.nombre}`;
-            const cont = document.getElementById('lista-opciones-variantes');
-            cont.innerHTML = '';
-            
-            prod.variantes.forEach((v, idx) => {
-                cont.innerHTML += `<button onclick="window.confirmarVarianteTemporal(${idx})" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 rounded-xl flex justify-between items-center transition shadow-md active:scale-95"><span class="font-bold text-slate-200 text-lg">${v.nombre}</span><span class="font-black text-emerald-400 text-xl">₡${v.precio.toLocaleString()}</span></button>`;
-            });
+            const cont = document.getElementById('lista-opciones-variantes'); cont.innerHTML = '';
+            prod.variantes.forEach((v, idx) => { cont.innerHTML += `<button onclick="window.confirmarVarianteTemporal(${idx})" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 rounded-xl flex justify-between items-center transition shadow-md active:scale-95"><span class="font-bold text-slate-200 text-lg">${v.nombre}</span><span class="font-black text-emerald-400 text-xl">₡${v.precio.toLocaleString()}</span></button>`; });
             document.getElementById('modal-seleccion-variantes').classList.remove('hidden');
         };
 
-        window.cerrarModalSelVariantes = function() {
-            document.getElementById('modal-seleccion-variantes').classList.add('hidden');
-            productoVarianteActual = null;
-        };
+        window.cerrarModalSelVariantes = function() { document.getElementById('modal-seleccion-variantes').classList.add('hidden'); productoVarianteActual = null; };
 
         window.confirmarVarianteTemporal = function(idx) {
             const v = productoVarianteActual.variantes[idx];
-            const nombreCompleto = `${productoVarianteActual.nombre} (${v.nombre})`;
-            window.agregarItemTemporal(nombreCompleto, v.precio);
+            window.agregarItemTemporal(`${productoVarianteActual.nombre} (${v.nombre})`, v.precio);
             window.cerrarModalSelVariantes();
         };
 
-        window.agregarItemTemporal = function(nombreProd, precioProd) { 
-            itemsRondaTemporal.push({ nombre: nombreProd, precio: precioProd }); 
-            window.actualizarContadorModal(); 
-        };
-
+        window.agregarItemTemporal = function(nombreProd, precioProd) { itemsRondaTemporal.push({ nombre: nombreProd, precio: precioProd }); window.actualizarContadorModal(); };
         window.actualizarContadorModal = function() { const sub = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} (₡${sub.toLocaleString()})`; };
 
         window.guardarRondaActual = async function() {
             if (itemsRondaTemporal.length === 0) return window.customAlert('Seleccione productos.');
-            
             if (esCobroRapido) {
                 let suma = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0);
                 window.cerrarModalProductos();
-                
-                // Creamos un objeto falso en memoria solo para pasarlo al cajero
-                elementoSeleccionado = {
-                    id: 'flash',
-                    cliente: 'Venta Rápida',
-                    nombre: 'Mostrador',
-                    total: suma,
-                    rondas: [{ items: [...itemsRondaTemporal] }] // Hacemos una copia de los items
-                };
-                
+                elementoSeleccionado = { id: 'flash', cliente: 'Venta Rápida', nombre: 'Mostrador', total: suma, rondas: [{ items: [...itemsRondaTemporal] }] };
                 document.getElementById('txt-total-cobro').innerText = `₡${suma.toLocaleString()}`; 
                 document.getElementById('modal-cobro').classList.remove('hidden');
                 return;
             }
-
             if (!elementoSeleccionado) return;
             if(!elementoSeleccionado.rondas) elementoSeleccionado.rondas = [];
-            
             elementoSeleccionado.rondas.push({ items: [...itemsRondaTemporal] });
             let suma = 0; elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
             elementoSeleccionado.total = suma;
@@ -1151,8 +1170,7 @@
         window.eliminarRonda = async function(index) {
             if(confirm('¿Eliminar esta ronda?')) {
                 elementoSeleccionado.rondas.splice(index, 1);
-                let suma = 0;
-                elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
+                let suma = 0; elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
                 elementoSeleccionado.total = suma;
                 await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { rondas: elementoSeleccionado.rondas, total: suma });
                 window.actualizarListaPanel(); renderizarGridOperacion();
@@ -1162,33 +1180,22 @@
         window.actualizarListaPanel = function() {
             const cont = document.getElementById('lista-items-cuenta'); cont.innerHTML = '';
             if (!elementoSeleccionado.rondas || elementoSeleccionado.rondas.length === 0) { cont.innerHTML = `<p class="text-slate-500 text-sm text-center italic mt-10">Sin productos agregados</p>`; document.getElementById('panel-total').innerText = `₡0`; return; }
-            
             elementoSeleccionado.rondas.forEach((ronda, rIndex) => {
                 let subtotalRonda = ronda.items.reduce((acc, item) => acc + item.precio, 0);
                 let itemsHtml = '';
                 ronda.items.forEach(i => { itemsHtml += `<div class="flex justify-between items-center text-sm py-1 border-b border-slate-800/50"><span class="font-bold text-slate-200">${i.nombre}</span><span class="text-amber-400">₡${i.precio.toLocaleString()}</span></div>`; });
-                
-                cont.innerHTML += `<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3">
-                    <div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800">
-                        <span class="text-xs font-bold text-slate-400">Ronda #${rIndex + 1}</span>
-                        <button onclick="window.eliminarRonda(${rIndex})" class="text-rose-500 text-xs font-bold hover:text-rose-400 transition flex items-center gap-1"><i class="fa-solid fa-trash"></i> Eliminar</button>
-                    </div>
-                    ${itemsHtml}
-                    <div class="flex justify-between items-center pt-2 font-black text-emerald-400 text-sm"><span>Subtotal:</span><span>₡${subtotalRonda.toLocaleString()}</span></div>
-                </div>`;
+                cont.innerHTML += `<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3"><div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800"><span class="text-xs font-bold text-slate-400">Ronda #${rIndex + 1}</span><button onclick="window.eliminarRonda(${rIndex})" class="text-rose-500 text-xs font-bold hover:text-rose-400 transition flex items-center gap-1"><i class="fa-solid fa-trash"></i> Eliminar</button></div>${itemsHtml}<div class="flex justify-between items-center pt-2 font-black text-emerald-400 text-sm"><span>Subtotal:</span><span>₡${subtotalRonda.toLocaleString()}</span></div></div>`;
             });
             document.getElementById('panel-total').innerText = `₡${(elementoSeleccionado.total || 0).toLocaleString()}`;
         };
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
+        
         window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
         
         window.cerrarModalCobro = function() { 
             document.getElementById('modal-cobro').classList.add('hidden'); 
-            if (elementoSeleccionado && elementoSeleccionado.id === 'flash') {
-                elementoSeleccionado = null;
-                esCobroRapido = false;
-            }
+            if (elementoSeleccionado && elementoSeleccionado.id === 'flash') { elementoSeleccionado = null; esCobroRapido = false; }
         };
 
         window.procesarPagoConfirmado = async function(metodoPago) {
@@ -1210,16 +1217,17 @@
                 });
             }
 
-            // Guardar la fechaTurno ligada a la apertura de la caja
-            await addDoc(collection(db, "ventas_historial"), { 
+            const ventaNueva = { 
                 fecha: new Date().toISOString(), 
                 fechaTurno: fechaAperturaCaja || new Date().toISOString(),
                 metodo: metodoPago, 
                 total: monto, 
-                cliente: espacioCobro.cliente, 
-                zona: espacioCobro.nombre,
+                cliente: espacioCobro.cliente || 'General', 
+                zona: espacioCobro.nombre || 'Barra',
                 items: itemsVendidosParaHistorial
-            });
+            };
+
+            await addDoc(collection(db, "ventas_historial"), ventaNueva);
 
             for (const [nombre, cant] of Object.entries(cantidadesVendidas)) {
                 const prod = datosRestaurante.productos.find(p => nombre.startsWith(p.nombre));
@@ -1234,15 +1242,18 @@
                 }
             }
 
-            if (espacioCobro.id === 'flash') {
-                elementoSeleccionado = null;
-                esCobroRapido = false;
-            } else {
+            if (espacioCobro.id === 'flash') { elementoSeleccionado = null; esCobroRapido = false; } 
+            else {
                 await updateDoc(doc(db, "espacios", espacioCobro.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
                 window.cerrarPanel();
             }
             
-            window.customAlert(`✅ Cobro exitoso: ₡${monto.toLocaleString()} (${metodoPago})`);
+            // NUEVO: Mostrar modal de éxito para opción de imprimir
+            ventaReciente = ventaNueva;
+            let iconoMetodo = metodoPago === 'Efectivo' ? 'fa-money-bill-wave text-emerald-500' : (metodoPago === 'Tarjeta' ? 'fa-credit-card text-blue-400' : 'fa-mobile-screen text-rose-500');
+            document.getElementById('txt-exito-monto').innerText = `₡${monto.toLocaleString()}`;
+            document.getElementById('txt-exito-metodo').innerHTML = `<i class="fa-solid ${iconoMetodo} mr-2"></i>Pago registrado con ${metodoPago}`;
+            document.getElementById('modal-exito-cobro').classList.remove('hidden');
         };
     </script>
 
