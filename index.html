@@ -317,7 +317,7 @@
     <!-- SCRIPT PRINCIPAL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -338,9 +338,8 @@
         let rolUsuario = '';
         let esCobroRapido = false; 
         
-        let ventaReciente = null; // Para imprimir inmediatamente después de cobrar
+        let ventaReciente = null;
 
-        // Fechas por defecto para el filtro del historial
         let filtroDesde = new Date().toISOString().split('T')[0];
         let filtroHasta = new Date().toISOString().split('T')[0];
 
@@ -558,7 +557,6 @@
             else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
         };
 
-        // Función para formatear el ticket HTML listo para imprimir
         window.generarHTMLTicket = function(venta) {
             const fechaF = new Date(venta.fecha).toLocaleString('es-CR');
             let itemsHtml = '';
@@ -632,7 +630,6 @@
             }
         };
 
-        // CORRECCIÓN DEL FILTRO: Removido el llamado con 'window.' que bloqueaba la recarga
         window.actualizarFiltrosHistorial = function() {
             filtroDesde = document.getElementById('filtro-desde').value;
             filtroHasta = document.getElementById('filtro-hasta').value;
@@ -771,7 +768,6 @@
                     </div>
                 </div>`;
             }
-            // CORRECCIÓN: Parseo seguro de fechas locales y llamadas corregidas
             else if(adminSubVista === 'historial') {
                 let html = `<div class="max-w-5xl mx-auto w-full pb-20">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
@@ -784,7 +780,6 @@
                         </div>
                     </div>`;
 
-                // Método de conversión manual para evitar diferencias de horas GMT
                 const [y1, m1, d1] = filtroDesde.split('-');
                 const fDesde = new Date(y1, m1 - 1, d1, 0, 0, 0);
                 
@@ -924,7 +919,7 @@
         window.agregarClienteExtraBarra = async function() {
             const nom = await window.customPrompt("Nombre del nuevo cliente:");
             if(!nom) return;
-            await addDoc(collection(db, "espacios"), { nombre: 'Mesa Extra', categoria: vistaActual, estado: 'ocupada', cliente: nom, total: 0, rondas: [] });
+            await addDoc(collection(db, "espacios"), { nombre: 'Mesa Extra', categoria: vistaActual, estado: 'ocupada', cliente: nom, total: 0, rondas: [], esTemporal: true });
         };
 
         window.adminAgregarEspacio = async function() {
@@ -1100,7 +1095,8 @@
                 const btn = document.createElement('button');
                 btn.className = "bg-slate-900 border border-slate-800 hover:border-amber-500 p-3 rounded-2xl flex flex-col justify-between text-center transition shadow-lg h-auto relative overflow-hidden active:scale-95";
                 const isVar = prod.variantes && prod.variantes.length > 0;
-                btn.onclick = () => { if(isVar) window.abrirModalSelVariantes(prod.id); else window.agregarItemTemporal(prod.nombre, prod.precio); };
+                btn.onclick = () => { if(isVar) window.abrirModalSelVariantes(prod.id); else window.agregarItemTemporal(prod.id, prod.nombre, prod.precio); };
+                
                 const imgTag = prod.imagen ? `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 p-2 flex items-center justify-center"><img src="${prod.imagen}" class="w-full h-full object-contain drop-shadow-md mix-blend-screen"></div>` : `<div class="w-full h-24 bg-slate-950/50 rounded-xl mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-image text-3xl"></i></div>`;
                 const precioTag = isVar ? `<span class="font-bold text-amber-400 text-xs w-full bg-slate-800 rounded-md py-1 mt-1"><i class="fa-solid fa-layer-group mr-1"></i> Varios tamaños</span>` : `<span class="font-black text-emerald-400 text-base w-full">₡${prod.precio.toLocaleString()}</span>`;
                 let popularBadge = '';
@@ -1124,11 +1120,15 @@
 
         window.confirmarVarianteTemporal = function(idx) {
             const v = productoVarianteActual.variantes[idx];
-            window.agregarItemTemporal(`${productoVarianteActual.nombre} (${v.nombre})`, v.precio);
+            window.agregarItemTemporal(productoVarianteActual.id, `${productoVarianteActual.nombre} (${v.nombre})`, v.precio);
             window.cerrarModalSelVariantes();
         };
 
-        window.agregarItemTemporal = function(nombreProd, precioProd) { itemsRondaTemporal.push({ nombre: nombreProd, precio: precioProd }); window.actualizarContadorModal(); };
+        window.agregarItemTemporal = function(idProd, nombreProd, precioProd) { 
+            itemsRondaTemporal.push({ id: idProd, nombre: nombreProd, precio: precioProd }); 
+            window.actualizarContadorModal(); 
+        };
+        
         window.actualizarContadorModal = function() { const sub = itemsRondaTemporal.reduce((acc, i) => acc + i.precio, 0); document.getElementById('txt-items-seleccionados').innerText = `${itemsRondaTemporal.length} (₡${sub.toLocaleString()})`; };
 
         window.guardarRondaActual = async function() {
@@ -1167,7 +1167,11 @@
 
         window.liberarEspacio = async function() {
             if(confirm('¿Deseas liberar este espacio sin procesar cobro? (Se eliminarán todos los registros)')) {
-                await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
+                if (elementoSeleccionado.esTemporal || elementoSeleccionado.nombre === 'Mesa Extra') {
+                    await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
+                } else {
+                    await updateDoc(doc(db, "espacios", elementoSeleccionado.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
+                }
                 window.cerrarPanel();
             }
         };
@@ -1208,16 +1212,21 @@
             if (!espacioCobro) return;
 
             document.getElementById('modal-cobro').classList.add('hidden');
-
             const monto = espacioCobro.total;
-            let cantidadesVendidas = {};
+            
             let itemsVendidosParaHistorial = [];
+            let cantidadesVendidasPorId = {};
+            let cantidadesVendidasFallback = {}; 
             
             if (espacioCobro.rondas) {
                 espacioCobro.rondas.forEach(ronda => {
                     ronda.items.forEach(item => {
-                        cantidadesVendidas[item.nombre] = (cantidadesVendidas[item.nombre] || 0) + 1;
                         itemsVendidosParaHistorial.push(item);
+                        if (item.id) { 
+                            cantidadesVendidasPorId[item.id] = (cantidadesVendidasPorId[item.id] || 0) + 1;
+                        } else { 
+                            cantidadesVendidasFallback[item.nombre] = (cantidadesVendidasFallback[item.nombre] || 0) + 1;
+                        }
                     });
                 });
             }
@@ -1232,33 +1241,66 @@
                 items: itemsVendidosParaHistorial
             };
 
-            await addDoc(collection(db, "ventas_historial"), ventaNueva);
+            try {
+                const batch = writeBatch(db);
 
-            for (const [nombre, cant] of Object.entries(cantidadesVendidas)) {
-                const prod = datosRestaurante.productos.find(p => nombre.startsWith(p.nombre));
-                if (prod) {
-                    let updates = {};
-                    if (prod.stock !== null && prod.stock !== undefined) {
-                        let nuevoStock = prod.stock - cant;
-                        updates.stock = nuevoStock < 0 ? 0 : nuevoStock;
+                const refHistorial = doc(collection(db, "ventas_historial"));
+                batch.set(refHistorial, ventaNueva);
+
+                for (const [idProd, cant] of Object.entries(cantidadesVendidasPorId)) {
+                    const prod = datosRestaurante.productos.find(p => p.id === idProd);
+                    if (prod) {
+                        let updates = {};
+                        if (prod.stock !== null && prod.stock !== undefined) {
+                            let nuevoStock = prod.stock - cant;
+                            updates.stock = nuevoStock < 0 ? 0 : nuevoStock;
+                        }
+                        updates.ventasTotales = (prod.ventasTotales || 0) + cant;
+                        batch.update(doc(db, "productos", prod.id), updates);
                     }
-                    updates.ventasTotales = (prod.ventasTotales || 0) + cant;
-                    await updateDoc(doc(db, "productos", prod.id), updates);
                 }
-            }
 
-            if (espacioCobro.id === 'flash') { elementoSeleccionado = null; esCobroRapido = false; } 
-            else {
-                await updateDoc(doc(db, "espacios", espacioCobro.id), { estado: 'libre', cliente: '', total: 0, rondas: [] });
-                window.cerrarPanel();
+                for (const [nombre, cant] of Object.entries(cantidadesVendidasFallback)) {
+                    const prod = datosRestaurante.productos.find(p => nombre.startsWith(p.nombre));
+                    if (prod) {
+                        let updates = {};
+                        if (prod.stock !== null && prod.stock !== undefined) {
+                            let nuevoStock = prod.stock - cant;
+                            updates.stock = nuevoStock < 0 ? 0 : nuevoStock;
+                        }
+                        updates.ventasTotales = (prod.ventasTotales || 0) + cant;
+                        batch.update(doc(db, "productos", prod.id), updates);
+                    }
+                }
+
+                if (espacioCobro.id !== 'flash') {
+                    const refEspacio = doc(db, "espacios", espacioCobro.id);
+                    if (espacioCobro.esTemporal || espacioCobro.nombre === 'Mesa Extra') {
+                        batch.delete(refEspacio);
+                    } else {
+                        batch.update(refEspacio, { estado: 'libre', cliente: '', total: 0, rondas: [] });
+                    }
+                }
+
+                await batch.commit();
+
+                if (espacioCobro.id === 'flash') { 
+                    elementoSeleccionado = null; 
+                    esCobroRapido = false; 
+                } else {
+                    window.cerrarPanel();
+                }
+
+                ventaReciente = ventaNueva;
+                let iconoMetodo = metodoPago === 'Efectivo' ? 'fa-money-bill-wave text-emerald-500' : (metodoPago === 'Tarjeta' ? 'fa-credit-card text-blue-400' : 'fa-mobile-screen text-rose-500');
+                document.getElementById('txt-exito-monto').innerText = `₡${monto.toLocaleString()}`;
+                document.getElementById('txt-exito-metodo').innerHTML = `<i class="fa-solid ${iconoMetodo} mr-2"></i>Pago registrado con ${metodoPago}`;
+                document.getElementById('modal-exito-cobro').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error procesando pago:", error);
+                window.customAlert("Ocurrió un corte de conexión justo al cobrar. Revisa tu internet, verifica si la venta se guardó y vuelve a intentar.");
             }
-            
-            // Mostrar modal de éxito para opción de imprimir
-            ventaReciente = ventaNueva;
-            let iconoMetodo = metodoPago === 'Efectivo' ? 'fa-money-bill-wave text-emerald-500' : (metodoPago === 'Tarjeta' ? 'fa-credit-card text-blue-400' : 'fa-mobile-screen text-rose-500');
-            document.getElementById('txt-exito-monto').innerText = `₡${monto.toLocaleString()}`;
-            document.getElementById('txt-exito-metodo').innerHTML = `<i class="fa-solid ${iconoMetodo} mr-2"></i>Pago registrado con ${metodoPago}`;
-            document.getElementById('modal-exito-cobro').classList.remove('hidden');
         };
     </script>
 
