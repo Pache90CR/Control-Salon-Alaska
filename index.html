@@ -317,7 +317,8 @@
     <!-- SCRIPT PRINCIPAL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // CAMBIO AQUÍ: Agregado getDoc para el seguro anti-choques
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBrVAO_tc3pU7wehVEX9q-JUMkSOkTAdG8",
@@ -361,7 +362,7 @@
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [], ventas: [] };
 
-        // ESCUCHAS DE FIREBASE (AQUÍ ESTÁ LA NUEVA MAGIA DE SINCRONIZACIÓN EN VIVO)
+        // ESCUCHAS DE FIREBASE (CON SINCRONIZACIÓN EN VIVO)
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
             let espacioAunExiste = false;
@@ -372,12 +373,9 @@
                 else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
 
-                // MAGIA DE SINCRONIZACIÓN: Actualiza el panel lateral en vivo si está abierto
                 if (elementoSeleccionado && elementoSeleccionado.id === doc.id) {
                     espacioAunExiste = true;
-                    // Actualiza la memoria con los datos que acaba de meter la otra salonera
                     elementoSeleccionado = data; 
-                    // Si el panel está a la vista, redibuja los productos y el total frente a sus ojos
                     if (!document.getElementById('panel-cuenta').classList.contains('hidden')) {
                         document.getElementById('panel-cliente').innerText = data.cliente || 'Libre';
                         window.actualizarListaPanel();
@@ -385,9 +383,8 @@
                 }
             });
 
-            // PROTECCIÓN: Si la otra salonera cobró/liberó la mesa mientras yo la tenía abierta
             if (elementoSeleccionado && elementoSeleccionado.id !== 'flash' && !espacioAunExiste) {
-                window.customAlert("Alguien más acaba de cobrar o liberar esta mesa");
+                window.customAlert("Alguien más acaba de cobrar o liberar esta mesa.");
                 window.cerrarPanel();
             }
 
@@ -1172,18 +1169,36 @@
             window.actualizarListaPanel(); window.cerrarModalProductos();
         };
 
+        // CAMBIO AQUÍ: SISTEMA ANTI-CHOQUES PARA ASIENTOS (Verifica si alguien más ganó la mesa en ese milisegundo)
         window.seleccionarElemento = async function(id) {
-            const espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
+            let espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
+            
             if (espacio.estado === 'libre') {
                 const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nCliente:`, "");
                 if (!nom) return;
-                await updateDoc(doc(db, "espacios", id), { estado: 'ocupada', cliente: nom });
-                espacio.estado = 'ocupada'; espacio.cliente = nom;
+
+                // Consulta a la nube antes de guardar
+                const refEspacio = doc(db, "espacios", id);
+                const docActual = await getDoc(refEspacio);
+                
+                // Si la mesa se ocupó mientras yo escribía el nombre, se bloquea.
+                if (docActual.exists() && docActual.data().estado === 'ocupada') {
+                    window.customAlert(`¡Aviso! Otra salonera acaba de ocupar esta mesa con el cliente "${docActual.data().cliente}". Intenta con otro espacio.`);
+                    return; 
+                }
+
+                await updateDoc(refEspacio, { estado: 'ocupada', cliente: nom });
+                espacio.estado = 'ocupada'; 
+                espacio.cliente = nom;
             }
+            
             elementoSeleccionado = espacio;
-            document.getElementById('panel-cuenta').classList.remove('hidden'); document.getElementById('panel-cuenta').classList.add('flex');
-            document.getElementById('panel-cliente').innerText = espacio.cliente; document.getElementById('panel-titulo').innerText = espacio.nombre;
-            window.actualizarListaPanel(); renderizarGridOperacion();
+            document.getElementById('panel-cuenta').classList.remove('hidden'); 
+            document.getElementById('panel-cuenta').classList.add('flex');
+            document.getElementById('panel-cliente').innerText = espacio.cliente; 
+            document.getElementById('panel-titulo').innerText = espacio.nombre;
+            window.actualizarListaPanel(); 
+            renderizarGridOperacion();
         };
 
         window.liberarEspacio = async function() {
