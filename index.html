@@ -361,15 +361,36 @@
         const categoriasPredeterminadas = ['REFRESCOS', 'CERVEZAS', 'COMIDAS', 'LICORES'];
         let datosRestaurante = { barra: [], mesas: [], vip: [], productos: [], categorias: [], ventas: [] };
 
-        // ESCUCHAS DE FIREBASE
+        // ESCUCHAS DE FIREBASE (AQUÍ ESTÁ LA NUEVA MAGIA DE SINCRONIZACIÓN EN VIVO)
         onSnapshot(collection(db, "espacios"), (snapshot) => {
             datosRestaurante.barra = []; datosRestaurante.mesas = []; datosRestaurante.vip = [];
+            let espacioAunExiste = false;
+
             snapshot.forEach((doc) => {
                 const data = doc.data(); data.id = doc.id;
                 if(data.categoria === 'barra') datosRestaurante.barra.push(data);
                 else if(data.categoria === 'mesas') datosRestaurante.mesas.push(data);
                 else if(data.categoria === 'vip') datosRestaurante.vip.push(data);
+
+                // MAGIA DE SINCRONIZACIÓN: Actualiza el panel lateral en vivo si está abierto
+                if (elementoSeleccionado && elementoSeleccionado.id === doc.id) {
+                    espacioAunExiste = true;
+                    // Actualiza la memoria con los datos que acaba de meter la otra salonera
+                    elementoSeleccionado = data; 
+                    // Si el panel está a la vista, redibuja los productos y el total frente a sus ojos
+                    if (!document.getElementById('panel-cuenta').classList.contains('hidden')) {
+                        document.getElementById('panel-cliente').innerText = data.cliente || 'Libre';
+                        window.actualizarListaPanel();
+                    }
+                }
             });
+
+            // PROTECCIÓN: Si la otra salonera cobró/liberó la mesa mientras yo la tenía abierta
+            if (elementoSeleccionado && elementoSeleccionado.id !== 'flash' && !espacioAunExiste) {
+                window.customAlert("Alguien más acaba de cobrar o liberar esta mesa.");
+                window.cerrarPanel();
+            }
+
             const ordenarAlfanumerico = (a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' });
             datosRestaurante.barra.sort(ordenarAlfanumerico);
             datosRestaurante.mesas.sort(ordenarAlfanumerico);
