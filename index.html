@@ -47,6 +47,18 @@
             </div>
         </div>
 
+        <!-- MODAL CUSTOM CONFIRM -->
+        <div id="modal-custom-confirm" class="fixed inset-0 bg-slate-950/90 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+                <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <p id="confirm-msg" class="text-slate-200 text-lg mb-6"></p>
+                <div class="flex gap-3">
+                    <button onclick="window.cancelarConfirm()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-3 rounded-xl border border-slate-700">Cancelar</button>
+                    <button onclick="window.aceptarConfirm()" class="flex-1 bg-rose-600 text-white font-bold py-3 rounded-xl">Aceptar</button>
+                </div>
+            </div>
+        </div>
+
         <!-- MODAL ÉXITO Y TICKET -->
         <div id="modal-exito-cobro" class="fixed inset-0 bg-slate-950/90 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-sm no-print">
             <div class="bg-slate-900 border border-emerald-500/30 p-6 rounded-3xl w-full max-w-sm shadow-2xl text-center">
@@ -317,7 +329,6 @@
     <!-- SCRIPT PRINCIPAL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // CAMBIO AQUÍ: Agregado getDoc para el seguro anti-choques
         import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, setDoc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -454,6 +465,17 @@
 
         window.customAlert = function(msg) { document.getElementById('alert-msg').innerText = msg; document.getElementById('modal-custom-alert').classList.remove('hidden'); };
         window.cerrarAlert = function() { document.getElementById('modal-custom-alert').classList.add('hidden'); };
+
+        // NUEVA FUNCIÓN DE CONFIRMACIÓN PERSONALIZADA
+        window.customConfirm = function(msg) {
+            return new Promise((resolve) => {
+                document.getElementById('confirm-msg').innerText = msg;
+                document.getElementById('modal-custom-confirm').classList.remove('hidden');
+                
+                window.aceptarConfirm = () => { document.getElementById('modal-custom-confirm').classList.add('hidden'); resolve(true); };
+                window.cancelarConfirm = () => { document.getElementById('modal-custom-confirm').classList.add('hidden'); resolve(false); };
+            });
+        };
 
         window.customPrompt = function(msg, defaultVal = '') {
             return new Promise((resolve) => {
@@ -875,7 +897,7 @@
                         const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-contain rounded bg-slate-950 p-1 border border-slate-800 mix-blend-screen">` : `<div class="w-12 h-12 rounded bg-slate-950 flex items-center justify-center text-slate-600 border border-slate-800 shrink-0"><i class="fa-solid fa-image"></i></div>`;
                         const isVar = p.variantes && p.variantes.length > 0;
                         const precioDisplay = isVar 
-                            ? `<div class="text-right flex flex-col items-end gap-1">` + p.variantes.map(v => `<span class="text-[11px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">${v.nombre}: <span class="text-emerald-400">₡${v.precio.toLocaleString()}</span></span>`).join('') + `</div>`
+                            ? `<div class="text-right flex flex-col items-end gap-1">` + p.variantes.map(v => `<span class="text-[11px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">${v.nombre}: <span class="textemerald-400">₡${v.precio.toLocaleString()}</span></span>`).join('') + `</div>`
                             : `<span class="font-black text-emerald-400 text-lg whitespace-nowrap">₡${p.precio.toLocaleString()}</span>`;
                         let stockDisplay = '';
                         if (!isVar && p.stock !== null && p.stock !== undefined) {
@@ -927,7 +949,7 @@
         };
 
         window.cerrarTurnoDefinitivo = async function() {
-            if(confirm("¿Estás seguro de que deseas cerrar el turno actual? Las ventas en caja se pondrán en 0 y se cerrará la sesión.")) {
+            if(await window.customConfirm("¿Estás seguro de que deseas cerrar el turno actual? Las ventas en caja se pondrán en 0 y se cerrará la sesión.")) {
                 await setDoc(doc(db, "sistema", "caja"), { estado: 'cerrada', fondoInicial: 0, fechaApertura: null });
                 window.customAlert("Turno cerrado exitosamente. Buen trabajo hoy.");
                 window.cerrarSesion();
@@ -948,7 +970,9 @@
             document.getElementById('add-espacio-nombre').value = '';
         };
 
-        window.adminEliminarEspacio = async function(id) { if(confirm('¿Seguro que desea eliminar este espacio?')) await deleteDoc(doc(db, "espacios", id)); };
+        window.adminEliminarEspacio = async function(id) { 
+            if(await window.customConfirm('¿Seguro que desea eliminar este espacio?')) await deleteDoc(doc(db, "espacios", id)); 
+        };
 
         window.toggleVariantesAdmin = function() {
             const isChecked = document.getElementById('check-variantes').checked;
@@ -1052,7 +1076,9 @@
             await addDoc(collection(db, "categorias"), { nombre: nom }); document.getElementById('add-cat-nombre').value = '';
         };
 
-        window.adminEliminarProducto = async function(id) { if(confirm('¿Eliminar producto de la base de datos?')) await deleteDoc(doc(db, "productos", id)); };
+        window.adminEliminarProducto = async function(id) { 
+            if(await window.customConfirm('¿Eliminar producto de la base de datos?')) await deleteDoc(doc(db, "productos", id)); 
+        };
 
         window.abrirCobroRapido = function() {
             esCobroRapido = true; itemsRondaTemporal = [];
@@ -1169,7 +1195,6 @@
             window.actualizarListaPanel(); window.cerrarModalProductos();
         };
 
-        // CAMBIO AQUÍ: SISTEMA ANTI-CHOQUES PARA ASIENTOS (Verifica si alguien más ganó la mesa en ese milisegundo)
         window.seleccionarElemento = async function(id) {
             let espacio = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].find(e => e.id === id);
             
@@ -1177,11 +1202,9 @@
                 const nom = await window.customPrompt(`Apertura en ${espacio.nombre}.\nCliente:`, "");
                 if (!nom) return;
 
-                // Consulta a la nube antes de guardar
                 const refEspacio = doc(db, "espacios", id);
                 const docActual = await getDoc(refEspacio);
                 
-                // Si la mesa se ocupó mientras yo escribía el nombre, se bloquea.
                 if (docActual.exists() && docActual.data().estado === 'ocupada') {
                     window.customAlert(`¡Aviso! Otra salonera acaba de ocupar esta mesa con el cliente "${docActual.data().cliente}". Intenta con otro espacio.`);
                     return; 
@@ -1202,7 +1225,7 @@
         };
 
         window.liberarEspacio = async function() {
-            if(confirm('¿Deseas liberar este espacio sin procesar cobro? (Se eliminarán todos los registros)')) {
+            if(await window.customConfirm('¿Deseas liberar este espacio sin procesar cobro? (Se eliminarán todos los registros)')) {
                 if (elementoSeleccionado.esTemporal || elementoSeleccionado.nombre === 'Mesa Extra') {
                     await deleteDoc(doc(db, "espacios", elementoSeleccionado.id));
                 } else {
@@ -1213,7 +1236,7 @@
         };
 
         window.eliminarRonda = async function(index) {
-            if(confirm('¿Eliminar esta ronda?')) {
+            if(await window.customConfirm('¿Eliminar esta ronda?')) {
                 elementoSeleccionado.rondas.splice(index, 1);
                 let suma = 0; elementoSeleccionado.rondas.forEach(r => r.items.forEach(i => suma += i.precio));
                 elementoSeleccionado.total = suma;
