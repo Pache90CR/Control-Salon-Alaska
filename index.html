@@ -707,6 +707,18 @@
             if(nuevoStock < 0) nuevoStock = 0;
             await updateDoc(doc(db, "productos", id), { stock: nuevoStock });
         };
+        
+        window.adminIngresoMasivo = async function(id, nombre) {
+            const prod = datosRestaurante.productos.find(p => p.id === id);
+            if(!prod || prod.stock === null || prod.stock === undefined) return;
+            
+            const cantidadIngresada = await window.customPrompt(`¿Cuántas unidades de ${nombre} ingresaron en la factura?`, "");
+            if(cantidadIngresada && !isNaN(cantidadIngresada) && parseInt(cantidadIngresada) > 0) {
+                const nuevoStock = prod.stock + parseInt(cantidadIngresada);
+                await updateDoc(doc(db, "productos", id), { stock: nuevoStock });
+                window.customAlert(`¡Listo! Se agregaron ${cantidadIngresada} unidades a ${nombre}. Nuevo stock: ${nuevoStock}`);
+            }
+        };
 
         function renderizarModuloAdmin() {
             const cont = document.getElementById('contenedor-admin');
@@ -920,10 +932,17 @@
                         const precioDisplay = isVar 
                             ? `<div class="text-right flex flex-col items-end gap-1">` + p.variantes.map(v => `<span class="text-[11px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">${v.nombre}: <span class="text-emerald-400">₡${v.precio.toLocaleString()}</span></span>`).join('') + `</div>`
                             : `<span class="font-black text-emerald-400 text-lg whitespace-nowrap">₡${p.precio.toLocaleString()}</span>`;
+                        
                         let stockDisplay = '';
                         if (!isVar && p.stock !== null && p.stock !== undefined) {
-                            stockDisplay = `<div class="flex items-center gap-1 bg-slate-950 rounded-lg p-1 border border-slate-700 shrink-0"><button onclick="window.adminActualizarStock('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-minus text-xs"></i></button><span class="font-black text-amber-500 w-8 text-center text-sm">${p.stock}</span><button onclick="window.adminActualizarStock('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-plus text-xs"></i></button></div>`;
+                            stockDisplay = `<div class="flex items-center gap-1 bg-slate-950 rounded-lg p-1 border border-slate-700 shrink-0">
+                                <button onclick="window.adminActualizarStock('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-minus text-xs"></i></button>
+                                <span class="font-black text-amber-500 w-8 text-center text-sm">${p.stock}</span>
+                                <button onclick="window.adminActualizarStock('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-400 bg-slate-900 rounded-md transition"><i class="fa-solid fa-plus text-xs"></i></button>
+                                <button onclick="window.adminIngresoMasivo('${p.id}', '${p.nombre}')" class="w-8 h-8 flex items-center justify-center text-blue-400 hover:text-blue-300 bg-blue-900/20 border border-blue-900/50 rounded-md transition ml-1" title="Ingreso de Factura"><i class="fa-solid fa-boxes-stacked text-xs"></i></button>
+                            </div>`;
                         }
+                        
                         const ventasDisplay = p.ventasTotales ? `<div class="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-md mt-1"><i class="fa-solid fa-fire text-amber-500 mr-1"></i>${p.ventasTotales} vendidos</div>` : '';
 
                         html += `<div class="py-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
@@ -1102,6 +1121,7 @@
         };
 
         window.abrirCobroRapido = function() {
+            if (!cajaAbierta) return window.customAlert('La caja está cerrada. Un administrador debe abrir el turno antes de realizar ventas.');
             esCobroRapido = true; itemsRondaTemporal = [];
             document.getElementById('modal-subtitulo-cliente').innerText = `Venta Rápida (Sin Mesa)`;
             const btnConfirmar = document.getElementById('btn-confirmar-ronda');
@@ -1280,7 +1300,12 @@
 
         window.cerrarPanel = function() { document.getElementById('panel-cuenta').classList.add('hidden'); document.getElementById('panel-cuenta').classList.remove('flex'); elementoSeleccionado = null; };
         
-        window.iniciarCobro = function() { if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; document.getElementById('modal-cobro').classList.remove('hidden'); };
+        window.iniciarCobro = function() { 
+            if (!cajaAbierta) return window.customAlert('La caja está cerrada. Un administrador debe abrir el turno antes de poder cobrar.');
+            if (!elementoSeleccionado || !elementoSeleccionado.total) return window.cerrarPanel(); 
+            document.getElementById('txt-total-cobro').innerText = `₡${elementoSeleccionado.total.toLocaleString()}`; 
+            document.getElementById('modal-cobro').classList.remove('hidden'); 
+        };
         
         window.cerrarModalCobro = function() { 
             document.getElementById('modal-cobro').classList.add('hidden'); 
