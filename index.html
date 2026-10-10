@@ -669,6 +669,61 @@
             }
         };
 
+        // NUEVA FUNCIÓN PARA ANULAR VENTAS
+        window.anularVentaHistorial = async function(idVenta) {
+            const pin = await window.customPromptPin("Ingrese PIN de Administrador para anular esta venta:");
+            if (pin !== pinAdmin) {
+                return window.customAlert("PIN incorrecto. No se puede anular la venta.");
+            }
+
+            if (!await window.customConfirm("¿Estás completamente seguro de anular esta venta? Esto borrará el registro, devolverá los productos al inventario y restará el dinero del turno.")) {
+                return;
+            }
+
+            const ventaObj = datosRestaurante.ventas.find(v => v.id === idVenta);
+            if (!ventaObj) {
+                return window.customAlert("No se encontró la venta en el sistema.");
+            }
+
+            try {
+                const batch = writeBatch(db);
+
+                // 1. Eliminar el documento de la venta del historial
+                batch.delete(doc(db, "ventas_historial", idVenta));
+
+                // 2. Devolver stock y restar ventas totales a los productos involucrados
+                if (ventaObj.items && ventaObj.items.length > 0) {
+                    let itemsDevolver = {};
+                    ventaObj.items.forEach(item => {
+                        if (item.id) {
+                            itemsDevolver[item.id] = (itemsDevolver[item.id] || 0) + 1;
+                        }
+                    });
+
+                    for (const [idProd, cant] of Object.entries(itemsDevolver)) {
+                        const prod = datosRestaurante.productos.find(p => p.id === idProd);
+                        if (prod) {
+                            let updates = {};
+                            if (prod.stock !== null && prod.stock !== undefined) {
+                                updates.stock = prod.stock + cant;
+                            }
+                            let nuevasVentasTotales = (prod.ventasTotales || 0) - cant;
+                            updates.ventasTotales = nuevasVentasTotales < 0 ? 0 : nuevasVentasTotales;
+
+                            batch.update(doc(db, "productos", prod.id), updates);
+                        }
+                    }
+                }
+
+                await batch.commit();
+                window.customAlert("¡Venta anulada con éxito! El inventario ha sido devuelto y el balance actualizado.");
+
+            } catch (error) {
+                console.error("Error al anular venta:", error);
+                window.customAlert("Ocurrió un error al procesar la anulación. Revisa tu conexión.");
+            }
+        };
+
         window.actualizarFiltrosHistorial = function() {
             filtroDesde = document.getElementById('filtro-desde').value;
             filtroHasta = document.getElementById('filtro-hasta').value;
@@ -728,40 +783,28 @@
                 const espaciosOcupados = [...datosRestaurante.barra, ...datosRestaurante.mesas, ...datosRestaurante.vip].filter(e => e.estado === 'ocupada').length;
                 const totalProductos = datosRestaurante.productos.length;
                 
-                // NUEVA LÓGICA: SEMANA COMERCIAL (Se reinicia sola todos los martes)
                 let ventasPorDia = [0, 0, 0, 0, 0, 0, 0];
                 const hoy = new Date();
-                
-                // Encontrar el inicio de la semana (Martes)
                 const diaSemana = hoy.getDay(); 
-                // En Javascript domingo es 0, lunes 1, martes 2.
-                // Calculamos cuántos días han pasado desde el último martes.
                 const ajusteMartes = diaSemana >= 2 ? diaSemana - 2 : diaSemana + 5; 
                 
                 const inicioSemana = new Date(hoy);
                 inicioSemana.setDate(hoy.getDate() - ajusteMartes);
-                inicioSemana.setHours(0,0,0,0); // Martes a la medianoche
+                inicioSemana.setHours(0,0,0,0);
 
                 datosRestaurante.ventas.forEach(v => {
                     if (v.fecha) {
                         const fechaReferencia = new Date(v.fechaTurno || v.fecha);
-                        // Solo suma si la venta se hizo desde este martes en adelante
                         if(fechaReferencia >= inicioSemana) {
                             ventasPorDia[fechaReferencia.getDay()] += v.total;
                         }
                     }
                 });
 
-                // Ordenamos para que la gráfica empiece el Martes y termine el Lunes
                 const labelsOrdenados = ['M', 'W', 'J', 'V', 'S', 'D', 'L'];
                 const datosOrdenados = [
-                    ventasPorDia[2], // Martes (M)
-                    ventasPorDia[3], // Miércoles (W)
-                    ventasPorDia[4], // Jueves (J)
-                    ventasPorDia[5], // Viernes (V)
-                    ventasPorDia[6], // Sábado (S)
-                    ventasPorDia[0], // Domingo (D)
-                    ventasPorDia[1]  // Lunes (L)
+                    ventasPorDia[2], ventasPorDia[3], ventasPorDia[4], 
+                    ventasPorDia[5], ventasPorDia[6], ventasPorDia[0], ventasPorDia[1]
                 ];
                 const maxVenta = Math.max(...datosOrdenados, 1); 
 
@@ -889,9 +932,12 @@
                                 </div>
                                 <p class="font-bold text-slate-100">${v.cliente || 'General'} <span class="text-slate-500 font-normal text-sm ml-1">(${v.zona || 'Barra'})</span></p>
                             </div>
-                            <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-0 border-slate-800 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                            <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 border-slate-800 pt-3 sm:pt-0 mt-2 sm:mt-0">
                                 <span class="text-xl font-black text-emerald-400">₡${v.total.toLocaleString()}</span>
-                                <button onclick="window.imprimirTicketDesdeHistorial('${v.id}')" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-4 py-3 sm:p-3 rounded-xl transition border border-slate-700 w-full sm:w-auto shadow-md" title="Imprimir Comprobante"><i class="fa-solid fa-print"></i></button>
+                                <div class="flex gap-2">
+                                    <button onclick="window.imprimirTicketDesdeHistorial('${v.id}')" class="bg-slate-800 hover:bg-slate-700 text-amber-400 p-3 rounded-xl transition border border-slate-700 shadow-md" title="Imprimir Comprobante"><i class="fa-solid fa-print"></i></button>
+                                    <button onclick="window.anularVentaHistorial('${v.id}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 p-3 rounded-xl transition border border-rose-500/30 shadow-md" title="Anular / Reversar Venta"><i class="fa-solid fa-rotate-left"></i></button>
+                                </div>
                             </div>
                         </div>`;
                     });
