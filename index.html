@@ -669,14 +669,14 @@
             }
         };
 
-        // NUEVA FUNCIÓN PARA ANULAR VENTAS
+        // NUEVA FUNCIÓN PARA ANULAR VENTAS Y REVIVIR LA MESA
         window.anularVentaHistorial = async function(idVenta) {
             const pin = await window.customPromptPin("Ingrese PIN de Administrador para anular esta venta:");
             if (pin !== pinAdmin) {
                 return window.customAlert("PIN incorrecto. No se puede anular la venta.");
             }
 
-            if (!await window.customConfirm("¿Estás completamente seguro de anular esta venta? Esto borrará el registro, devolverá los productos al inventario y restará el dinero del turno.")) {
+            if (!await window.customConfirm("¿Estás seguro? Se borrará el ticket, se devolverá el inventario y la cuenta REAPARECERÁ en el salón para cobrarse de nuevo.")) {
                 return;
             }
 
@@ -715,8 +715,23 @@
                     }
                 }
 
+                // Ejecutar los cambios de borrado de venta y devolución de stock
                 await batch.commit();
-                window.customAlert("¡Venta anulada con éxito! El inventario ha sido devuelto y el balance actualizado.");
+
+                // 3. REVIVIR LA MESA EN EL SALÓN (Como un espacio temporal seguro)
+                if (ventaObj.items && ventaObj.items.length > 0) {
+                    await addDoc(collection(db, "espacios"), { 
+                        nombre: `${ventaObj.zona || 'Mesa'} (Reversado)`, 
+                        categoria: ventaObj.categoriaZona || 'barra', 
+                        estado: 'ocupada', 
+                        cliente: ventaObj.cliente || 'Cuenta Recuperada', 
+                        total: ventaObj.total, 
+                        rondas: [{ items: ventaObj.items }], 
+                        esTemporal: true 
+                    });
+                }
+
+                window.customAlert("¡Venta anulada! La cuenta volvió a aparecer en el salón con todos sus productos listos para corregir.");
 
             } catch (error) {
                 console.error("Error al anular venta:", error);
@@ -1389,6 +1404,7 @@
                 total: monto, 
                 cliente: espacioCobro.cliente || 'General', 
                 zona: espacioCobro.nombre || 'Barra',
+                categoriaZona: espacioCobro.categoria || 'barra',
                 items: itemsVendidosParaHistorial
             };
 
